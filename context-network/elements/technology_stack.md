@@ -24,14 +24,27 @@ This document details the production-proven Rust libraries and tools that form t
 **async-openai** (v0.24+)
 - **Purpose**: OpenAI API client with async support
 - **Why**: 1.1M+ downloads, streaming support, function calling
-- **Usage**: Primary LLM provider interface
+- **Usage**: Direct OpenAI provider implementation
 - **Features**: Streaming, embeddings, vision, assistants API
+
+**OpenRouter Client** (Custom implementation)
+- **Purpose**: Universal LLM routing service integration
+- **Why**: Access to 100+ models through single API, automatic failover
+- **Usage**: Primary provider for model flexibility
+- **Features**: Provider routing, cost optimization, fallback handling
+- **Models**: Claude, GPT-4, Gemini, Llama, Mistral, and more
 
 **Rig** (v0.3+)
 - **Purpose**: High-level LLM application framework
 - **Why**: Unified interface across providers, RAG support built-in
-- **Usage**: Provider abstraction, prompt management, agent patterns
+- **Usage**: Provider abstraction patterns, prompt management
 - **Backed by**: Dria, Linera Protocol
+
+**Additional Provider Support**:
+- **Anthropic SDK**: Direct Claude API access when needed
+- **Google AI SDK**: Gemini model integration
+- **Ollama Client**: Local model support
+- **Custom Providers**: Extensible trait-based system
 
 #### Validation Framework
 **Tower** (v0.5+)
@@ -213,15 +226,25 @@ mockito = "1.6"
 use async_trait::async_trait;
 
 #[async_trait]
-pub trait LLMProvider: Send + Sync {
-    async fn complete(&self, prompt: &str) -> Result<String, Error>;
-    async fn embed(&self, text: &str) -> Result<Vec<f32>, Error>;
+pub trait ModelProvider: Send + Sync {
+    async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse, Error>;
+    async fn embed(&self, request: EmbeddingRequest) -> Result<EmbeddingResponse, Error>;
+    async fn list_models(&self) -> Result<Vec<ModelInfo>, Error>;
+    async fn supports_model(&self, model: &ModelId) -> bool;
 }
 
-// Implementations for different providers
-pub struct OpenAIProvider { /* ... */ }
-pub struct AnthropicProvider { /* ... */ }
-pub struct LocalProvider { /* ... */ }
+// Provider implementations with cascading configuration
+pub struct OpenRouterProvider { /* Universal router */ }
+pub struct OpenAIProvider { /* Direct OpenAI */ }
+pub struct AnthropicProvider { /* Direct Anthropic */ }
+pub struct OllamaProvider { /* Local models */ }
+
+// Cascading configuration example
+let response = agent
+    .complete("Hello")  // Uses defaults
+    .with_model("claude-3-opus")  // Override model only
+    .with_provider(Provider::OpenRouter)  // Override provider too
+    .await?;
 ```
 
 #### Tower Middleware Stack
