@@ -1,5 +1,16 @@
 # CLAUDE.md - Context Network Project
 
+## 🛑 CRITICAL PROJECT STATUS: PLANNING ONLY - NO CODING YET
+
+**IMPORTANT**: This project is in the PLANNING PHASE. Do NOT write any implementation code in `/src/` until an explicit decision is documented in `/context-network/decisions/begin_coding_decision.md`. See [CRITICAL_NO_CODING_YET.md](./context-network/decisions/CRITICAL_NO_CODING_YET.md) for full details.
+
+Current activities should focus on:
+- Refining architecture documents
+- Clarifying design decisions  
+- Building shared understanding
+- Documenting questions and uncertainties
+- Validating the approach
+
 ## Core Philosophy: Slow Down to Go Fast
 
 **Being helpful means understanding before acting.** This project values:
