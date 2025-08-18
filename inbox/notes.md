@@ -1,0 +1,7 @@
+# Stuff I Want To Discuss/Design
+* Dependency injection and the "freedom to without the obligation to" when it comes to overriding in code hierarchy, but also design-time/compile-time/runtime/etc.
+* Web API exposure of agents and tools and that it should be done entirely via A2A, MCP and other open protocols.
+* That workflows should appear to the outside as just tools.
+* CLI exposure of agents. Should be possible without it being "point at an API instance" in the same "freedom to without obligation to" philosophy. It's great to be able to connect to other A2A agents or MCP tools, but if that's the ONLY way to do it, it limits tools that are very focused on local interactions with resources like filesystems inside containers.
+* Configuration should be via environment variables or local dotfolder setup. That combination allows config to be pushed in from the outside in deployed cloud setups, but also allows local overrides that persist if things like containers are rebuilt. Use of the user's home directory is a mess when it comes to devcontainers.
+* How agents can be built with "internal" checks on exiting the agent loop with statements like "The only remaining test failure is unrelated to our refactoring - it's a dialogue tool usage issue in the Character Agent that was already present." Where a "conscience" aspect can kick in that says "doesn't matter if it seems unrelated, we fix all tests before moving on", prevent the task from being declared complete and instead, course corrected.

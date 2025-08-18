@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /workspaces/patinox/src)",
+      "Bash(mv /workspaces/patinox/inbox/RustLLMAgentFrameworkResearch.md /workspaces/patinox/context-network/archive/)",
+      "Bash(mv /workspaces/patinox/inbox/rust-agent-framework-readme.md /workspaces/patinox/context-network/archive/)",
+      "Bash(claude --version)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "/workspaces/patinox/.claude",
+      "/home/vscode/.claude/projects",
+      "/home/vscode/.local/share/claude/versions"
+    ]
+  }
+}
