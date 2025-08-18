@@ -19,6 +19,17 @@ elements/
 │   └── [other element-specific documentation]
 ```
 
+## Current Elements
+
+The following element documentation files are available:
+
+- **[architecture_overview.md](architecture_overview.md)** - MAPE-K pattern and layered architecture design
+- **[configuration_strategy.md](configuration_strategy.md)** - Cascading configuration approach
+- **[model_provider_abstraction.md](model_provider_abstraction.md)** - LLM provider abstraction design
+- **[monitoring_strategy.md](monitoring_strategy.md)** - Embedded monitoring and validation approach
+- **[rust_patterns.md](rust_patterns.md)** - Rust-specific patterns for safety and performance
+- **[technology_stack.md](technology_stack.md)** - Production-proven libraries and tools
+
 ## Element Types
 
 Elements can represent various aspects of a project, depending on the project type. Examples include:

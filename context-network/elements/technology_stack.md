@@ -44,6 +44,8 @@ This document details the production-proven Rust libraries and tools that form t
 - **Anthropic SDK**: Direct Claude API access when needed
 - **Google AI SDK**: Gemini model integration
 - **Ollama Client**: Local model support
+- **mistral.rs** (v0.1+): High-performance local inference with quantization
+- **Candle** (v0.7+): Hugging Face-backed ML framework for local models
 - **Custom Providers**: Extensible trait-based system
 
 #### Validation Framework
@@ -78,6 +80,13 @@ This document details the production-proven Rust libraries and tools that form t
 - **Why**: Zero-deployment, multi-modal support, columnar storage
 - **Usage**: Local development, edge deployment
 - **Features**: SQL interface, automatic versioning
+
+#### Actor Model & Concurrency
+**Actix** (v4.9+)
+- **Purpose**: Actor framework for agent communication
+- **Why**: Proven actor model, excellent for multi-agent systems
+- **Usage**: Agent supervision trees, message passing
+- **Features**: Fault tolerance, hierarchical supervision
 
 ### Supporting Libraries
 
@@ -291,8 +300,9 @@ let service = ServiceBuilder::new()
 
 ## Metadata
 - **Created:** 2025-01-17
-- **Last Updated:** 2025-01-17
+- **Last Updated:** 2025-01-18
 - **Updated By:** Development Team
 
 ## Change History
 - 2025-01-17: Initial technology stack with core dependencies and integration patterns
+- 2025-01-18: Added local inference libraries (mistral.rs, Candle) and actor model framework (Actix) based on research findings
