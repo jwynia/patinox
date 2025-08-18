@@ -1,44 +1,97 @@
-# Bare Context Network
-This project is a starter template for a generic context-network (more info at https://jwynia.github.io/context-networks/). It can be used as a collaboration context manager for a wide range of projects. They are used for software projects, writing projects of all kinds (fiction, non-fiction, marketing, technical, etc.), building knowledge bases, managing research and analysis and more.
+# Patinox
 
-This particular template repository is generic so that it isn't aimed at any one of those project types. Other templates exist (or will soon) that are aimed at common project types. Look at those and use one if it seems like a good match. But, if not, use this one.
+A ground-up reimagining of AI agent orchestration that prioritizes safety, observability, and systematic evolution through compile-time guarantees and embedded monitoring.
 
-## Getting Started
-Context networks are intended to be used with an LLM agent that has file access to all of the files in the project folder. For people in software development professions, that can be agents they write. But, for most people, the easiest access to such agents is via IDE coding tools.
+## Vision
 
-Set up the prompts (see below) and start a planning conversation and describe your project, your goals, your constraints, etc. When the plan looks good, let it enhance the context network. Then start with real tasks for the project.
+Build an AI agent framework in Rust that treats monitoring and validation as first-class architectural concerns rather than afterthoughts. By leveraging Rust's type system and ownership model, we can create agent systems that are simultaneously more reliable and more capable of self-improvement than existing dynamic implementations.
 
-## Cost
-Because context networks are a relatively cutting-edge approach to collaboration with LLM AI agents, these tools do cost money and some of the best of them can cost more money than you may be expecting. The costs on such things are dropping and much of what we're doing with context networks is figuring out the ways to work that will be more widespread next year and beyond, when these costs drop. If these tools are too expensive for your budget, that probably means you need to wait a bit.
+## Core Philosophy
 
-## Tools
-Cursor (https://www.cursor.com/) is an all-in-one that comes with LLM chat and an agent that can act on the files.
+**Safety through compilation, not convention.** Invalid agent states should be unrepresentable. Monitoring should be inescapable. Evolution should be traceable.
 
-Cursor is built on VSCode (https://code.visualstudio.com/), which is a more generic code/text editor that can have plugins added. One we use a lot with context networks is Cline (https://cline.bot/). Cline's agent can be pointed at a wide range of LLM APIs that you use your own keys/billing for or their own management of that. A popular solution is to use OpenRouter (https://openrouter.ai/) which lets you use most of the LLM models available today.
+This framework addresses the same fundamental problems as TypeScript-based Mastra (tools, workflows, memory, telemetry, evaluation, scoring) but reimagines the solutions through Rust's lens of zero-cost abstractions and compile-time guarantees.
 
-## Patterns
-### Prompts
-For whatever agent you use, you need to include instructions in the system prompt or custom instructions that tell it about context networks and how to navigate them. The prompt in /inbox/custom-instructions-prompt.md is the one a lot of people are using for Cline with Claude Sonnet as the model.
+## Key Innovations
 
-Add it in either your agent's configuration screen or via it's file-based prompt management system.
+### 1. Embedded Monitoring Architecture
+- **Synchronous validators** that act as compile-time-configured quality gates
+- **Asynchronous analyzers** that identify patterns and propose improvements
+- Both LLM-based monitors (anti-jailbreak, hallucination detection) and traditional ML (Bayesian classifiers, rule engines)
+- Validators can divert, retry, or modify agent execution in real-time
 
-### Plan/Act and Specific Scope
-Cline and many other agents have multiple modes, usually offering one that lets you have a conversation with it separate from it taking action on files. In Cline, that's "Plan". In that mode, it won't make any changes to your files.
+### 2. Git-Based Evolution Loop
+Rather than runtime mutation (which can go "off the rails"), the framework uses a traceable evolution pattern:
+- One instance executes agents and logs telemetry
+- Another instance analyzes patterns and generates PRs with improvements
+- Changes are reviewed, merged, and deployed through standard CI/CD
+- Every evolution step is auditable and reversible
 
-Use that mode aggressively to get to a specific plan for what will happen when you toggle to act. That plan should have a clear definition of what "done" will look like, should be as close to a single action as possible.
+### 3. Compile-Time Workflow Validation
+Using Rust's type system to make invalid states unrepresentable:
+- Typestate patterns ensure agents can only transition through valid states
+- Phantom types guarantee complete configuration before execution
+- Trait-based composition allows pluggable validators without modifying core code
 
-That often means that the action is to detail out a list of tasks that you'll actually have the agent do separately, one at a time. The "do one thing" can mean break the existing scope down another level to get to a more detailed plan. 
+### 4. Native Performance with Universal Deployment
+- Zero-copy integration with Rust-based vector databases (Qdrant, LanceDB)
+- WebAssembly compilation for edge deployment
+- Native bindings for Python/TypeScript migration paths
 
-Basically, the more specific the action that Act mode or its equivalent is given, the better job it will do at managing token budget, at not volunteering to do a bunch of extra things,  and the more likely it does something you've already had a chance to approve.
+## Technical Foundation
 
-### Monitor and Interrupt
-The more you actually read and monitor what your agent is doing for anything that you disagree with or sounds incorrect and step in to interrupt, the better your context network will mature. Like hiring a new assistant, where for the first few weeks, you have to tell them your preferences and ways you want things done, it pays off over the long haul.
+Built on production-proven Rust libraries:
+- **async-openai** for LLM integration (1.1M+ downloads)
+- **Rig** for LLM application patterns
+- **Tower** middleware for composable validation layers
+- **OpenTelemetry** for observability
+- **Qdrant/LanceDB** for vector storage
+- **Tokio** for async runtime
 
-Interrupt, flip to Plan mode, and ask things like:
+## Target Use Cases
 
-* How can we document into the context network a way of working so we don't repeat (the problem/misunderstanding above)?
-* I'd really prefer we always write out a plan with tasks before doing things ad hoc. How can we clarify what's in the context network to make that our process going forward?
+- Production systems requiring strict safety guarantees
+- Multi-agent systems with complex interaction patterns
+- Applications needing transparent, auditable AI behavior
+- Systems that must evolve and improve over time
+- High-performance edge deployments
 
+## Project Status
 
-### Retrospective
-At the end of tasks and periodically AS a new task, ask how things could be improved. For task end, "What from this conversation and task should be documented in the context network?" For periodic retrospectives, "What have we learned in this project that could be used to improve the context network for our efforts going forward?"
+🚧 **Early Design Phase** - Synthesizing research from 380+ sources across Rust ecosystem, AI agent patterns, and production monitoring systems.
+
+## Development Workflow
+
+This project uses a context network for all planning, research, and coordination. See the [context network documentation](./context-network/discovery.md) for navigation.
+
+### Getting Started
+
+1. **Review the context network** at `./context-network/` for project architecture and decisions
+2. **Check the roadmap** at `./context-network/planning/roadmap.md` for current phase
+3. **Source code** will be in `/src/` as the project progresses
+
+### Contributing
+
+All planning and conceptual work happens in the context network. Implementation follows the patterns and decisions documented there.
+
+## Why Rust?
+
+Rust uniquely enables:
+- **Memory safety** without garbage collection overhead
+- **Compile-time validation** of agent workflows
+- **Zero-cost abstractions** for monitoring layers
+- **Fearless concurrency** for parallel agent execution
+- **WebAssembly target** for universal deployment
+
+## Next Steps
+
+1. Define core trait abstractions for agents, tools, and validators
+2. Implement proof-of-concept with synchronous validation pipeline
+3. Add asynchronous monitoring and telemetry collection
+4. Build meta-layer for analyzing telemetry and proposing improvements
+5. Create development tools and documentation
+6. Release initial version with Python/TypeScript bindings
+
+---
+
+*Inspired by [Mastra](https://mastra.dev)'s problem space and [Anthropic's research](https://www.anthropic.com/engineering/multi-agent-research-system) on embedded monitoring, Patinox explores how Rust's unique capabilities can advance the state of the art in AI agent development.*

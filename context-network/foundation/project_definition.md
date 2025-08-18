@@ -13,73 +13,103 @@ This document defines the core purpose, goals, and scope of the project.
 
 ### Project Overview
 
-[Provide a concise overview of the project, including its name, purpose, and high-level description]
+**Patinox** is a ground-up Rust implementation of an AI agent orchestration framework that prioritizes safety, observability, and systematic evolution. Built on compile-time guarantees and embedded monitoring, it addresses the same problem space as frameworks like Mastra and LangChain but reimagines the solutions through Rust's unique capabilities.
 
 ### Vision Statement
 
-[A clear, concise statement of the project's ultimate goal and intended impact]
+To create the most reliable and self-improving AI agent framework by making monitoring and validation integral architectural concerns, leveraging Rust's type system to prevent entire classes of errors at compile time, and enabling traceable evolution through git-based improvement cycles.
 
 ### Mission Statement
 
-[A statement describing what the project does, for whom, and the value it provides]
+Patinox provides production-grade AI agent orchestration for systems requiring strict safety guarantees, transparent behavior, and continuous improvement. It serves developers building multi-agent systems, enterprises needing auditable AI behavior, and applications requiring high-performance edge deployment.
 
 ### Project Objectives
 
-1. [Objective 1]
-2. [Objective 2]
-3. [Objective 3]
+1. **Compile-Time Safety**: Make invalid agent states unrepresentable through Rust's type system
+2. **Embedded Monitoring**: Integrate synchronous validators and asynchronous analyzers as core components
+3. **Systematic Evolution**: Enable traceable, git-based improvement cycles through meta-layer analysis
+4. **Zero-Cost Abstractions**: Provide safety and monitoring without runtime performance penalties
+5. **Universal Deployment**: Support WebAssembly compilation and native bindings for Python/TypeScript
 
 ### Success Criteria
 
-1. [Criterion 1]
-2. [Criterion 2]
-3. [Criterion 3]
+1. **40% reduction in task completion time** through embedded monitoring (matching Anthropic's results)
+2. **Zero runtime errors** from invalid agent state transitions
+3. **Native performance** matching or exceeding Python alternatives
+4. **Full observability** with OpenTelemetry integration and structured logging
+5. **Seamless migration path** from existing TypeScript/Python frameworks
 
 ### Project Scope
 
 #### In Scope
 
-- [Item 1]
-- [Item 2]
-- [Item 3]
+- Core agent abstractions and trait definitions
+- Synchronous validation pipeline with compile-time configuration
+- Asynchronous monitoring and telemetry collection
+- Meta-layer for analyzing patterns and proposing improvements
+- Integration with Rust-based vector databases (Qdrant, LanceDB)
+- WebAssembly compilation for edge deployment
+- Native bindings for Python and TypeScript
+- OpenTelemetry-based observability
+- Git-based evolution and PR generation
 
 #### Out of Scope
 
-- [Item 1]
-- [Item 2]
-- [Item 3]
+- Custom LLM implementations (uses existing providers)
+- Vector database implementations (integrates with existing)
+- UI/frontend components (framework-only)
+- Direct model training or fine-tuning
+- Non-Rust core implementations
 
 ### Stakeholders
 
 | Role | Responsibilities | Representative(s) |
 |------|-----------------|-------------------|
-| [Role 1] | [Responsibilities] | [Name(s)] |
-| [Role 2] | [Responsibilities] | [Name(s)] |
-| [Role 3] | [Responsibilities] | [Name(s)] |
+| Project Lead | Architecture, technical decisions, roadmap | TBD |
+| Core Contributors | Implementation, code review, testing | Open Source Community |
+| Early Adopters | Feedback, use case validation, bug reports | TBD |
+| Integration Partners | Library compatibility, ecosystem support | Rig, async-openai maintainers |
 
 ### Timeline
 
 | Milestone | Target Date | Description |
 |-----------|------------|-------------|
-| [Milestone 1] | [Date] | [Description] |
-| [Milestone 2] | [Date] | [Description] |
-| [Milestone 3] | [Date] | [Description] |
+| Core Abstractions | Q2 2025 | Define traits for agents, tools, validators |
+| Validation Pipeline | Q3 2025 | Implement synchronous validation with Tower middleware |
+| Monitoring Layer | Q4 2025 | Add async monitoring and telemetry collection |
+| Meta-Layer | Q1 2026 | Build analysis and improvement generation |
+| Beta Release | Q2 2026 | Initial release with Python/TypeScript bindings |
 
 ### Budget and Resources
 
-[Overview of budget allocation and key resources]
+- **Development**: Open source contribution model
+- **Infrastructure**: CI/CD via GitHub Actions, documentation hosting
+- **Dependencies**: Production-proven Rust libraries (all open source)
+- **Testing**: Comprehensive test suite with criterion benchmarks
 
 ### Constraints
 
-[List of known constraints that may impact the project]
+- Must maintain compatibility with existing LLM provider APIs
+- Performance must match or exceed Python alternatives
+- Memory usage must support edge deployment scenarios
+- API design must enable gradual migration from existing frameworks
+- All monitoring must be zero-cost when disabled
 
 ### Assumptions
 
-[List of assumptions made in planning the project]
+- Rust AI ecosystem will continue maturing (async-openai, Rig, etc.)
+- LLM providers will maintain stable APIs
+- WebAssembly runtime performance will continue improving
+- Demand for safer AI agent systems will increase
+- Git-based workflows will remain standard for code evolution
 
 ### Risks
 
-[Initial identification of high-level risks]
+- **Ecosystem fragmentation**: Multiple competing Rust AI libraries
+- **API changes**: LLM providers modifying interfaces
+- **Adoption barriers**: Rust learning curve for AI developers
+- **Performance assumptions**: Validation overhead exceeding targets
+- **Evolution complexity**: Meta-layer becoming too complex
 
 ## Relationships
 - **Parent Nodes:** None
@@ -97,9 +127,9 @@ This document defines the core purpose, goals, and scope of the project.
 - **Update Patterns:** This document should be updated when there are fundamental changes to project direction or scope
 
 ## Metadata
-- **Created:** [Date]
-- **Last Updated:** [Date]
-- **Updated By:** [Role/Agent]
+- **Created:** 2025-01-17
+- **Last Updated:** 2025-01-17
+- **Updated By:** Development Team
 
 ## Change History
-- [Date]: Initial creation of project definition template
+- 2025-01-17: Customized for Patinox AI Agent Framework based on research findings
