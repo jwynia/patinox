@@ -7,24 +7,33 @@ This directory contains the Rust implementation of the Patinox AI agent framewor
 The source code is organized as a Rust workspace with multiple crates:
 
 ```
-src/
+patinox/
 ├── Cargo.toml              # Workspace configuration
-├── patinox-core/          # Core traits and types
-├── patinox-agent/         # Agent implementation
-├── patinox-validation/    # Validation pipeline
-├── patinox-monitor/       # Monitoring layer
-├── patinox-runtime/       # Execution runtime
-├── patinox-telemetry/     # OpenTelemetry integration
-├── patinox-storage/       # Vector DB integration
-├── patinox-meta/          # Meta-layer analysis
-├── patinox-evolution/     # Git-based evolution
-├── patinox-bindings/      # Language bindings
-└── examples/              # Example usage
+├── src/                    # Main library (foundational utilities)
+│   └── lib.rs              # Core library code
+├── patinox-core/          # Core traits and types (future)
+├── patinox-agent/         # Agent implementation (future)
+├── patinox-validation/    # Validation pipeline (future)
+├── patinox-monitor/       # Monitoring layer (future)
+├── patinox-runtime/       # Execution runtime (future)
+├── patinox-telemetry/     # OpenTelemetry integration (future)
+├── patinox-storage/       # Vector DB integration (future)
+├── patinox-meta/          # Meta-layer analysis (future)
+├── patinox-evolution/     # Git-based evolution (future)
+├── patinox-bindings/      # Language bindings (future)
+├── examples/              # Example usage (future)
+└── tests/                 # Integration tests
 ```
 
 ## Development Status
 
-🚧 **Early Development** - Source code will be added as the project progresses through its implementation phases. See the [roadmap](../context-network/planning/roadmap.md) for the current development phase.
+🚧 **Foundation Phase** - Currently implementing core foundational utilities following a test-driven, utility-first approach:
+
+- ✅ Project structure and tooling setup complete
+- 🚧 Next: Core error types and trait definitions  
+- ⏳ Future: Individual specialized crates
+
+See the [roadmap](../context-network/planning/roadmap.md) for the complete development plan.
 
 ## Getting Started
 

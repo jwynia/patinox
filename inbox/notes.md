@@ -1,1 +1,2 @@
 # Stuff I Want To Discuss/Design
+* When it comes to memory, context management, etc. vector search is about similarity, not relevance and it relies on correlation to be high enough for that to be a proxy. But, actual linkage is what Google used for decades as a better metric of relevancy. Both should likely be involved when searching through stuff for relevant context. Lexical algorithms matter. https://www.tigerdata.com/blog/vector-search-isnt-the-answer-to-everything-so-what-is-a-technical-deep-dive

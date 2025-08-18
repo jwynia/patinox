@@ -1,2 +1,39 @@
+# Environment files
 .env
+.env.local
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Rust build artifacts
+target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Coverage reports
+tarpaulin-report.html
+coverage/
+
+# Benchmark results
+criterion/
+
+# Documentation build
+doc/
+
+# Test artifacts
+test-results/
