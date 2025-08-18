@@ -193,9 +193,17 @@ graph LR
   - [elements/monitoring_strategy.md] - details - Monitoring implementation
   - [elements/rust_patterns.md] - implements - Pattern usage
   - [elements/technology_stack.md] - uses - Technology choices
+  - [elements/dependency_injection_philosophy.md] - implements - DI patterns
+  - [elements/protocol_based_exposure.md] - defines - Protocol interfaces
+  - [elements/workflow_as_tool_abstraction.md] - enables - Workflow patterns
+  - [elements/cli_agent_exposure.md] - provides - CLI interface
+  - [elements/agent_conscience_pattern.md] - ensures - Quality control
 - **Related Nodes:** 
   - [foundation/principles.md] - guides - Architectural decisions
   - [planning/roadmap.md] - schedules - Implementation phases
+  - [elements/configuration_strategy.md] - configures - All components
+  - [elements/agent_reasoning_paradigms.md] - informs - Agent behavior
+  - [elements/interruptible_agent_loops.md] - enables - Execution control
 
 ## Navigation Guidance
 - **Access Context:** Reference when making architectural decisions or understanding system behavior

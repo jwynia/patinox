@@ -80,9 +80,17 @@ impl Default for GlobalConfig {
 #### 2. Configuration Files
 
 TOML format (preferred) or YAML, searched in order:
-1. `./patinox.toml` (current directory)
-2. `~/.config/patinox/config.toml` (user config)
-3. `/etc/patinox/config.toml` (system config)
+1. `./.patinox/config.toml` (local dotfolder - highest priority)
+2. `./patinox.toml` (current directory)
+3. `${WORKSPACE_FOLDER}/.patinox/config.toml` (workspace dotfolder for devcontainers)
+4. `~/.config/patinox/config.toml` (user config - avoided in containers)
+5. `/etc/patinox/config.toml` (system config - lowest priority)
+
+**Dotfolder Philosophy**: Local `.patinox` folders provide persistent, project-specific configuration that:
+- Survives container rebuilds
+- Can be gitignored for local overrides
+- Provides clear configuration locality
+- Avoids home directory pollution in containers
 
 Example `patinox.toml`:
 ```toml
@@ -405,6 +413,88 @@ impl GlobalConfig {
 }
 ```
 
+### Devcontainer-Aware Configuration
+
+Special handling for development containers:
+
+```rust
+pub struct DevcontainerConfig {
+    /// Detect if running in a devcontainer
+    pub fn detect_devcontainer() -> bool {
+        // Check for devcontainer environment markers
+        env::var("REMOTE_CONTAINERS").is_ok() ||
+        env::var("CODESPACES").is_ok() ||
+        env::var("DEVCONTAINER").is_ok() ||
+        Path::new("/.dockerenv").exists()
+    }
+    
+    /// Get appropriate config paths for container environment
+    pub fn get_config_paths() -> Vec<PathBuf> {
+        let mut paths = Vec::new();
+        
+        // Local dotfolder (always first)
+        paths.push(PathBuf::from("./.patinox"));
+        
+        // Workspace folder in devcontainer
+        if let Ok(workspace) = env::var("WORKSPACE_FOLDER") {
+            paths.push(PathBuf::from(workspace).join(".patinox"));
+        }
+        
+        // Only use home directory if not in container
+        if !Self::detect_devcontainer() {
+            if let Some(home) = dirs::config_dir() {
+                paths.push(home.join("patinox"));
+            }
+        }
+        
+        // System config (always last)
+        paths.push(PathBuf::from("/etc/patinox"));
+        
+        paths
+    }
+    
+    /// Mount-aware file resolution
+    pub fn resolve_path(path: &Path) -> PathBuf {
+        if Self::detect_devcontainer() {
+            // Resolve relative to workspace
+            if let Ok(workspace) = env::var("WORKSPACE_FOLDER") {
+                let workspace_path = PathBuf::from(workspace);
+                if path.is_relative() {
+                    return workspace_path.join(path);
+                }
+            }
+        }
+        
+        path.to_path_buf()
+    }
+}
+```
+
+### Dotfolder Structure
+
+The `.patinox` folder provides organized local configuration:
+
+```
+.patinox/
+├── config.toml          # Main configuration
+├── agents/              # Agent-specific configs
+│   ├── researcher.toml
+│   └── analyzer.toml
+├── credentials/         # Local credentials (gitignored)
+│   ├── api_keys.env
+│   └── certificates/
+├── cache/              # Local cache data
+│   ├── models/
+│   └── tools/
+├── state/              # Persistent state
+│   ├── checkpoints/
+│   └── history/
+└── overrides/          # Environment-specific overrides
+    ├── development.toml
+    ├── testing.toml
+    └── production.toml
+```
+
 ### Development vs Production
 
 Different configuration profiles:
@@ -479,6 +569,9 @@ patinox config schema > patinox-config.schema.json
 4. **Power**: Full control when needed
 5. **Safety**: Validation prevents invalid configurations
 6. **Observability**: Configuration changes are logged
+7. **Container-Native**: Works seamlessly in devcontainers
+8. **Local Persistence**: Dotfolders survive container rebuilds
+9. **No Home Pollution**: Avoids cluttering user home in containers
 
 ## Relationships
 - **Parent Nodes:** [elements/architecture_overview.md]
@@ -496,8 +589,9 @@ patinox config schema > patinox-config.schema.json
 
 ## Metadata
 - **Created:** 2025-01-17
-- **Last Updated:** 2025-01-17
+- **Last Updated:** 2025-01-18
 - **Updated By:** Development Team
 
 ## Change History
 - 2025-01-17: Created comprehensive configuration strategy with cascading overrides
+- 2025-01-18: Enhanced with devcontainer awareness and dotfolder patterns for local persistence
