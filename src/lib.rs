@@ -78,7 +78,7 @@ mod tests {
             VERSION
         );
         assert_eq!(NAME, "patinox", "Package name should be patinox");
-        
+
         // Version should be non-empty and follow semver pattern
         assert!(!VERSION.is_empty(), "Version must not be empty");
         let version_parts: Vec<&str> = VERSION.split('.').collect();
@@ -87,7 +87,7 @@ mod tests {
             "Version should have at least major.minor format: {}",
             VERSION
         );
-        
+
         // Each version part should be numeric
         for part in version_parts.iter().take(3) {
             assert!(
@@ -104,15 +104,15 @@ mod tests {
         // Verify prelude re-exports are accessible
         let _version = crate::prelude::VERSION;
         let _name = crate::prelude::NAME;
-        
+
         // Verify error types are accessible through prelude
         use crate::prelude::*;
-        
+
         // Test that we can create errors through prelude imports
         let _validation_error = ValidationError::InvalidInput("test".to_string());
         let _patinox_error = PatinoxError::Validation(_validation_error);
         let _recovery_strategy = RecoveryStrategy::Retry;
-        
+
         // Verify types implement expected traits
         fn assert_send<T: Send>() {}
         fn assert_sync<T: Sync>() {}
@@ -121,32 +121,35 @@ mod tests {
         assert_send::<RecoveryStrategy>();
         assert_sync::<RecoveryStrategy>();
     }
-    
+
     #[test]
     fn test_prelude_completeness() {
         // Verify all major error types are re-exported in prelude
         use crate::prelude::*;
-        
+
         // Should be able to construct all main error variants
         let _config_error = ConfigurationError::InvalidFormat("test".to_string());
         let _exec_error = ExecutionError::ResourceExhausted("memory".to_string());
         let _net_error = NetworkError::Timeout("api timeout".to_string());
         let _val_error = ValidationError::RateLimited;
-        
+
         // All recovery strategies should be available
         let strategies = [
             RecoveryStrategy::Retry,
-            RecoveryStrategy::Fallback, 
+            RecoveryStrategy::Fallback,
             RecoveryStrategy::CircuitBreak,
             RecoveryStrategy::Fail,
         ];
-        
+
         // Should be able to use all strategies
         for strategy in strategies {
-            assert!(matches!(strategy, RecoveryStrategy::Retry | 
-                                     RecoveryStrategy::Fallback |
-                                     RecoveryStrategy::CircuitBreak |
-                                     RecoveryStrategy::Fail));
+            assert!(matches!(
+                strategy,
+                RecoveryStrategy::Retry
+                    | RecoveryStrategy::Fallback
+                    | RecoveryStrategy::CircuitBreak
+                    | RecoveryStrategy::Fail
+            ));
         }
     }
 }

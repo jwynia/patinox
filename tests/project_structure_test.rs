@@ -40,13 +40,13 @@ fn test_workspace_cargo_toml_structure() {
         content.contains("resolver = \"2\""),
         "Must use Cargo resolver v2"
     );
-    
+
     // Verify workspace dependencies section exists
     assert!(
         content.contains("[workspace.dependencies]"),
         "Must have workspace dependencies section for version management"
     );
-    
+
     // Verify workspace package metadata
     assert!(
         content.contains("[workspace.package]"),
@@ -73,10 +73,10 @@ fn test_core_crate_cargo_toml_structure() {
         "Must inherit edition from workspace"
     );
     assert!(
-        content.contains("version.workspace = true"), 
+        content.contains("version.workspace = true"),
         "Must inherit version from workspace"
     );
-    
+
     // Verify essential dependencies are present
     assert!(
         content.contains("thiserror.workspace = true"),
@@ -86,7 +86,7 @@ fn test_core_crate_cargo_toml_structure() {
         content.contains("anyhow.workspace = true"),
         "Must include anyhow for error context"
     );
-    
+
     // Verify package description exists
     assert!(
         content.contains("description = "),
@@ -129,7 +129,7 @@ fn test_development_dependencies_present() {
         content.contains("[dev-dependencies]"),
         "Must have dev-dependencies section"
     );
-    
+
     // Verify essential testing dependencies are present
     assert!(
         content.contains("proptest"),
