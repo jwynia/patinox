@@ -21,7 +21,6 @@ mod tests {
         config: ValidatorConfig,
     }
 
-
     #[async_trait]
     impl Validator for TestValidator {
         fn name(&self) -> &str {
@@ -36,7 +35,10 @@ mod tests {
             self.config.stages.contains(&request.stage)
         }
 
-        async fn validate(&self, request: ValidationRequest) -> Result<ValidationResponse, PatinoxError> {
+        async fn validate(
+            &self,
+            request: ValidationRequest,
+        ) -> Result<ValidationResponse, PatinoxError> {
             // Simple validation logic for testing
             match &request.content {
                 ValidationContent::UserMessage { message } => {
@@ -55,13 +57,13 @@ mod tests {
                             metadata: HashMap::new(),
                         })
                     }
-                },
+                }
                 _ => Ok(ValidationResponse {
                     approved: true,
                     reason: None,
                     modifications: None,
                     metadata: HashMap::new(),
-                })
+                }),
             }
         }
     }
@@ -182,16 +184,20 @@ mod tests {
         let _cloned = response.clone();
         // Should be debuggable
         assert!(!format!("{:?}", response).is_empty());
-        
+
         // Test field access
         assert!(response.approved);
         assert!(response.reason.is_some());
         assert!(response.modifications.is_some());
-        
+
         let modifications = response.modifications.expect("Should have modifications");
         assert_eq!(modifications.modified_content, "Modified content");
-        assert!(modifications.blocked_tool_calls.contains(&"dangerous-tool".to_string()));
-        assert!(modifications.added_warnings.contains(&"Warning message".to_string()));
+        assert!(modifications
+            .blocked_tool_calls
+            .contains(&"dangerous-tool".to_string()));
+        assert!(modifications
+            .added_warnings
+            .contains(&"Warning message".to_string()));
     }
 
     #[test]
@@ -210,7 +216,8 @@ mod tests {
         };
 
         let serialized = serde_json::to_string(&config).expect("Should serialize");
-        let deserialized: ValidatorConfig = serde_json::from_str(&serialized).expect("Should deserialize");
+        let deserialized: ValidatorConfig =
+            serde_json::from_str(&serialized).expect("Should deserialize");
 
         assert_eq!(deserialized.name, config.name);
         assert_eq!(deserialized.enabled, config.enabled);
@@ -225,15 +232,28 @@ mod tests {
         let validator = TestValidator::new("test-validator");
 
         // Test that validator contract is properly implemented
-        assert!(!validator.name().is_empty(), "Validator name should not be empty");
-        
+        assert!(
+            !validator.name().is_empty(),
+            "Validator name should not be empty"
+        );
+
         let config = validator.config();
-        assert!(config.enabled, "Test validator should be enabled by default");
+        assert!(
+            config.enabled,
+            "Test validator should be enabled by default"
+        );
         assert!(config.priority >= 0, "Priority should be non-negative");
-        assert!(!config.stages.is_empty(), "Validator should handle at least one stage");
-        
+        assert!(
+            !config.stages.is_empty(),
+            "Validator should handle at least one stage"
+        );
+
         // Test that validator configuration is consistent
-        assert_eq!(validator.name(), config.name, "Validator name should match config name");
+        assert_eq!(
+            validator.name(),
+            config.name,
+            "Validator name should match config name"
+        );
     }
 
     #[tokio::test]
@@ -257,7 +277,7 @@ mod tests {
 
         // Should validate PreExecution (configured stage)
         assert!(validator.should_validate(&pre_execution_request));
-        
+
         // Should not validate PostTool (not configured)
         assert!(!validator.should_validate(&post_tool_request));
     }
@@ -279,11 +299,20 @@ mod tests {
 
         let response = validator.validate(safe_request).await;
         assert!(response.is_ok(), "Validator should handle valid requests");
-        
+
         let validation_response = response.expect("Validation should succeed");
-        assert!(validation_response.approved, "Safe content should be approved");
-        assert!(validation_response.reason.is_none(), "Approved content should not have rejection reason");
-        assert!(validation_response.modifications.is_none(), "Safe content should not need modifications");
+        assert!(
+            validation_response.approved,
+            "Safe content should be approved"
+        );
+        assert!(
+            validation_response.reason.is_none(),
+            "Approved content should not have rejection reason"
+        );
+        assert!(
+            validation_response.modifications.is_none(),
+            "Safe content should not need modifications"
+        );
 
         // Test unsafe content detection and rejection
         let unsafe_request = ValidationRequest {
@@ -297,16 +326,28 @@ mod tests {
         };
 
         let response = validator.validate(unsafe_request).await;
-        assert!(response.is_ok(), "Validator should handle unsafe content gracefully");
-        
+        assert!(
+            response.is_ok(),
+            "Validator should handle unsafe content gracefully"
+        );
+
         let validation_response = response.expect("Validation should complete");
-        assert!(!validation_response.approved, "Unsafe content should be rejected");
-        assert!(validation_response.reason.is_some(), "Rejected content should include reason");
+        assert!(
+            !validation_response.approved,
+            "Unsafe content should be rejected"
+        );
+        assert!(
+            validation_response.reason.is_some(),
+            "Rejected content should include reason"
+        );
         if let Some(reason) = validation_response.reason {
-            assert!(reason.contains("Unsafe content"), "Rejection reason should be specific");
+            assert!(
+                reason.contains("Unsafe content"),
+                "Rejection reason should be specific"
+            );
             assert!(!reason.is_empty(), "Reason should be descriptive");
         }
-        
+
         // Test validator consistency across multiple calls
         let duplicate_safe_request = ValidationRequest {
             agent_id: Uuid::new_v4(),
@@ -317,11 +358,14 @@ mod tests {
             },
             context: HashMap::new(),
         };
-        
+
         let duplicate_response = validator.validate(duplicate_safe_request).await;
         let duplicate_validation = duplicate_response.expect("Should validate consistently");
-        assert!(duplicate_validation.approved, "Validator should be consistent for same input");
-        
+        assert!(
+            duplicate_validation.approved,
+            "Validator should be consistent for same input"
+        );
+
         // Test different content types are handled
         let tool_content_request = ValidationRequest {
             agent_id: Uuid::new_v4(),
@@ -333,11 +377,17 @@ mod tests {
             },
             context: HashMap::new(),
         };
-        
+
         let tool_response = validator.validate(tool_content_request).await;
-        assert!(tool_response.is_ok(), "Validator should handle different content types");
+        assert!(
+            tool_response.is_ok(),
+            "Validator should handle different content types"
+        );
         let tool_validation = tool_response.expect("Should validate tool content");
-        assert!(tool_validation.approved, "Non-user content should have different validation rules");
+        assert!(
+            tool_validation.approved,
+            "Non-user content should have different validation rules"
+        );
     }
 
     #[tokio::test]
@@ -385,7 +435,9 @@ mod tests {
         tokio::spawn(async move {
             let _name = validator.name();
             // Validator trait object can be moved across threads
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         assert_eq!(validator_name, "thread-test");
     }
@@ -411,8 +463,11 @@ mod tests {
     #[test]
     fn validation_stage_equality() {
         assert_eq!(ValidationStage::PreExecution, ValidationStage::PreExecution);
-        assert_ne!(ValidationStage::PreExecution, ValidationStage::PostExecution);
-        
+        assert_ne!(
+            ValidationStage::PreExecution,
+            ValidationStage::PostExecution
+        );
+
         // Test that stages can be used in collections
         let stages = [
             ValidationStage::PreExecution,
@@ -420,7 +475,7 @@ mod tests {
             ValidationStage::PostTool,
             ValidationStage::PreResponse,
         ];
-        
+
         assert!(stages.contains(&ValidationStage::PreExecution));
         assert!(stages.contains(&ValidationStage::PostTool));
     }
@@ -435,15 +490,18 @@ mod tests {
 pub trait Validator: Send + Sync {
     /// Validator name for identification
     fn name(&self) -> &str;
-    
+
     /// Validator configuration
     fn config(&self) -> &ValidatorConfig;
-    
+
     /// Whether this validator should run for the given request
     fn should_validate(&self, request: &ValidationRequest) -> bool;
-    
+
     /// Validate a request
-    async fn validate(&self, request: ValidationRequest) -> Result<ValidationResponse, PatinoxError>;
+    async fn validate(
+        &self,
+        request: ValidationRequest,
+    ) -> Result<ValidationResponse, PatinoxError>;
 }
 
 #[derive(Debug, Clone)]
@@ -457,18 +515,28 @@ pub struct ValidationRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ValidationStage {
-    PreExecution,   // Before LLM call
-    PostExecution,  // After LLM call, before tool execution
-    PostTool,       // After tool execution
-    PreResponse,    // Before sending response to user
+    PreExecution,  // Before LLM call
+    PostExecution, // After LLM call, before tool execution
+    PostTool,      // After tool execution
+    PreResponse,   // Before sending response to user
 }
 
 #[derive(Debug, Clone)]
 pub enum ValidationContent {
-    UserMessage { message: String },
-    LlmResponse { message: String, tool_calls: Vec<crate::traits::tool::ToolCall> },
-    ToolResult { tool_name: String, result: crate::traits::tool::ToolResult },
-    FinalResponse { message: String },
+    UserMessage {
+        message: String,
+    },
+    LlmResponse {
+        message: String,
+        tool_calls: Vec<crate::traits::tool::ToolCall>,
+    },
+    ToolResult {
+        tool_name: String,
+        result: crate::traits::tool::ToolResult,
+    },
+    FinalResponse {
+        message: String,
+    },
 }
 
 #[derive(Debug, Clone)]

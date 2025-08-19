@@ -61,12 +61,11 @@ pub mod prelude {
 
     // Re-export core trait interfaces
     pub use crate::traits::{
-        Agent, AgentState, AgentConfig, AgentRequest, AgentResponse, HealthStatus, AgentBuilder,
-        Tool, ToolCall, ToolParams, ToolResult, ToolMetadata,
-        Validator, ValidationRequest, ValidationResponse, ValidationStage, ValidationContent, 
-        ValidatorConfig, ValidationModifications,
-        Monitor, MonitorEvent, MonitorEventType, ExecutionSummary, MonitorQuery, MonitorConfig,
-        Usage,
+        Agent, AgentBuilder, AgentConfig, AgentRequest, AgentResponse, AgentState,
+        ExecutionSummary, HealthStatus, Monitor, MonitorConfig, MonitorEvent, MonitorEventType,
+        MonitorQuery, Tool, ToolCall, ToolMetadata, ToolParams, ToolResult, Usage,
+        ValidationContent, ValidationModifications, ValidationRequest, ValidationResponse,
+        ValidationStage, Validator, ValidatorConfig,
     };
 }
 

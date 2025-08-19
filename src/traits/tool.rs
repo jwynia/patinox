@@ -134,7 +134,8 @@ mod tests {
         };
 
         let serialized = serde_json::to_string(&result).expect("Should serialize");
-        let deserialized: ToolResult = serde_json::from_str(&serialized).expect("Should deserialize");
+        let deserialized: ToolResult =
+            serde_json::from_str(&serialized).expect("Should deserialize");
 
         assert_eq!(deserialized.call_id, result.call_id);
         assert_eq!(deserialized.success, result.success);
@@ -155,7 +156,10 @@ mod tests {
 
         assert!(!result.success);
         assert!(result.error.is_some());
-        assert_eq!(result.error.expect("Should have error message"), "Parameter validation failed");
+        assert_eq!(
+            result.error.expect("Should have error message"),
+            "Parameter validation failed"
+        );
     }
 
     #[test]
@@ -204,24 +208,48 @@ mod tests {
             context: HashMap::new(),
         };
 
-        let result = tool.execute(params).await.expect("Execution should succeed");
+        let result = tool
+            .execute(params)
+            .await
+            .expect("Execution should succeed");
 
         // Test tool contract requirements
-        assert_eq!(result.call_id, "success-test", "Call ID should be preserved");
-        assert!(result.success, "Valid input should result in successful execution");
-        assert!(result.error.is_none(), "Successful execution should not have errors");
-        
+        assert_eq!(
+            result.call_id, "success-test",
+            "Call ID should be preserved"
+        );
+        assert!(
+            result.success,
+            "Valid input should result in successful execution"
+        );
+        assert!(
+            result.error.is_none(),
+            "Successful execution should not have errors"
+        );
+
         // Test that tool actually processes the input (not just returns it)
         if let Some(output) = result.data["output"].as_str() {
-            assert!(output.contains("Processed:"), "Tool should process input, not just return it");
-            assert!(output.contains("Hello World"), "Tool should include original input in processed output");
-            assert!(output.len() > "Hello World".len(), "Processed output should be longer than raw input");
+            assert!(
+                output.contains("Processed:"),
+                "Tool should process input, not just return it"
+            );
+            assert!(
+                output.contains("Hello World"),
+                "Tool should include original input in processed output"
+            );
+            assert!(
+                output.len() > "Hello World".len(),
+                "Processed output should be longer than raw input"
+            );
         } else {
             panic!("Tool should return structured output data");
         }
-        
+
         // Test metadata is properly initialized
-        assert!(result.metadata.is_empty() || !result.metadata.is_empty(), "Metadata should be initialized");
+        assert!(
+            result.metadata.is_empty() || !result.metadata.is_empty(),
+            "Metadata should be initialized"
+        );
     }
 
     #[tokio::test]
@@ -235,43 +263,80 @@ mod tests {
             context: HashMap::new(),
         };
 
-        let result = tool.execute(missing_params).await.expect("Execution should complete");
+        let result = tool
+            .execute(missing_params)
+            .await
+            .expect("Execution should complete");
 
         // Test proper error handling for validation failures
-        assert_eq!(result.call_id, "validation-test", "Call ID should be preserved in errors");
-        assert!(!result.success, "Invalid parameters should result in failure");
-        assert!(result.error.is_some(), "Validation failures should include error message");
-        assert_eq!(result.data, serde_json::json!({}), "Failed executions should return empty data");
-        
+        assert_eq!(
+            result.call_id, "validation-test",
+            "Call ID should be preserved in errors"
+        );
+        assert!(
+            !result.success,
+            "Invalid parameters should result in failure"
+        );
+        assert!(
+            result.error.is_some(),
+            "Validation failures should include error message"
+        );
+        assert_eq!(
+            result.data,
+            serde_json::json!({}),
+            "Failed executions should return empty data"
+        );
+
         if let Some(error) = result.error {
-            assert!(error.contains("Missing required parameter"), "Error should be descriptive");
-            assert!(error.contains("input"), "Error should mention the missing parameter name");
+            assert!(
+                error.contains("Missing required parameter"),
+                "Error should be descriptive"
+            );
+            assert!(
+                error.contains("input"),
+                "Error should mention the missing parameter name"
+            );
         } else {
             panic!("Validation failure should include specific error message");
         }
-        
+
         // Test with empty parameters object
         let empty_params = ToolParams {
             call_id: "empty-test".to_string(),
             parameters: serde_json::json!({}),
             context: HashMap::new(),
         };
-        
-        let empty_result = tool.execute(empty_params).await.expect("Should handle empty params");
-        assert!(!empty_result.success, "Empty parameters should fail validation");
-        assert!(empty_result.error.is_some(), "Should provide error for empty parameters");
-        
+
+        let empty_result = tool
+            .execute(empty_params)
+            .await
+            .expect("Should handle empty params");
+        assert!(
+            !empty_result.success,
+            "Empty parameters should fail validation"
+        );
+        assert!(
+            empty_result.error.is_some(),
+            "Should provide error for empty parameters"
+        );
+
         // Test with null parameter value
         let null_params = ToolParams {
             call_id: "null-test".to_string(),
             parameters: serde_json::json!({"input": null}),
             context: HashMap::new(),
         };
-        
-        let null_result = tool.execute(null_params).await.expect("Should handle null values");
+
+        let null_result = tool
+            .execute(null_params)
+            .await
+            .expect("Should handle null values");
         // Behavior depends on implementation - either fail validation or handle gracefully
         if !null_result.success {
-            assert!(null_result.error.is_some(), "Null parameter failure should include error");
+            assert!(
+                null_result.error.is_some(),
+                "Null parameter failure should include error"
+            );
         }
     }
 
@@ -319,7 +384,9 @@ mod tests {
         tokio::spawn(async move {
             let _name = tool.name();
             // Tool trait object can be moved across threads
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         assert_eq!(tool_name, "thread-test");
     }
@@ -342,7 +409,9 @@ mod tests {
         assert!(properties["input"]["description"].is_string());
 
         // Should specify required fields
-        let required = schema["required"].as_array().expect("Schema should have required array");
+        let required = schema["required"]
+            .as_array()
+            .expect("Schema should have required array");
         assert!(required.contains(&serde_json::json!("input")));
     }
 }
@@ -352,16 +421,16 @@ mod tests {
 pub trait Tool: Send + Sync {
     /// Tool identifier
     fn name(&self) -> &str;
-    
+
     /// Tool description for LLM function calling
     fn description(&self) -> &str;
-    
+
     /// JSON schema for tool parameters
     fn parameters_schema(&self) -> serde_json::Value;
-    
+
     /// Execute the tool with given parameters
     async fn execute(&self, params: ToolParams) -> Result<ToolResult, PatinoxError>;
-    
+
     /// Tool metadata for discovery and categorization
     fn metadata(&self) -> ToolMetadata;
 }

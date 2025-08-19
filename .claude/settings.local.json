@@ -13,7 +13,9 @@
       "Bash(git checkout:*)",
       "Bash(grep:*)",
       "Bash(cargo:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gh run view:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

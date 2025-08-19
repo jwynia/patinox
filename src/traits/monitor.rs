@@ -28,7 +28,11 @@ mod tests {
             &self.name
         }
 
-        async fn start_monitoring(&self, execution_id: Uuid, agent_id: Uuid) -> Result<(), PatinoxError> {
+        async fn start_monitoring(
+            &self,
+            execution_id: Uuid,
+            agent_id: Uuid,
+        ) -> Result<(), PatinoxError> {
             // Start monitoring by recording a start event
             let event = MonitorEvent {
                 id: Uuid::new_v4(),
@@ -39,10 +43,10 @@ mod tests {
                 data: serde_json::json!({}),
                 metadata: HashMap::new(),
             };
-            
+
             let mut events = self.events.lock().map_err(|_| {
                 PatinoxError::Execution(crate::error::ExecutionError::ResourceExhausted(
-                    "Monitor event storage corrupted".to_string()
+                    "Monitor event storage corrupted".to_string(),
                 ))
             })?;
             events.push(event);
@@ -52,14 +56,18 @@ mod tests {
         async fn record_event(&self, event: MonitorEvent) -> Result<(), PatinoxError> {
             let mut events = self.events.lock().map_err(|_| {
                 PatinoxError::Execution(crate::error::ExecutionError::ResourceExhausted(
-                    "Monitor event storage corrupted".to_string()
+                    "Monitor event storage corrupted".to_string(),
                 ))
             })?;
             events.push(event);
             Ok(())
         }
 
-        async fn complete_monitoring(&self, execution_id: Uuid, summary: ExecutionSummary) -> Result<(), PatinoxError> {
+        async fn complete_monitoring(
+            &self,
+            execution_id: Uuid,
+            summary: ExecutionSummary,
+        ) -> Result<(), PatinoxError> {
             let event = MonitorEvent {
                 id: Uuid::new_v4(),
                 execution_id,
@@ -72,20 +80,23 @@ mod tests {
                 data: serde_json::to_value(&summary).unwrap(),
                 metadata: HashMap::new(),
             };
-            
+
             let mut events = self.events.lock().map_err(|_| {
                 PatinoxError::Execution(crate::error::ExecutionError::ResourceExhausted(
-                    "Monitor event storage corrupted".to_string()
+                    "Monitor event storage corrupted".to_string(),
                 ))
             })?;
             events.push(event);
             Ok(())
         }
 
-        async fn query_events(&self, query: MonitorQuery) -> Result<Vec<MonitorEvent>, PatinoxError> {
+        async fn query_events(
+            &self,
+            query: MonitorQuery,
+        ) -> Result<Vec<MonitorEvent>, PatinoxError> {
             let events = self.events.lock().map_err(|_| {
                 PatinoxError::Execution(crate::error::ExecutionError::ResourceExhausted(
-                    "Monitor event storage corrupted".to_string()
+                    "Monitor event storage corrupted".to_string(),
                 ))
             })?;
             let mut filtered_events = Vec::new();
@@ -102,7 +113,9 @@ mod tests {
 
                 // Filter by event types
                 if let Some(ref event_types) = query.event_types {
-                    if !event_types.iter().any(|et| std::mem::discriminant(et) == std::mem::discriminant(&event.event_type)) {
+                    if !event_types.iter().any(|et| {
+                        std::mem::discriminant(et) == std::mem::discriminant(&event.event_type)
+                    }) {
                         matches = false;
                     }
                 }
@@ -152,7 +165,10 @@ mod tests {
                     sampling_rate: 1.0,
                     event_types: vec![
                         MonitorEventType::ExecutionStarted,
-                        MonitorEventType::ExecutionCompleted { success: true, total_duration_ms: 0 },
+                        MonitorEventType::ExecutionCompleted {
+                            success: true,
+                            total_duration_ms: 0,
+                        },
                     ],
                 },
                 events: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
@@ -190,7 +206,8 @@ mod tests {
         };
 
         let serialized = serde_json::to_string(&event).expect("Should serialize");
-        let deserialized: MonitorEvent = serde_json::from_str(&serialized).expect("Should deserialize");
+        let deserialized: MonitorEvent =
+            serde_json::from_str(&serialized).expect("Should deserialize");
 
         assert_eq!(deserialized.id, event.id);
         assert_eq!(deserialized.execution_id, event.execution_id);
@@ -200,11 +217,15 @@ mod tests {
 
         // Test event type specifics
         match deserialized.event_type {
-            MonitorEventType::LlmCalled { provider, model, tokens } => {
+            MonitorEventType::LlmCalled {
+                provider,
+                model,
+                tokens,
+            } => {
                 assert_eq!(provider, "openai");
                 assert_eq!(model, "gpt-4");
                 assert_eq!(tokens.total_tokens, 150);
-            },
+            }
             _ => panic!("Expected LlmCalled event type"),
         }
     }
@@ -213,9 +234,17 @@ mod tests {
     fn monitor_event_type_variants() {
         let event_types = vec![
             MonitorEventType::ExecutionStarted,
-            MonitorEventType::ValidationPassed { validator: "test".to_string() },
-            MonitorEventType::ValidationFailed { validator: "test".to_string(), reason: "failed".to_string() },
-            MonitorEventType::ToolExecuted { tool: "calc".to_string(), duration_ms: 150 },
+            MonitorEventType::ValidationPassed {
+                validator: "test".to_string(),
+            },
+            MonitorEventType::ValidationFailed {
+                validator: "test".to_string(),
+                reason: "failed".to_string(),
+            },
+            MonitorEventType::ToolExecuted {
+                tool: "calc".to_string(),
+                duration_ms: 150,
+            },
             MonitorEventType::LlmCalled {
                 provider: "openai".to_string(),
                 model: "gpt-4".to_string(),
@@ -226,8 +255,14 @@ mod tests {
                     cost_usd: None,
                 },
             },
-            MonitorEventType::ErrorOccurred { error_type: "timeout".to_string(), recoverable: true },
-            MonitorEventType::ExecutionCompleted { success: true, total_duration_ms: 2500 },
+            MonitorEventType::ErrorOccurred {
+                error_type: "timeout".to_string(),
+                recoverable: true,
+            },
+            MonitorEventType::ExecutionCompleted {
+                success: true,
+                total_duration_ms: 2500,
+            },
         ];
 
         for event_type in event_types {
@@ -258,7 +293,8 @@ mod tests {
         };
 
         let serialized = serde_json::to_string(&summary).expect("Should serialize");
-        let deserialized: ExecutionSummary = serde_json::from_str(&serialized).expect("Should deserialize");
+        let deserialized: ExecutionSummary =
+            serde_json::from_str(&serialized).expect("Should deserialize");
 
         assert_eq!(deserialized.execution_id, summary.execution_id);
         assert_eq!(deserialized.agent_id, summary.agent_id);
@@ -266,8 +302,14 @@ mod tests {
         assert_eq!(deserialized.total_duration_ms, summary.total_duration_ms);
         assert_eq!(deserialized.llm_calls, summary.llm_calls);
         assert_eq!(deserialized.tool_calls, summary.tool_calls);
-        assert_eq!(deserialized.validation_failures, summary.validation_failures);
-        assert_eq!(deserialized.total_tokens.total_tokens, summary.total_tokens.total_tokens);
+        assert_eq!(
+            deserialized.validation_failures,
+            summary.validation_failures
+        );
+        assert_eq!(
+            deserialized.total_tokens.total_tokens,
+            summary.total_tokens.total_tokens
+        );
         assert_eq!(deserialized.error_summary, summary.error_summary);
     }
 
@@ -277,7 +319,10 @@ mod tests {
             agent_ids: Some(vec![Uuid::new_v4(), Uuid::new_v4()]),
             event_types: Some(vec![
                 MonitorEventType::ExecutionStarted,
-                MonitorEventType::ExecutionCompleted { success: true, total_duration_ms: 0 },
+                MonitorEventType::ExecutionCompleted {
+                    success: true,
+                    total_duration_ms: 0,
+                },
             ]),
             start_time: Some(chrono::Utc::now() - chrono::Duration::hours(1)),
             end_time: Some(chrono::Utc::now()),
@@ -287,8 +332,22 @@ mod tests {
         // Should be debuggable and cloneable
         let _debug = format!("{:?}", query);
         let cloned = query.clone();
-        assert_eq!(cloned.agent_ids.as_ref().expect("Should have agent IDs").len(), 2);
-        assert_eq!(cloned.event_types.as_ref().expect("Should have event types").len(), 2);
+        assert_eq!(
+            cloned
+                .agent_ids
+                .as_ref()
+                .expect("Should have agent IDs")
+                .len(),
+            2
+        );
+        assert_eq!(
+            cloned
+                .event_types
+                .as_ref()
+                .expect("Should have event types")
+                .len(),
+            2
+        );
         assert_eq!(cloned.limit, Some(100));
     }
 
@@ -302,12 +361,16 @@ mod tests {
             sampling_rate: 0.8,
             event_types: vec![
                 MonitorEventType::ExecutionStarted,
-                MonitorEventType::ValidationFailed { validator: "test".to_string(), reason: "test".to_string() },
+                MonitorEventType::ValidationFailed {
+                    validator: "test".to_string(),
+                    reason: "test".to_string(),
+                },
             ],
         };
 
         let serialized = serde_json::to_string(&config).expect("Should serialize");
-        let deserialized: MonitorConfig = serde_json::from_str(&serialized).expect("Should deserialize");
+        let deserialized: MonitorConfig =
+            serde_json::from_str(&serialized).expect("Should deserialize");
 
         assert_eq!(deserialized.name, config.name);
         assert_eq!(deserialized.enabled, config.enabled);
@@ -323,7 +386,7 @@ mod tests {
 
         // Test metadata access
         assert_eq!(monitor.name(), "test-monitor");
-        
+
         let config = monitor.config();
         assert_eq!(config.name, "test-monitor");
         assert!(config.enabled);
@@ -351,7 +414,9 @@ mod tests {
             execution_id,
             agent_id,
             timestamp: chrono::Utc::now(),
-            event_type: MonitorEventType::ValidationPassed { validator: "test".to_string() },
+            event_type: MonitorEventType::ValidationPassed {
+                validator: "test".to_string(),
+            },
             data: serde_json::json!({}),
             metadata: HashMap::new(),
         };
@@ -365,7 +430,10 @@ mod tests {
             execution_id,
             agent_id,
             timestamp: chrono::Utc::now(),
-            event_type: MonitorEventType::ToolExecuted { tool: "calculator".to_string(), duration_ms: 250 },
+            event_type: MonitorEventType::ToolExecuted {
+                tool: "calculator".to_string(),
+                duration_ms: 250,
+            },
             data: serde_json::json!({"result": "42"}),
             metadata: HashMap::new(),
         };
@@ -421,7 +489,9 @@ mod tests {
                 execution_id: execution2_id,
                 agent_id: agent2_id,
                 timestamp: chrono::Utc::now() - chrono::Duration::minutes(5),
-                event_type: MonitorEventType::ValidationPassed { validator: "test".to_string() },
+                event_type: MonitorEventType::ValidationPassed {
+                    validator: "test".to_string(),
+                },
                 data: serde_json::json!({}),
                 metadata: HashMap::new(),
             },
@@ -430,7 +500,10 @@ mod tests {
                 execution_id: execution1_id,
                 agent_id: agent1_id,
                 timestamp: chrono::Utc::now(),
-                event_type: MonitorEventType::ExecutionCompleted { success: true, total_duration_ms: 600000 },
+                event_type: MonitorEventType::ExecutionCompleted {
+                    success: true,
+                    total_duration_ms: 600000,
+                },
                 data: serde_json::json!({}),
                 metadata: HashMap::new(),
             },
@@ -544,7 +617,9 @@ mod tests {
         tokio::spawn(async move {
             let _name = monitor.name();
             // Monitor trait object can be moved across threads
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         assert_eq!(monitor_name, "thread-test");
     }
@@ -568,7 +643,8 @@ mod tests {
 
         // Should be serializable
         let serialized = serde_json::to_string(&usage).expect("Should serialize");
-        let deserialized: crate::traits::Usage = serde_json::from_str(&serialized).expect("Should deserialize");
+        let deserialized: crate::traits::Usage =
+            serde_json::from_str(&serialized).expect("Should deserialize");
         assert_eq!(deserialized.total_tokens, usage.total_tokens);
     }
 }
@@ -578,19 +654,27 @@ mod tests {
 pub trait Monitor: Send + Sync {
     /// Monitor identifier
     fn name(&self) -> &str;
-    
+
     /// Start monitoring an agent execution
-    async fn start_monitoring(&self, execution_id: Uuid, agent_id: Uuid) -> Result<(), PatinoxError>;
-    
+    async fn start_monitoring(
+        &self,
+        execution_id: Uuid,
+        agent_id: Uuid,
+    ) -> Result<(), PatinoxError>;
+
     /// Record an event during execution
     async fn record_event(&self, event: MonitorEvent) -> Result<(), PatinoxError>;
-    
+
     /// Complete monitoring for an execution
-    async fn complete_monitoring(&self, execution_id: Uuid, summary: ExecutionSummary) -> Result<(), PatinoxError>;
-    
+    async fn complete_monitoring(
+        &self,
+        execution_id: Uuid,
+        summary: ExecutionSummary,
+    ) -> Result<(), PatinoxError>;
+
     /// Query monitoring data for analysis
     async fn query_events(&self, query: MonitorQuery) -> Result<Vec<MonitorEvent>, PatinoxError>;
-    
+
     /// Get monitoring configuration
     fn config(&self) -> &MonitorConfig;
 }
@@ -609,12 +693,30 @@ pub struct MonitorEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MonitorEventType {
     ExecutionStarted,
-    ValidationPassed { validator: String },
-    ValidationFailed { validator: String, reason: String },
-    ToolExecuted { tool: String, duration_ms: u64 },
-    LlmCalled { provider: String, model: String, tokens: crate::traits::Usage },
-    ErrorOccurred { error_type: String, recoverable: bool },
-    ExecutionCompleted { success: bool, total_duration_ms: u64 },
+    ValidationPassed {
+        validator: String,
+    },
+    ValidationFailed {
+        validator: String,
+        reason: String,
+    },
+    ToolExecuted {
+        tool: String,
+        duration_ms: u64,
+    },
+    LlmCalled {
+        provider: String,
+        model: String,
+        tokens: crate::traits::Usage,
+    },
+    ErrorOccurred {
+        error_type: String,
+        recoverable: bool,
+    },
+    ExecutionCompleted {
+        success: bool,
+        total_duration_ms: u64,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
