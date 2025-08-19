@@ -79,8 +79,7 @@ mod tests {
         );
         assert_eq!(NAME, "patinox", "Package name should be patinox");
 
-        // Version should be non-empty and follow semver pattern
-        assert!(!VERSION.is_empty(), "Version must not be empty");
+        // Version should follow semver pattern
         let version_parts: Vec<&str> = VERSION.split('.').collect();
         assert!(
             version_parts.len() >= 2,
