@@ -1,15 +1,15 @@
 # CLAUDE.md - Context Network Project
 
-## 🛑 CRITICAL PROJECT STATUS: PLANNING ONLY - NO CODING YET
+## ✅ CURRENT PROJECT STATUS: IMPLEMENTATION AUTHORIZED
 
-**IMPORTANT**: This project is in the PLANNING PHASE. Do NOT write any implementation code in `/src/` until an explicit decision is documented in `/context-network/decisions/begin_coding_decision.md`. See [CRITICAL_NO_CODING_YET.md](./context-network/decisions/CRITICAL_NO_CODING_YET.md) for full details.
+**IMPORTANT**: Implementation has been authorized as of August 18, 2025. See [begin_coding_decision.md](./context-network/decisions/begin_coding_decision.md) for full details.
 
-Current activities should focus on:
-- Refining architecture documents
-- Clarifying design decisions  
-- Building shared understanding
-- Documenting questions and uncertainties
-- Validating the approach
+Current activities focus on:
+- Following the groomed foundational backlog
+- Implementing core infrastructure (error system, traits, etc.)
+- Maintaining quality standards and test-driven development
+- Updating context network with implementation progress
+- Following all established patterns and decisions
 
 ## Core Philosophy: Slow Down to Go Fast
 
@@ -320,6 +320,28 @@ NEVER:
 - Work around friction instead of investigating
 - Assume you understand without verification
 - Create monolithic documents (use atomic notes)
+- Use hardcoded dates or model assumptions for timestamps
+- Use UTC dates when user is in a different timezone
+
+## Timezone and Date Requirements
+
+**CRITICAL**: Always use system calls for current dates and respect user timezone.
+
+### Date Handling Rules
+1. **NEVER hardcode dates** based on model training cutoff assumptions
+2. **ALWAYS use system calls** to get current date: `date` or `TZ='America/Chicago' date`
+3. **RESPECT user timezone** - if user is in US Central, use Central time
+4. **UPDATE timestamps** when modifying existing documents
+5. **MARK estimated dates** clearly when backdating for context
+
+### Example Commands
+```bash
+# Get system UTC time
+date
+
+# Get US Central time (user timezone)
+TZ='America/Chicago' date
+```
 
 ## Quick Checklist
 
@@ -333,6 +355,7 @@ Before claiming a task is complete:
 - [ ] All documents follow size limits
 - [ ] Collaboration protocol was followed
 - [ ] Friction points were investigated
+- [ ] All dates use correct timezone (US Central)
 
 ---
 
