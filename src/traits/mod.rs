@@ -247,7 +247,7 @@ mod tests {
         let metadata = tool.metadata();
         assert!(!metadata.category.is_empty(), "Tool should have a category");
         assert!(!metadata.version.is_empty(), "Tool should have a version");
-        assert!(metadata.tags.len() > 0, "Tool should have at least one tag");
+        assert!(!metadata.tags.is_empty(), "Tool should have at least one tag");
     }
 
     #[tokio::test]
