@@ -22,6 +22,39 @@ Before starting ANY implementation:
 
 ## Implementation Process
 
+### Phase 0: Git Setup (If on main branch)
+
+Before starting ANY implementation work:
+
+1. **Check Current Branch**
+   ```bash
+   git branch --show-current
+   ```
+
+2. **Create Feature Branch (if on main)**
+   ```bash
+   # Branch naming conventions:
+   # feat/[task-name] - New features
+   # fix/[issue-name] - Bug fixes  
+   # refactor/[component] - Code refactoring
+   # docs/[section] - Documentation updates
+   # test/[component] - Test additions/fixes
+   
+   git checkout -b feat/[descriptive-task-name]
+   ```
+
+3. **Verify Clean Working Tree**
+   ```bash
+   git status
+   ```
+
+4. **Pull Latest Changes (if needed)**
+   ```bash
+   git pull origin main
+   ```
+
+**⚠️ NEVER implement directly on main branch** - Always use feature branches for proper code review workflow.
+
 ### Phase 1: Setup & Validation
 
 1. **Locate Planning Documents**
@@ -209,6 +242,13 @@ Before writing ANY implementation code, ensure:
 - **What**: [Brief description of what was implemented]
 - **Why**: [Business/technical reason]
 - **How**: [High-level approach taken]
+
+### Git Information
+- **Branch**: [branch-name]
+- **Commits**: [number of commits made]
+- **Files changed**: [count]
+- **Ready for PR**: Yes/No
+- **PR Title Suggestion**: [title based on task]
 
 ### Changes Made
 

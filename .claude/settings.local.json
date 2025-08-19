@@ -9,7 +9,11 @@
       "Bash(cargo fmt:*)",
       "Bash(find:*)",
       "Bash(TZ='America/Chicago' date)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(git checkout:*)",
+      "Bash(grep:*)",
+      "Bash(cargo:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

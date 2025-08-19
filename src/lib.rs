@@ -41,6 +41,7 @@
 
 // Core modules
 pub mod error;
+pub mod traits;
 
 // Re-export core types when they become available
 pub mod prelude {
@@ -58,7 +59,15 @@ pub mod prelude {
         ValidationError,
     };
 
-    // Core types will be re-exported here as they're implemented
+    // Re-export core trait interfaces
+    pub use crate::traits::{
+        Agent, AgentState, AgentConfig, AgentRequest, AgentResponse, HealthStatus, AgentBuilder,
+        Tool, ToolCall, ToolParams, ToolResult, ToolMetadata,
+        Validator, ValidationRequest, ValidationResponse, ValidationStage, ValidationContent, 
+        ValidatorConfig, ValidationModifications,
+        Monitor, MonitorEvent, MonitorEventType, ExecutionSummary, MonitorQuery, MonitorConfig,
+        Usage,
+    };
 }
 
 // Library version and metadata

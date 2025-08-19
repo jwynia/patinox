@@ -25,6 +25,20 @@ We're about to close this session and lose anything not captured that we might n
 - [ ] All documents follow size limits (flag documents >300 lines)
 - [ ] **Obsolete content archived** (not just deleted)
 
+### Git Workflow
+- [ ] All changes committed with clear, descriptive messages
+- [ ] Branch pushed to remote (`git push -u origin [branch-name]`)
+- [ ] Pull request created (or ready to create)
+- [ ] PR description includes:
+  - [ ] Summary of changes made
+  - [ ] Testing performed and results
+  - [ ] Related issue/task numbers
+  - [ ] Breaking changes noted (if any)
+  - [ ] Screenshots/examples (if UI changes)
+- [ ] CI/CD checks passing (or failures explained/expected)
+- [ ] Ready for code review
+- [ ] Reviewers assigned or requested
+
 ### Discovery Triggers Met?
 Review `/discoveries/triggers.md` - did any of these happen without documentation?
 - [ ] Spent >5 minutes figuring out how something works
