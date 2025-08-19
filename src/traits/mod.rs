@@ -991,10 +991,20 @@ pub use validator::{
 // Supporting types used across traits
 use serde::{Deserialize, Serialize};
 
+/// Token usage and cost tracking for LLM operations
+///
+/// This struct captures the essential metrics for understanding and optimizing
+/// LLM usage across the Patinox framework. All agents and tools should report
+/// usage information to enable cost monitoring and performance analysis.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Usage {
+    /// Number of tokens in the input prompt
     pub prompt_tokens: u32,
+    /// Number of tokens generated in the response  
     pub completion_tokens: u32,
+    /// Total tokens used (prompt + completion)
     pub total_tokens: u32,
+    /// Estimated cost in USD, if available from provider
+    /// Note: Cost calculation depends on provider pricing models
     pub cost_usd: Option<f64>,
 }

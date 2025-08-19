@@ -458,11 +458,22 @@ pub struct ToolResult {
     pub metadata: HashMap<String, String>,
 }
 
+/// Metadata for tool discovery, categorization, and security assessment
+///
+/// This metadata enables the framework to organize tools, make informed
+/// security decisions, and provide clear attribution and versioning.
 #[derive(Debug, Clone)]
 pub struct ToolMetadata {
+    /// Tool category for organization (e.g., "data", "communication", "analysis")
     pub category: String,
+    /// Tags for enhanced discoverability and filtering
     pub tags: Vec<String>,
+    /// Semantic version string for compatibility tracking
     pub version: String,
+    /// Tool author/maintainer for attribution and support
     pub author: Option<String>,
-    pub dangerous: bool, // Requires extra validation
+    /// Security flag indicating tools that require additional validation
+    /// Dangerous tools may modify system state, access external services,
+    /// or perform operations that need extra approval
+    pub dangerous: bool,
 }
