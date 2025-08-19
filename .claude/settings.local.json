@@ -7,7 +7,9 @@
       "Bash(cargo check:*)",
       "Bash(cargo clippy:*)",
       "Bash(cargo fmt:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(TZ='America/Chicago' date)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []
