@@ -39,6 +39,9 @@
 //! Current implementation phase: **Foundation** - establishing core error types,
 //! traits, and utility functions.
 
+// Core modules
+pub mod error;
+
 // Re-export core types when they become available
 pub mod prelude {
     //! Common imports for working with Patinox
@@ -48,6 +51,12 @@ pub mod prelude {
 
     // Re-export library metadata
     pub use crate::{NAME, VERSION};
+
+    // Re-export core error types for convenient access
+    pub use crate::error::{
+        ConfigurationError, ExecutionError, NetworkError, PatinoxError, RecoveryStrategy,
+        ValidationError,
+    };
 
     // Core types will be re-exported here as they're implemented
 }
@@ -69,15 +78,75 @@ mod tests {
             VERSION
         );
         assert_eq!(NAME, "patinox", "Package name should be patinox");
+        
+        // Version should be non-empty and follow semver pattern
+        assert!(!VERSION.is_empty(), "Version must not be empty");
+        let version_parts: Vec<&str> = VERSION.split('.').collect();
+        assert!(
+            version_parts.len() >= 2,
+            "Version should have at least major.minor format: {}",
+            VERSION
+        );
+        
+        // Each version part should be numeric
+        for part in version_parts.iter().take(3) {
+            assert!(
+                part.chars().all(|c| c.is_ascii_digit()),
+                "Version part '{}' should be numeric in version: {}",
+                part,
+                VERSION
+            );
+        }
     }
 
     #[test]
-    fn test_prelude_module_exists() {
-        // This test ensures the prelude module is accessible
-        // As we add items to prelude, we can test they're accessible here
-
-        // For now, just verify the module exists by accessing it
-        let _prelude = crate::prelude::VERSION;
-        // When we add actual exports to prelude, we'll test them here
+    fn test_prelude_module_exports() {
+        // Verify prelude re-exports are accessible
+        let _version = crate::prelude::VERSION;
+        let _name = crate::prelude::NAME;
+        
+        // Verify error types are accessible through prelude
+        use crate::prelude::*;
+        
+        // Test that we can create errors through prelude imports
+        let _validation_error = ValidationError::InvalidInput("test".to_string());
+        let _patinox_error = PatinoxError::Validation(_validation_error);
+        let _recovery_strategy = RecoveryStrategy::Retry;
+        
+        // Verify types implement expected traits
+        fn assert_send<T: Send>() {}
+        fn assert_sync<T: Sync>() {}
+        assert_send::<PatinoxError>();
+        assert_sync::<PatinoxError>();
+        assert_send::<RecoveryStrategy>();
+        assert_sync::<RecoveryStrategy>();
+    }
+    
+    #[test]
+    fn test_prelude_completeness() {
+        // Verify all major error types are re-exported in prelude
+        use crate::prelude::*;
+        
+        // Should be able to construct all main error variants
+        let _config_error = ConfigurationError::InvalidFormat("test".to_string());
+        let _exec_error = ExecutionError::ResourceExhausted("memory".to_string());
+        let _net_error = NetworkError::Timeout("api timeout".to_string());
+        let _val_error = ValidationError::RateLimited;
+        
+        // All recovery strategies should be available
+        let strategies = [
+            RecoveryStrategy::Retry,
+            RecoveryStrategy::Fallback, 
+            RecoveryStrategy::CircuitBreak,
+            RecoveryStrategy::Fail,
+        ];
+        
+        // Should be able to use all strategies
+        for strategy in strategies {
+            assert!(matches!(strategy, RecoveryStrategy::Retry | 
+                                     RecoveryStrategy::Fallback |
+                                     RecoveryStrategy::CircuitBreak |
+                                     RecoveryStrategy::Fail));
+        }
     }
 }

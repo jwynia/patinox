@@ -394,6 +394,7 @@ Before any component is considered "complete":
   - [planning/unaddressed-questions/testing-strategy.md] - implements - Testing approach
   - [elements/technology_stack.md] - uses - Testing frameworks
   - [processes/validation.md] - guides - Quality processes
+  - [processes/test_quality_assessment.md] - enables - Quality evaluation and improvement
 
 ## Navigation Guidance
 - **Access Context:** Use when starting any implementation work or when tests fail

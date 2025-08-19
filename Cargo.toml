@@ -30,7 +30,9 @@ categories.workspace = true
 description = "Self-improving AI agent framework built on Rust with type-safe abstractions and automated monitoring"
 
 [dependencies]
-# Core dependencies will be added as features are implemented
+# Error handling
+thiserror.workspace = true
+anyhow.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
