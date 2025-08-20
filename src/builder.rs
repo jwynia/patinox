@@ -9,7 +9,6 @@ use std::collections::HashMap;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     // Tests written FIRST to define the contract
 
