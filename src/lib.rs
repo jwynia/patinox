@@ -50,6 +50,9 @@ pub mod typestate;
 // Memory management utilities
 pub mod memory;
 
+// LLM provider abstraction layer
+pub mod provider;
+
 // Re-export core types when they become available
 pub mod prelude {
     //! Common imports for working with Patinox
@@ -87,6 +90,13 @@ pub mod prelude {
     pub use crate::memory::{
         AsyncResourceGuard, CleanupError, CleanupPriority, ResourceId, ResourceInfo,
         ResourceRegistry,
+    };
+
+    // Re-export provider abstraction layer
+    pub use crate::provider::{
+        AgentModelConfig, CompletionRequest, CompletionResponse, EmbeddingRequest,
+        EmbeddingResponse, GlobalModelConfig, ModelCapabilities, ModelId, ModelInfo, ModelProvider,
+        ProviderError, ProviderResult, QualityTier, RequestConfig, SelectionStrategy, SpeedTier,
     };
 }
 
