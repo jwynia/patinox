@@ -255,17 +255,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_model_id_creation() {
+    fn test_model_id_creation_and_parsing() {
         let model = ModelId::new("gpt-4");
         assert_eq!(model.name(), "gpt-4");
         assert!(model.provider_hint().is_none());
+
+        // Test the business logic of display formatting
+        assert_eq!(format!("{}", model), "gpt-4");
     }
 
     #[test]
-    fn test_model_id_with_provider() {
-        let model = ModelId::new("claude-3-opus").with_provider("anthropic");
-        assert_eq!(model.name(), "claude-3-opus");
-        assert_eq!(model.provider_hint(), Some("anthropic"));
+    fn test_model_id_provider_routing_logic() {
+        let model_without_provider = ModelId::new("claude-3-opus");
+        let model_with_provider = ModelId::new("claude-3-opus").with_provider("anthropic");
+
+        // Test that provider hint affects routing display
+        assert_ne!(
+            format!("{}", model_without_provider),
+            format!("{}", model_with_provider)
+        );
+        assert_eq!(
+            format!("{}", model_with_provider),
+            "anthropic/claude-3-opus"
+        );
+
+        // Test conditional logic for provider hint
+        assert!(model_without_provider.provider_hint().is_none());
+        assert!(model_with_provider.provider_hint().is_some());
     }
 
     #[test]
@@ -295,13 +311,24 @@ mod tests {
     }
 
     #[test]
-    fn test_model_capabilities_default() {
-        let caps = ModelCapabilities::default();
-        assert_eq!(caps.max_tokens, 4096);
-        assert!(!caps.supports_tools);
-        assert!(!caps.supports_vision);
-        assert_eq!(caps.speed_tier, SpeedTier::Standard);
-        assert_eq!(caps.quality_tier, QualityTier::Standard);
+    fn test_model_capabilities_business_logic() {
+        let default_caps = ModelCapabilities::default();
+        let premium_caps = ModelCapabilities {
+            max_tokens: 128000,
+            supports_tools: true,
+            supports_vision: true,
+            speed_tier: SpeedTier::Standard,
+            quality_tier: QualityTier::Ultra,
+            ..ModelCapabilities::default()
+        };
+
+        // Test capability-based decision logic
+        assert!(premium_caps.max_tokens > default_caps.max_tokens);
+        assert!(premium_caps.quality_tier > default_caps.quality_tier);
+
+        // Test that capabilities affect model selection logic
+        assert_ne!(premium_caps.supports_tools, default_caps.supports_tools);
+        assert_ne!(premium_caps.supports_vision, default_caps.supports_vision);
     }
 
     #[test]

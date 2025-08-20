@@ -348,13 +348,123 @@ fn create_test_models() -> Vec<ModelInfo> {
 }
 
 #[tokio::test]
-async fn test_selection_strategies_placeholder() {
-    // This test will be expanded once we implement the selection strategy logic
+async fn test_model_capability_based_selection() {
     let models = create_test_models();
-    assert_eq!(models.len(), 3);
 
-    // Verify models have different characteristics for selection
-    assert_eq!(models[0].capabilities.speed_tier, SpeedTier::Instant);
-    assert_eq!(models[1].capabilities.quality_tier, QualityTier::Standard);
-    assert_eq!(models[2].capabilities.quality_tier, QualityTier::Ultra);
+    // Test finding fastest model
+    let fastest = models
+        .iter()
+        .min_by_key(|m| m.capabilities.speed_tier)
+        .expect("Should have models");
+    assert_eq!(fastest.capabilities.speed_tier, SpeedTier::Instant);
+
+    // Test finding highest quality model
+    let highest_quality = models
+        .iter()
+        .max_by_key(|m| m.capabilities.quality_tier)
+        .expect("Should have models");
+    assert_eq!(
+        highest_quality.capabilities.quality_tier,
+        QualityTier::Ultra
+    );
+
+    // Test filtering by capabilities
+    let tools_capable: Vec<_> = models
+        .iter()
+        .filter(|m| m.capabilities.supports_tools)
+        .collect();
+    assert_eq!(tools_capable.len(), 2); // balanced and premium models
+
+    // Test cost-based selection (cheapest input cost)
+    let cheapest = models
+        .iter()
+        .filter_map(|m| m.capabilities.input_cost_per_1k.map(|cost| (m, cost)))
+        .min_by(|(_, cost_a), (_, cost_b)| cost_a.partial_cmp(cost_b).unwrap())
+        .map(|(model, _)| model)
+        .expect("Should find cheapest model");
+    assert_eq!(cheapest.id.name(), "fast-model");
+}
+
+#[tokio::test]
+async fn test_provider_edge_cases() {
+    let provider = MockProvider::new("edge-case-test");
+
+    // Test empty message list
+    let empty_request = CompletionRequest {
+        model: ModelId::new("test-model"),
+        messages: vec![], // Empty messages
+        temperature: Some(0.7),
+        max_tokens: Some(100),
+        tools: None,
+    };
+
+    let result = provider.complete(empty_request).await;
+    assert!(
+        result.is_ok(),
+        "Provider should handle empty messages gracefully"
+    );
+
+    // Test extreme temperature values
+    let extreme_temp_request = CompletionRequest {
+        model: ModelId::new("test-model"),
+        messages: vec!["Test".to_string()],
+        temperature: Some(2.0), // Max allowed
+        max_tokens: Some(1),    // Minimum tokens
+        tools: None,
+    };
+
+    let result = provider.complete(extreme_temp_request).await;
+    assert!(
+        result.is_ok(),
+        "Provider should handle extreme parameter values"
+    );
+
+    // Test very long model names
+    let long_model_name = "a".repeat(1000);
+    let long_name_model = ModelId::new(&long_model_name);
+    let supports_long_name = provider.supports_model(&long_name_model).await;
+    assert!(
+        !supports_long_name,
+        "Provider should reject very long model names"
+    );
+
+    // Test model name with special characters
+    let special_char_model = ModelId::new("model/with:special@chars");
+    // This tests that the provider handles special characters without crashing
+    // We don't care about the result, just that it doesn't panic
+    let _supports_special = provider.supports_model(&special_char_model).await;
+}
+
+#[tokio::test]
+async fn test_model_capabilities_edge_cases() {
+    let provider = MockProvider::new("capability-test");
+
+    // Test non-existent model capabilities
+    let fake_model = ModelId::new("non-existent-model-12345");
+    let capabilities = provider.model_capabilities(&fake_model).await;
+    assert!(
+        capabilities.is_none(),
+        "Non-existent models should return None capabilities"
+    );
+
+    // Test model capabilities with empty name
+    let empty_model = ModelId::new("");
+    let empty_capabilities = provider.model_capabilities(&empty_model).await;
+    assert!(
+        empty_capabilities.is_none(),
+        "Empty model names should return None capabilities"
+    );
+
+    // Test model list when provider fails
+    let failing_provider = MockProvider::new("failing-list").with_failure(true);
+    let models_result = failing_provider.list_models().await;
+    assert!(
+        models_result.is_err(),
+        "Failed provider should return error for list_models"
+    );
+
+    match models_result.unwrap_err() {
+        ProviderError::ApiError(msg) => assert_eq!(msg, "Mock failure"),
+        _ => panic!("Expected ApiError for failing provider"),
+    }
 }

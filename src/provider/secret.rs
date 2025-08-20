@@ -95,7 +95,10 @@ mod tests {
     fn test_secret_string_display() {
         let secret = SecretString::new("my-secret-key");
         assert_eq!(format!("{}", secret), "[REDACTED]");
-        assert_eq!(format!("{:?}", secret), "SecretString { inner: \"[REDACTED]\" }");
+        assert_eq!(
+            format!("{:?}", secret),
+            "SecretString { inner: \"[REDACTED]\" }"
+        );
     }
 
     #[test]

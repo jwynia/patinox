@@ -22,7 +22,8 @@
       "Bash(./scripts/ci-local.sh:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr checks:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []

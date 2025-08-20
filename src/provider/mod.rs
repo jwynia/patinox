@@ -86,23 +86,27 @@ pub trait ModelProvider: Send + Sync {
 /// create an appropriate provider instance with sensible defaults.
 pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, ProviderError> {
     use crate::provider::openai::OpenAIProvider;
-    
+
     // Try to load configuration from environment
     let config_loader = ModelConfigLoader::new();
     let config = config_loader.load().await?;
-    
+
     match &config.default_provider {
-        Provider::OpenAI { api_key, organization, base_url } => {
+        Provider::OpenAI {
+            api_key,
+            organization,
+            base_url,
+        } => {
             let mut provider = OpenAIProvider::new(api_key.clone())?;
-            
+
             if let Some(org) = organization {
                 provider = provider.with_organization(org.clone());
             }
-            
+
             if let Some(url) = base_url {
                 provider = provider.with_base_url(url.clone());
             }
-            
+
             Ok(Box::new(provider))
         }
         _ => {
@@ -131,7 +135,7 @@ pub async fn create_fallback_provider(
             "Cannot create fallback provider with empty provider list".to_string(),
         ));
     }
-    
+
     // For now, just return the first provider
     // TODO: Implement proper fallback provider wrapper
     let mut providers = providers;

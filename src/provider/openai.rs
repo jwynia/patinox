@@ -397,13 +397,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_openai_provider_creation() {
+    fn test_openai_provider_creation_and_configuration() {
+        // Test successful creation with valid key
         let provider = OpenAIProvider::new("sk-test-key");
         assert!(provider.is_ok());
 
         let provider = provider.unwrap();
         assert_eq!(provider.name(), "openai");
         assert_eq!(provider.base_url, "https://api.openai.com/v1");
+
+        // Test that configuration affects behavior
+        let custom_provider = OpenAIProvider::new("sk-another-key")
+            .unwrap()
+            .with_base_url("https://custom.api.com/v1")
+            .with_organization("my-org");
+
+        // Verify configurations are different and affect behavior
+        assert_ne!(provider.base_url, custom_provider.base_url);
+        assert!(provider.organization.is_none());
+        assert!(custom_provider.organization.is_some());
+
+        // Test that both configurations are valid for the same interface
+        assert_eq!(provider.name(), custom_provider.name());
     }
 
     #[test]
