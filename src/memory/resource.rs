@@ -8,7 +8,7 @@
 //! - [`CleanupFn`]: Type alias for cleanup functions
 //! - [`CleanupPriority`]: Priority levels for cleanup operations
 
-use crate::error::{PatinoxError, ExecutionError, RecoveryStrategy};
+use crate::error::{ExecutionError, PatinoxError, RecoveryStrategy};
 use std::future::Future;
 use std::pin::Pin;
 // Arc and Weak will be used later for registry integration
@@ -32,7 +32,18 @@ impl std::fmt::Display for ResourceId {
 }
 
 /// Priority levels for cleanup operations
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+    Default,
+)]
 pub enum CleanupPriority {
     /// Low priority cleanup (background maintenance)
     Low = 0,
@@ -51,15 +62,15 @@ pub enum CleanupError {
     /// Cleanup operation timed out
     #[error("Cleanup operation timed out")]
     Timeout,
-    
+
     /// Resource was already cleaned up
     #[error("Resource was already cleaned up")]
     AlreadyCleanedUp,
-    
+
     /// Cleanup operation failed with an error
     #[error("Cleanup failed: {0}")]
     Failed(#[from] Box<dyn std::error::Error + Send + Sync>),
-    
+
     /// Registry is shutting down and cannot process cleanup
     #[error("Registry is shutting down")]
     ShuttingDown,
@@ -84,7 +95,8 @@ impl From<CleanupError> for PatinoxError {
 }
 
 /// Type alias for cleanup functions
-pub type CleanupFn<T> = Box<dyn FnOnce(T) -> Pin<Box<dyn Future<Output = Result<(), CleanupError>> + Send>> + Send>;
+pub type CleanupFn<T> =
+    Box<dyn FnOnce(T) -> Pin<Box<dyn Future<Output = Result<(), CleanupError>> + Send>> + Send>;
 
 /// RAII guard for async resource cleanup
 ///
@@ -126,37 +138,39 @@ impl<T: Send + 'static> AsyncResourceGuard<T> {
     ///
     /// The cleanup function will be called when the guard is dropped or when
     /// [`cleanup()`] is called manually.
-    pub fn new<F, Fut>(resource: T, cleanup_fn: F) -> Self 
+    pub fn new<F, Fut>(resource: T, cleanup_fn: F) -> Self
     where
         F: FnOnce(T) -> Fut + Send + 'static,
         Fut: Future<Output = Result<(), CleanupError>> + Send + 'static,
     {
-        let cleanup: CleanupFn<T> = Box::new(move |res| {
-            Box::pin(cleanup_fn(res))
-        });
-        
+        let cleanup: CleanupFn<T> = Box::new(move |res| Box::pin(cleanup_fn(res)));
+
         Self {
             resource: Some(resource),
             cleanup: Some(cleanup),
             resource_id: ResourceId::generate(),
         }
     }
-    
+
     /// Get an immutable reference to the resource
     pub fn get(&self) -> &T {
-        self.resource.as_ref().expect("Resource was already consumed")
+        self.resource
+            .as_ref()
+            .expect("Resource was already consumed")
     }
-    
+
     /// Get a mutable reference to the resource
     pub fn get_mut(&mut self) -> &mut T {
-        self.resource.as_mut().expect("Resource was already consumed")
+        self.resource
+            .as_mut()
+            .expect("Resource was already consumed")
     }
-    
+
     /// Consume the guard and return the resource without cleanup
     pub fn into_inner(mut self) -> T {
         self.resource.take().expect("Resource was already consumed")
     }
-    
+
     /// Manually trigger cleanup and consume the guard
     ///
     /// This allows for error handling of the cleanup operation. If not called,
@@ -169,7 +183,7 @@ impl<T: Send + 'static> AsyncResourceGuard<T> {
             Err(CleanupError::AlreadyCleanedUp)
         }
     }
-    
+
     /// Get the resource ID
     pub fn resource_id(&self) -> ResourceId {
         self.resource_id
@@ -202,79 +216,88 @@ mod tests {
     use super::*;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
-    
+
     #[tokio::test]
     async fn test_basic_functionality() {
         let cleanup_called = Arc::new(AtomicBool::new(false));
         let cleanup_called_clone = Arc::clone(&cleanup_called);
-        
-        let guard = AsyncResourceGuard::new(
-            "test resource",
-            move |_resource| {
-                let cleanup_called = Arc::clone(&cleanup_called_clone);
-                async move {
-                    cleanup_called.store(true, Ordering::Relaxed);
-                    Ok(())
-                }
+
+        let guard = AsyncResourceGuard::new("test resource", move |_resource| {
+            let cleanup_called = Arc::clone(&cleanup_called_clone);
+            async move {
+                cleanup_called.store(true, Ordering::Relaxed);
+                Ok(())
             }
-        );
-        
+        });
+
         assert_eq!(*guard.get(), "test resource");
-        
+
         let result = guard.cleanup().await;
         assert!(result.is_ok());
         assert!(cleanup_called.load(Ordering::Relaxed));
     }
-    
+
     #[test]
     fn test_resource_id_generation() {
         let id1 = ResourceId::generate();
         let id2 = ResourceId::generate();
-        
+
         assert_ne!(id1, id2);
-        
+
         // Test display
         let display_str = format!("{}", id1);
         assert!(!display_str.is_empty());
         assert!(display_str.contains('-'));
     }
-    
+
     #[test]
     fn test_cleanup_priority_ordering() {
         let low = CleanupPriority::Low;
         let normal = CleanupPriority::Normal;
         let high = CleanupPriority::High;
         let critical = CleanupPriority::Critical;
-        
+
         assert!(low < normal);
         assert!(normal < high);
         assert!(high < critical);
-        
+
         assert_eq!(CleanupPriority::default(), CleanupPriority::Normal);
     }
-    
+
     #[test]
     fn test_cleanup_error_recovery_strategies() {
         let timeout_error = CleanupError::Timeout;
         let failed_error = CleanupError::Failed("test".into());
         let already_cleaned_error = CleanupError::AlreadyCleanedUp;
         let shutting_down_error = CleanupError::ShuttingDown;
-        
-        assert!(matches!(timeout_error.recovery_strategy(), RecoveryStrategy::Retry));
-        assert!(matches!(failed_error.recovery_strategy(), RecoveryStrategy::Fallback));
-        assert!(matches!(already_cleaned_error.recovery_strategy(), RecoveryStrategy::Fail));
-        assert!(matches!(shutting_down_error.recovery_strategy(), RecoveryStrategy::Fail));
+
+        assert!(matches!(
+            timeout_error.recovery_strategy(),
+            RecoveryStrategy::Retry
+        ));
+        assert!(matches!(
+            failed_error.recovery_strategy(),
+            RecoveryStrategy::Fallback
+        ));
+        assert!(matches!(
+            already_cleaned_error.recovery_strategy(),
+            RecoveryStrategy::Fail
+        ));
+        assert!(matches!(
+            shutting_down_error.recovery_strategy(),
+            RecoveryStrategy::Fail
+        ));
     }
-    
+
     #[test]
     fn test_cleanup_error_conversion() {
         let cleanup_error = CleanupError::Failed("test failure".into());
         let patinox_error: PatinoxError = cleanup_error.into();
-        
+
         match patinox_error {
             PatinoxError::Execution(exec_error) => {
                 assert!(exec_error.to_string().contains("test failure"));
-            },
+            }
             _ => panic!("Expected Execution error variant"),
         }
     }

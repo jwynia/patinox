@@ -82,11 +82,11 @@ pub mod prelude {
     pub use crate::typestate::{
         AgentWrapper, Created, Running, Started, StateMarker, Stopped, TypeSafeAgentBuilder,
     };
-    
+
     // Re-export memory management utilities
     pub use crate::memory::{
-        AsyncResourceGuard, CleanupError, CleanupPriority, ResourceId,
-        ResourceInfo, ResourceRegistry, 
+        AsyncResourceGuard, CleanupError, CleanupPriority, ResourceId, ResourceInfo,
+        ResourceRegistry,
     };
 }
 

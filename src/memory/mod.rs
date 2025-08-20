@@ -24,13 +24,13 @@
 //! use patinox::memory::{AsyncResourceGuard, ResourceRegistry};
 //! use patinox::traits::Monitor;
 //! use std::sync::Arc;
-//! 
+//!
 //! # // Note: In real usage, add async-trait to Cargo.toml dependencies
 //!
 //! // Mock monitor for example
 //! #[derive(Debug)]
 //! struct ExampleMonitor;
-//! 
+//!
 //! #[async_trait::async_trait]
 //! impl Monitor for ExampleMonitor {
 //!     fn name(&self) -> &str { "example" }
@@ -38,12 +38,12 @@
 //!     async fn record_event(&self, _: patinox::traits::MonitorEvent) -> Result<(), patinox::error::PatinoxError> { Ok(()) }
 //!     async fn complete_monitoring(&self, _: uuid::Uuid, _: patinox::traits::ExecutionSummary) -> Result<(), patinox::error::PatinoxError> { Ok(()) }
 //!     async fn query_events(&self, _: patinox::traits::MonitorQuery) -> Result<Vec<patinox::traits::MonitorEvent>, patinox::error::PatinoxError> { Ok(Vec::new()) }
-//!     fn config(&self) -> &patinox::traits::MonitorConfig { 
+//!     fn config(&self) -> &patinox::traits::MonitorConfig {
 //!         use patinox::traits::{MonitorConfig, MonitorEventType};
 //!         static CONFIG: std::sync::OnceLock<MonitorConfig> = std::sync::OnceLock::new();
 //!         CONFIG.get_or_init(|| MonitorConfig {
-//!             name: "example".to_string(), enabled: true, buffer_size: 1000, 
-//!             flush_interval_ms: 5000, sampling_rate: 1.0, 
+//!             name: "example".to_string(), enabled: true, buffer_size: 1000,
+//!             flush_interval_ms: 5000, sampling_rate: 1.0,
 //!             event_types: vec![MonitorEventType::ExecutionStarted],
 //!         })
 //!     }
@@ -72,9 +72,9 @@
 //! }
 //! ```
 
-pub mod resource;
 pub mod registry;
+pub mod resource;
 
 // Re-export main types for convenient access
+pub use registry::{CleanupRequest, ResourceInfo, ResourceRegistry};
 pub use resource::{AsyncResourceGuard, CleanupError, CleanupFn, CleanupPriority, ResourceId};
-pub use registry::{ResourceInfo, ResourceRegistry, CleanupRequest};
