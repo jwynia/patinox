@@ -112,7 +112,7 @@ async fn test_resource_guard_basic_functionality() {
     // Verify resource access
     assert_eq!(guard.get().id, 1);
     assert_eq!(guard.get().name, "test-resource");
-    assert!(!cleanup_tracker.load(Ordering::Relaxed));
+    assert!(!guard.get().is_cleaned_up());
 
     // Manually cleanup
     let result = guard.cleanup().await;
@@ -254,6 +254,9 @@ async fn test_resource_guard_error_handling() {
             "Intentional test error".into(),
         ))
     });
+
+    // Verify initial state
+    assert!(!guard.get().is_cleaned_up());
 
     // Manual cleanup should return error
     let result = guard.cleanup().await;
