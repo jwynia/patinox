@@ -19,10 +19,19 @@ Parse $ARGUMENTS for options:
 ## Primary Review Focus
 
 ### 1. Tautological Tests Detection
-- Look for tests that assert the same value they just set
-- Find tests that only verify mocked behavior without testing real logic
-- Identify tests like: `expect(true).toBe(true)` or `expect(mockFn).toHaveBeenCalled()` after directly calling mockFn
-- Check for tests that pass even when the implementation is broken
+**IMPORTANT**: Distinguish between legitimate mock testing and true tautologies.
+
+**TRUE TAUTOLOGIES (Bad)**:
+- Tests that assert the same value they just set without any logic
+- Tests that only verify hardcoded mock return values without testing conditional behavior
+- Tests like: `expect(true).toBe(true)` or direct constructor assignment verification
+- Tests that pass even when all business logic is removed
+
+**LEGITIMATE MOCK TESTING (Good)**:
+- Tests that exercise conditional logic in mocks (if/else, match statements, error handling)
+- Tests that verify different code paths based on mock return values
+- Tests that validate state-dependent behavior using mocks
+- Tests where mocks enable testing all branches of the unit under test
 
 ### 2. Proper Mocking and Isolation
 - Ensure external dependencies are mocked (databases, APIs, file systems)
@@ -63,26 +72,44 @@ Parse $ARGUMENTS for options:
 
 3. **Common Anti-Patterns to Flag:**
 
-   **Direct Tautologies:**
+   **Direct Tautologies (Bad):**
    ```javascript
-   // BAD - Testing the assignment
+   // BAD - Testing the assignment without any logic
    const result = 5;
    expect(result).toBe(5);
    ```
 
-   **Mock-Only Tests:**
+   **Hardcoded Mock Return Tests (Bad):**
    ```javascript
-   // BAD - Testing the mock, not the component
+   // BAD - Only verifying hardcoded mock values
    mockService.getValue.mockReturnValue(42);
    const result = component.getData();
-   expect(result).toBe(42);
+   expect(result).toBe(42); // No conditional logic tested
    ```
 
-   **Self-Referential Tests:**
+   **Constructor Assignment Tests (Bad):**
    ```javascript
    // BAD - Just testing constructor assignment
    const user = new User({ name: 'John' });
-   expect(user.name).toBe('John');
+   expect(user.name).toBe('John'); // No business logic
+   ```
+
+   **Legitimate Mock Testing (Good):**
+   ```rust
+   // GOOD - Testing conditional logic in mock
+   let mut agent = MockAgent::new("test");
+   let result = agent.execute(request).await;
+   assert!(result.is_err()); // Tests state validation logic
+   ```
+
+   **Good Branching Tests:**
+   ```rust
+   // GOOD - Testing different code paths
+   if message.contains("unsafe") {
+       assert!(!validator.validate(unsafe_msg).approved);
+   } else {
+       assert!(validator.validate(safe_msg).approved);
+   }
    ```
 
    **Missing Isolation:**

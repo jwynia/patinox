@@ -92,6 +92,9 @@ cargo clippy
 
 # Format code
 cargo fmt
+
+# Run all CI checks locally (recommended before pushing)
+./scripts/ci-local.sh
 ```
 
 #### Development

@@ -9,7 +9,18 @@
       "Bash(cargo fmt:*)",
       "Bash(find:*)",
       "Bash(TZ='America/Chicago' date)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(git checkout:*)",
+      "Bash(grep:*)",
+      "Bash(cargo:*)",
+      "Bash(git add:*)",
+      "Bash(gh run view:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh run list:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/ci-local.sh:*)",
+      "Bash(gh pr view:*)"
     ],
     "deny": [],
     "ask": []
