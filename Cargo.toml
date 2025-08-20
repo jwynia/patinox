@@ -34,13 +34,18 @@ description = "Self-improving AI agent framework built on Rust with type-safe ab
 thiserror.workspace = true
 anyhow.workspace = true
 
-# Core trait dependencies
+# Async runtime and utilities
+tokio.workspace = true
+futures.workspace = true
 async-trait.workspace = true
+
+# Core trait dependencies
 serde.workspace = true
 serde_json.workspace = true
 uuid = { version = "1.11", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 tower.workspace = true
+log = "0.4"
 
 [dev-dependencies]
 criterion.workspace = true
