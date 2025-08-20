@@ -12,7 +12,7 @@ mod tests {
     use std::marker::PhantomData;
 
     // Tests are written FIRST to define the contract
-    
+
     // Helper function to reduce test setup duplication
     fn create_test_agent_config() -> crate::traits::AgentConfig {
         use std::collections::HashMap;
@@ -28,7 +28,7 @@ mod tests {
             metadata: HashMap::new(),
         }
     }
-    
+
     #[test]
     fn typestate_marker_types_exist() {
         // Test that all state marker types can be instantiated
@@ -36,24 +36,24 @@ mod tests {
         let _started = Started;
         let _running = Running;
         let _stopped = Stopped;
-        
+
         // State markers should be zero-sized types
         assert_eq!(std::mem::size_of::<Created>(), 0);
         assert_eq!(std::mem::size_of::<Started>(), 0);
         assert_eq!(std::mem::size_of::<Running>(), 0);
         assert_eq!(std::mem::size_of::<Stopped>(), 0);
-        
+
         // State markers should implement common traits
         let created = Created;
         let _cloned = created.clone();
         let _debug = format!("{:?}", created);
     }
-    
+
     #[test]
     fn agent_wrapper_creation() {
         use crate::traits::AgentConfig;
         use std::collections::HashMap;
-        
+
         // Test that we can create an agent wrapper in Created state
         let config = AgentConfig {
             name: "test-agent".to_string(),
@@ -66,10 +66,10 @@ mod tests {
             tools: vec![],
             metadata: HashMap::new(),
         };
-        
+
         // Should be able to create agent in Created state
         let _agent = AgentWrapper::<Created>::new(config);
-        
+
         // Agent wrapper should be zero-cost abstraction
         // (only the phantom data adds to size)
         assert_eq!(
@@ -77,12 +77,12 @@ mod tests {
             std::mem::size_of::<AgentConfig>() + std::mem::size_of::<PhantomData<Created>>()
         );
     }
-    
+
     #[test]
     fn agent_state_transitions() {
         use crate::traits::AgentConfig;
         use std::collections::HashMap;
-        
+
         let config = AgentConfig {
             name: "test-agent".to_string(),
             description: Some("Test agent".to_string()),
@@ -94,29 +94,29 @@ mod tests {
             tools: vec![],
             metadata: HashMap::new(),
         };
-        
+
         // Agent starts in Created state
         let agent = AgentWrapper::<Created>::new(config);
-        
+
         // Can transition from Created to Started
         let agent = agent.start().unwrap();
         assert_eq!(agent.current_state(), "Started");
-        
+
         // Can transition from Started to Running
         let agent = agent.run().unwrap();
         assert_eq!(agent.current_state(), "Running");
-        
+
         // Can transition from Running to Stopped
         let agent = agent.stop().unwrap();
         assert_eq!(agent.current_state(), "Stopped");
     }
-    
+
     #[test]
     fn agent_operations_available_in_correct_states() {
         use crate::traits::{AgentConfig, AgentRequest};
         use std::collections::HashMap;
         use uuid::Uuid;
-        
+
         let config = AgentConfig {
             name: "test-agent".to_string(),
             description: Some("Test agent".to_string()),
@@ -128,15 +128,15 @@ mod tests {
             tools: vec![],
             metadata: HashMap::new(),
         };
-        
+
         let agent = AgentWrapper::<Created>::new(config);
-        
+
         // Should be able to check config in any state
         let _config = agent.config();
-        
+
         // Transition to running state for execute operations
         let agent = agent.start().unwrap().run().unwrap();
-        
+
         // Should be able to execute in Running state
         let _request = AgentRequest {
             id: Uuid::new_v4(),
@@ -146,17 +146,17 @@ mod tests {
             context: HashMap::new(),
             metadata: HashMap::new(),
         };
-        
+
         // This should compile and work in Running state
         let _can_execute = agent.can_execute();
         assert!(agent.can_execute());
     }
-    
+
     #[test]
     fn invalid_transitions_prevented() {
         use crate::traits::AgentConfig;
         use std::collections::HashMap;
-        
+
         let config = AgentConfig {
             name: "test-agent".to_string(),
             description: Some("Test agent".to_string()),
@@ -168,24 +168,24 @@ mod tests {
             tools: vec![],
             metadata: HashMap::new(),
         };
-        
+
         let agent = AgentWrapper::<Created>::new(config);
-        
+
         // Try to go from Created directly to Running (should fail)
         let result = agent.direct_run();
         assert!(result.is_err());
-        
+
         // Verify error message indicates invalid transition
         if let Err(err) = result {
             assert!(err.to_string().contains("invalid transition"));
         }
     }
-    
+
     #[test]
     fn type_safety_prevents_invalid_operations() {
         use crate::traits::AgentConfig;
         use std::collections::HashMap;
-        
+
         let config = AgentConfig {
             name: "test-agent".to_string(),
             description: Some("Test agent".to_string()),
@@ -197,66 +197,67 @@ mod tests {
             tools: vec![],
             metadata: HashMap::new(),
         };
-        
+
         // Agent in Created state
         let agent = AgentWrapper::<Created>::new(config);
-        
+
         // Should NOT be able to execute in Created state
         assert!(!agent.can_execute());
-        
-        // Agent in Started state  
+
+        // Agent in Started state
         let agent = agent.start().unwrap();
         assert!(!agent.can_execute());
-        
+
         // Only Running state should allow execution
         let agent = agent.run().unwrap();
         assert!(agent.can_execute());
-        
+
         // Stopped state should not allow execution
         let agent = agent.stop().unwrap();
         assert!(!agent.can_execute());
     }
-    
+
     #[test]
     fn state_marker_traits() {
         // Test that state markers implement required traits
-        fn assert_state_marker<T: StateMarker + Clone + std::fmt::Debug + Send + Sync + 'static>() {}
-        
+        fn assert_state_marker<T: StateMarker + Clone + std::fmt::Debug + Send + Sync + 'static>() {
+        }
+
         assert_state_marker::<Created>();
         assert_state_marker::<Started>();
         assert_state_marker::<Running>();
         assert_state_marker::<Stopped>();
     }
-    
+
     #[test]
     fn phantom_types_zero_cost() {
         // Verify phantom types don't add runtime overhead
         let phantom_created: PhantomData<Created> = PhantomData;
         let phantom_running: PhantomData<Running> = PhantomData;
-        
+
         assert_eq!(std::mem::size_of_val(&phantom_created), 0);
         assert_eq!(std::mem::size_of_val(&phantom_running), 0);
-        
+
         // Phantom data should be Send + Sync
         fn assert_send_sync<T: Send + Sync>() {}
         assert_send_sync::<PhantomData<Created>>();
         assert_send_sync::<PhantomData<Running>>();
     }
-    
+
     #[test]
     fn agent_wrapper_send_sync() {
         use crate::traits::AgentConfig;
         use std::collections::HashMap;
-        
+
         // Verify agent wrapper can be sent across threads
         fn assert_send<T: Send>() {}
         fn assert_sync<T: Sync>() {}
-        
+
         assert_send::<AgentWrapper<Created>>();
         assert_sync::<AgentWrapper<Created>>();
         assert_send::<AgentWrapper<Running>>();
         assert_sync::<AgentWrapper<Running>>();
-        
+
         // Test actual thread sending
         let config = AgentConfig {
             name: "test-agent".to_string(),
@@ -269,35 +270,36 @@ mod tests {
             tools: vec![],
             metadata: HashMap::new(),
         };
-        
+
         let agent = AgentWrapper::<Created>::new(config);
-        
+
         std::thread::spawn(move || {
             let _agent_name = agent.config().name.clone();
             // Agent wrapper can be moved across threads
-        }).join().unwrap();
+        })
+        .join()
+        .unwrap();
     }
-    
-    #[test]  
+
+    #[test]
     fn builder_enforces_required_fields() {
         // Test that builder pattern enforces required fields at compile time
-        
+
         // Should be able to build with all required fields
         let _complete_builder = TypeSafeAgentBuilder::new("test-agent")
             .llm_provider("openai")
             .llm_model("gpt-4")
             .build();
-            
+
         // Test that partial builders track what's required
-        let partial = TypeSafeAgentBuilder::new("test-agent")
-            .description("Test description");
-            
+        let partial = TypeSafeAgentBuilder::new("test-agent").description("Test description");
+
         // Should indicate what fields are still needed
         let missing = partial.missing_required_fields();
         assert!(missing.contains(&"llm_provider"));
         assert!(missing.contains(&"llm_model"));
     }
-    
+
     #[test]
     fn builder_optional_fields() {
         // Test that optional fields work correctly
@@ -309,39 +311,47 @@ mod tests {
             .timeout_ms(60000)
             .add_validator("test-validator")
             .add_tool("test-tool");
-            
+
         let config = builder.build();
-        
+
         assert_eq!(config.name, "test-agent");
         assert_eq!(config.description, Some("Optional description".to_string()));
         assert_eq!(config.max_concurrent_requests, 20);
         assert_eq!(config.timeout_ms, 60000);
-        assert!(config.enabled_validators.contains(&"test-validator".to_string()));
+        assert!(config
+            .enabled_validators
+            .contains(&"test-validator".to_string()));
         assert!(config.tools.contains(&"test-tool".to_string()));
     }
-    
+
     #[test]
     fn compile_time_guarantees_examples() {
         // This test demonstrates compile-time safety through examples
         // These examples should compile and show that invalid operations are prevented
-        
+
         let config = create_test_agent_config();
-        
+
         // VALID: Proper state transitions
         let agent = AgentWrapper::<Created>::new(config);
         assert_eq!(agent.current_state(), "Created");
-        
-        let agent = agent.start().unwrap();  // Created -> Started
+
+        let agent = agent.start().unwrap(); // Created -> Started
         assert_eq!(agent.current_state(), "Started");
-        assert!(!agent.can_execute(), "Started state should not allow execution");
-        
-        let agent = agent.run().unwrap();    // Started -> Running  
+        assert!(
+            !agent.can_execute(),
+            "Started state should not allow execution"
+        );
+
+        let agent = agent.run().unwrap(); // Started -> Running
         assert_eq!(agent.current_state(), "Running");
         assert!(agent.can_execute(), "Running state should allow execution");
-        
-        let agent = agent.stop().unwrap();  // Running -> Stopped
+
+        let agent = agent.stop().unwrap(); // Running -> Stopped
         assert_eq!(agent.current_state(), "Stopped");
-        assert!(!agent.can_execute(), "Stopped state should not allow execution");
+        assert!(
+            !agent.can_execute(),
+            "Stopped state should not allow execution"
+        );
     }
 }
 
@@ -365,7 +375,7 @@ impl StateMarker for Created {
 }
 
 /// Started state - agent is initializing
-#[derive(Clone, Debug)]  
+#[derive(Clone, Debug)]
 pub struct Started;
 
 impl StateMarker for Started {
@@ -405,7 +415,7 @@ impl<State: StateMarker> AgentWrapper<State> {
     pub fn config(&self) -> &crate::traits::AgentConfig {
         &self.config
     }
-    
+
     /// Get the current state name
     pub fn current_state(&self) -> &'static str {
         State::state_name()
@@ -420,7 +430,7 @@ impl AgentWrapper<Created> {
             _state: std::marker::PhantomData,
         }
     }
-    
+
     /// Start the agent (Created -> Started)
     pub fn start(self) -> Result<AgentWrapper<Started>, PatinoxError> {
         Ok(AgentWrapper::<Started> {
@@ -428,17 +438,17 @@ impl AgentWrapper<Created> {
             _state: std::marker::PhantomData,
         })
     }
-    
+
     /// Attempt invalid direct transition (for testing error cases)
     pub fn direct_run(self) -> Result<AgentWrapper<Running>, PatinoxError> {
         Err(PatinoxError::Execution(
             crate::error::ExecutionError::AgentStateMismatch(
                 "Started".to_string(),
                 "Created (invalid transition from Created to Running)".to_string(),
-            )
+            ),
         ))
     }
-    
+
     /// Check if agent can execute (should be false in Created state)
     pub fn can_execute(&self) -> bool {
         false
@@ -453,7 +463,7 @@ impl AgentWrapper<Started> {
             _state: std::marker::PhantomData,
         })
     }
-    
+
     /// Check if agent can execute (should be false in Started state)
     pub fn can_execute(&self) -> bool {
         false
@@ -468,7 +478,7 @@ impl AgentWrapper<Running> {
             _state: std::marker::PhantomData,
         })
     }
-    
+
     /// Check if agent can execute (should be true in Running state)
     pub fn can_execute(&self) -> bool {
         true
@@ -510,63 +520,63 @@ impl TypeSafeAgentBuilder {
             metadata: std::collections::HashMap::new(),
         }
     }
-    
+
     /// Set optional description
     pub fn description(mut self, desc: impl Into<String>) -> Self {
         self.description = Some(desc.into());
         self
     }
-    
+
     /// Set max concurrent requests
     pub fn max_concurrent_requests(mut self, max: u32) -> Self {
         self.max_concurrent_requests = max;
         self
     }
-    
+
     /// Set timeout in milliseconds
     pub fn timeout_ms(mut self, timeout: u64) -> Self {
         self.timeout_ms = timeout;
         self
     }
-    
+
     /// Add a validator
     pub fn add_validator(mut self, validator: impl Into<String>) -> Self {
         self.enabled_validators.push(validator.into());
         self
     }
-    
+
     /// Add a tool
     pub fn add_tool(mut self, tool: impl Into<String>) -> Self {
         self.tools.push(tool.into());
         self
     }
-    
+
     /// Set LLM provider (required field)
     pub fn llm_provider(mut self, provider: impl Into<String>) -> Self {
         self.llm_provider = Some(provider.into());
         self
     }
-    
+
     /// Set LLM model (required field)
     pub fn llm_model(mut self, model: impl Into<String>) -> Self {
         self.llm_model = Some(model.into());
         self
     }
-    
+
     /// Get list of missing required fields
     pub fn missing_required_fields(&self) -> Vec<&'static str> {
         let mut missing = vec![];
-        
+
         if self.llm_provider.is_none() {
             missing.push("llm_provider");
         }
         if self.llm_model.is_none() {
             missing.push("llm_model");
         }
-        
+
         missing
     }
-    
+
     /// Build the configuration (only works if all required fields are set)
     pub fn build(self) -> crate::traits::AgentConfig {
         crate::traits::AgentConfig {

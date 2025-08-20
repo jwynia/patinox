@@ -20,7 +20,8 @@
       "Bash(gh run list:*)",
       "Bash(chmod:*)",
       "Bash(./scripts/ci-local.sh:*)",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)"
     ],
     "deny": [],
     "ask": []

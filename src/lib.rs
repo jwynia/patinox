@@ -43,9 +43,9 @@
 pub mod error;
 pub mod traits;
 
-// Type safety infrastructure  
-pub mod typestate;
+// Type safety infrastructure
 pub mod builder;
+pub mod typestate;
 
 // Re-export core types when they become available
 pub mod prelude {
@@ -73,11 +73,11 @@ pub mod prelude {
     };
 
     // Re-export type safety infrastructure
-    pub use crate::typestate::{
-        AgentWrapper, StateMarker, Created, Started, Running, Stopped, TypeSafeAgentBuilder,
-    };
     pub use crate::builder::{
-        ConfigBuilder, BuilderState, EmptyBuilder, PartialBuilder, CompleteBuilder,
+        BuilderState, CompleteBuilder, ConfigBuilder, EmptyBuilder, PartialBuilder,
+    };
+    pub use crate::typestate::{
+        AgentWrapper, Created, Running, Started, StateMarker, Stopped, TypeSafeAgentBuilder,
     };
 }
 
