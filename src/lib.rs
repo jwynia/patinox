@@ -43,6 +43,10 @@
 pub mod error;
 pub mod traits;
 
+// Type safety infrastructure
+pub mod builder;
+pub mod typestate;
+
 // Re-export core types when they become available
 pub mod prelude {
     //! Common imports for working with Patinox
@@ -66,6 +70,14 @@ pub mod prelude {
         MonitorQuery, Tool, ToolCall, ToolMetadata, ToolParams, ToolResult, Usage,
         ValidationContent, ValidationModifications, ValidationRequest, ValidationResponse,
         ValidationStage, Validator, ValidatorConfig,
+    };
+
+    // Re-export type safety infrastructure
+    pub use crate::builder::{
+        BuilderState, CompleteBuilder, ConfigBuilder, EmptyBuilder, PartialBuilder,
+    };
+    pub use crate::typestate::{
+        AgentWrapper, Created, Running, Started, StateMarker, Stopped, TypeSafeAgentBuilder,
     };
 }
 
