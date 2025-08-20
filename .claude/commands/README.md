@@ -24,6 +24,7 @@ Claude Code commands are Markdown files where:
 ### Code Quality
 - `/audit [scope]` - Comprehensive code quality and security review
 - `/review-tests [scope]` - Review unit tests for quality and anti-patterns
+- `/pr-prep [description]` - Complete PR preparation with local CI validation
 
 ### Task Management
 - `/groom [scope]` - Transform task backlog into actionable items
@@ -222,6 +223,7 @@ Commands can be combined into powerful sequences for common workflows:
 2. **Weekly Planning**: `/sync` → `/retrospective` → `/groom` → `/plan`
 3. **Quality Check**: `/audit` → `/review-tests` → `/refactor`
 4. **Documentation**: `/discovery` → `/retrospective` → `/sync`
+5. **Feature Complete**: `/implement` → `/review-tests` → `/pr-prep`
 
 ## Version History
 
@@ -229,4 +231,5 @@ Commands can be combined into powerful sequences for common workflows:
 - 2024-02: Added `/review-tests` and `/groom` commands
 - 2024-02: Added `/audit`, `/implement`, `/status`, `/refactor` commands
 - 2024-02: Documented command sequences and automation patterns
-- Latest: Complete command suite with sequences documentation
+- 2025-01: Added `/pr-prep` command for complete CI validation and PR preparation
+- Latest: Complete command suite with PR preparation automation
