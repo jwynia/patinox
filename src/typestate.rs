@@ -13,6 +13,22 @@ mod tests {
 
     // Tests are written FIRST to define the contract
     
+    // Helper function to reduce test setup duplication
+    fn create_test_agent_config() -> crate::traits::AgentConfig {
+        use std::collections::HashMap;
+        crate::traits::AgentConfig {
+            name: "test-agent".to_string(),
+            description: Some("Test agent".to_string()),
+            max_concurrent_requests: 5,
+            timeout_ms: 30000,
+            enabled_validators: vec![],
+            llm_provider: "test".to_string(),
+            llm_model: "test-model".to_string(),
+            tools: vec![],
+            metadata: HashMap::new(),
+        }
+    }
+    
     #[test]
     fn typestate_marker_types_exist() {
         // Test that all state marker types can be instantiated
@@ -309,29 +325,23 @@ mod tests {
         // This test demonstrates compile-time safety through examples
         // These examples should compile and show that invalid operations are prevented
         
-        use crate::traits::AgentConfig;
-        use std::collections::HashMap;
-        
-        let config = AgentConfig {
-            name: "test-agent".to_string(),
-            description: Some("Test agent".to_string()),
-            max_concurrent_requests: 5,
-            timeout_ms: 30000,
-            enabled_validators: vec![],
-            llm_provider: "test".to_string(),
-            llm_model: "test-model".to_string(),
-            tools: vec![],
-            metadata: HashMap::new(),
-        };
+        let config = create_test_agent_config();
         
         // VALID: Proper state transitions
         let agent = AgentWrapper::<Created>::new(config);
-        let agent = agent.start().unwrap();  // Created -> Started
-        let agent = agent.run().unwrap();    // Started -> Running  
-        let _agent = agent.stop().unwrap();  // Running -> Stopped
+        assert_eq!(agent.current_state(), "Created");
         
-        // This test passes if the above compiles correctly
-        assert!(true);
+        let agent = agent.start().unwrap();  // Created -> Started
+        assert_eq!(agent.current_state(), "Started");
+        assert!(!agent.can_execute(), "Started state should not allow execution");
+        
+        let agent = agent.run().unwrap();    // Started -> Running  
+        assert_eq!(agent.current_state(), "Running");
+        assert!(agent.can_execute(), "Running state should allow execution");
+        
+        let agent = agent.stop().unwrap();  // Running -> Stopped
+        assert_eq!(agent.current_state(), "Stopped");
+        assert!(!agent.can_execute(), "Stopped state should not allow execution");
     }
 }
 
