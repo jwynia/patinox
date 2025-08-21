@@ -2,6 +2,10 @@
 //!
 //! These tests define the expected behavior of the Anthropic provider
 //! following Test-Driven Development principles.
+//!
+//! ## Test Isolation
+//! All tests are designed to be independent and can run in any order.
+//! Each test creates its own provider instance and does not share state.
 
 use patinox::provider::{
     anthropic::AnthropicProvider, CompletionRequest, ModelId, ModelProvider, ProviderError,
@@ -35,7 +39,7 @@ mod anthropic_provider_tests {
             ProviderError::ConfigurationError(msg) => {
                 assert!(msg.contains("API key cannot be empty"));
             }
-            _ => panic!("Expected ConfigurationError"),
+            other => panic!("Expected ConfigurationError, got {:?}", other),
         }
     }
 

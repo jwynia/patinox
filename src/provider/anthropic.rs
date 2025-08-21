@@ -14,6 +14,9 @@ use async_trait::async_trait;
 use reqwest::{header::HeaderMap, Client};
 use serde::{Deserialize, Serialize};
 
+/// Default maximum tokens for completion requests when not specified
+const DEFAULT_MAX_TOKENS: usize = 1024;
+
 /// Anthropic API provider for Claude models
 #[derive(Debug)]
 pub struct AnthropicProvider {
@@ -110,7 +113,7 @@ impl AnthropicProvider {
 
         Ok(AnthropicRequest {
             model: request.model.name().to_string(),
-            max_tokens: request.max_tokens.unwrap_or(1024) as u32,
+            max_tokens: request.max_tokens.unwrap_or(DEFAULT_MAX_TOKENS) as u32,
             temperature: request.temperature,
             messages,
             tools: None, // TODO: Implement tool support
@@ -334,7 +337,10 @@ impl ModelProvider for AnthropicProvider {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|e| format!("Failed to read error response: {}", e));
             return match status.as_u16() {
                 400 => Err(ProviderError::InvalidRequest(format!(
                     "Bad request: {}",
