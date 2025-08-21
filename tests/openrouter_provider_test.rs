@@ -307,7 +307,7 @@ mod openrouter_provider_tests {
         if let Ok(response) = result {
             assert!(!response.embeddings.is_empty());
             assert_eq!(response.embeddings.len(), 2); // Two input strings
-            assert!(response.embeddings[0].len() > 0); // Vector has dimensions
+            assert!(!response.embeddings[0].is_empty()); // Vector has dimensions
 
             if let Some(usage) = response.usage {
                 assert!(usage.total_tokens > 0);
@@ -375,11 +375,9 @@ mod openrouter_provider_tests {
         // This will test our error handling when we get HTTP 429
         let result = provider.complete(request).await;
 
-        if let Err(ProviderError::RateLimited { retry_after }) = result {
+        if let Err(ProviderError::RateLimited { retry_after: Some(duration) }) = result {
             // Rate limit should include retry-after information
-            if let Some(duration) = retry_after {
-                assert!(duration > Duration::from_secs(0));
-            }
+            assert!(duration > Duration::from_secs(0));
         }
     }
 
@@ -433,7 +431,7 @@ mod openrouter_provider_tests {
         assert_eq!(openrouter_request.temperature, Some(0.8));
 
         // OpenRouter expects messages in OpenAI format
-        assert!(openrouter_request.messages.len() > 0);
+        assert!(!openrouter_request.messages.is_empty());
 
         // Should include provider preferences if specified
         if let Some(provider_config) = openrouter_request.provider {
