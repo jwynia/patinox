@@ -328,11 +328,12 @@ mod anthropic_provider_tests {
         // This will test our error handling when we get HTTP 429
         let result = provider.complete(request).await;
 
-        if let Err(ProviderError::RateLimited { retry_after }) = result {
+        if let Err(ProviderError::RateLimited {
+            retry_after: Some(duration),
+        }) = result
+        {
             // Rate limit should include retry-after information
-            if let Some(duration) = retry_after {
-                assert!(duration > Duration::from_secs(0));
-            }
+            assert!(duration > Duration::from_secs(0));
         }
     }
 
@@ -380,7 +381,7 @@ mod anthropic_provider_tests {
         assert_eq!(anthropic_request.temperature, Some(0.8));
 
         // Anthropic expects messages in specific format
-        assert!(anthropic_request.messages.len() > 0);
+        assert!(!anthropic_request.messages.is_empty());
         assert!(anthropic_request.messages.iter().any(|m| m.role == "human"));
         assert!(anthropic_request
             .messages
