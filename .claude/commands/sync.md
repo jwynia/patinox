@@ -19,9 +19,12 @@ Parse $ARGUMENTS for options:
 - `--last [timeframe]` - Only check work from specified timeframe (e.g., "7d", "2w", "1m")
 - `--project [area]` - Sync specific project area only
 - `--confidence [high|medium|low]` - Only apply updates at specified confidence level
-- `--dry-run` - Preview changes without applying them
+- `--dry-run` - Preview changes without applying them (includes task source updates)
 - `--verbose` - Include detailed evidence in output
 - `--interactive` - Prompt for confirmation on ambiguous cases
+- `--no-task-updates` - Skip task source file modifications (only generate sync-state.json)
+- `--backup-only` - Create backups but don't modify originals
+- `--groom-prep` - Optimize sync state for groom command integration
 
 ## Sync Process
 
@@ -153,7 +156,122 @@ Remaining Work: [What still needs doing]
 Recommended Next Steps: [Based on current state]
 ```
 
-### Phase 6: Sync Report
+### Phase 6: Task Source Integration & State Management
+
+**Update Task Source Files Directly**:
+
+For each high-confidence completion discovered:
+
+1. **Locate Task in Planning Documents**:
+   ```
+   Search patterns:
+   - `context-network/planning/**/*.md`
+   - `context-network/tasks/**/*.md` 
+   - `context-network/decisions/pending/*.md`
+   - Files containing task references or TODO markers
+   ```
+
+2. **Update Task Status**:
+   ```markdown
+   # Before sync update:
+   ## 🔄 In Progress
+   - [ ] Implement telemetry configuration
+   
+   # After sync update:
+   ## ✅ Completed (Sync-Detected: 2025-08-20)
+   - [x] ~~Implement telemetry configuration~~
+     - **Completed**: 2025-08-08 (estimated from file timestamps)
+     - **Evidence**: FileExporter implemented, Mastra integration working
+     - **Location**: `/app/cli/src/mastra/telemetry/`
+     - **Deviations**: Used file export instead of console (better for CLI)
+   ```
+
+3. **Archive Completed Tasks**:
+   - Move from active sections to completed/archive sections
+   - Preserve full context and evidence
+   - Create links to implementation artifacts
+   - Update any dependent task references
+
+4. **Handle Partial Implementations**:
+   ```markdown
+   ## 🔄 Updated Scope (Sync-Detected: 2025-08-20)
+   - [x] Basic telemetry implementation ✅
+   - [ ] Enhanced configuration options (remaining)
+   - [ ] OTLP export support (future)
+   
+   **Sync Notes**: Core functionality complete, enhancements optional
+   ```
+
+5. **Flag Conflicts for Manual Review**:
+   ```markdown
+   ## ⚠️ Sync Conflict Detected
+   **Task**: Database migration system
+   **Planned**: Use Prisma migrations
+   **Found**: Custom migration scripts in `/db/migrate/`
+   **Action Required**: Review implementation vs. plan, update accordingly
+   ```
+
+**Create/Update Sync State File**:
+
+Generate `context-network/meta/sync-state.json` with:
+
+```json
+{
+  "metadata": {
+    "lastSyncRun": "2025-08-20T15:30:00Z",
+    "syncVersion": "1.0",
+    "totalTasksScanned": 47
+  },
+  "completedTasks": {
+    "telemetry-config": {
+      "taskId": "telemetry-config",
+      "title": "Implement telemetry configuration", 
+      "status": "completed",
+      "confidence": "high",
+      "evidence": [
+        "FileExporter class at /app/cli/src/mastra/telemetry/file-exporter.ts",
+        "Manual SDK init at /app/cli/src/mastra/telemetry/init.ts",
+        "Mastra integration at /app/cli/src/mastra/index.ts:42-47"
+      ],
+      "completionDate": "2025-08-08T12:00:00Z",
+      "syncedAt": "2025-08-20T15:30:00Z",
+      "groomingAction": "archive",
+      "actualImplementation": {
+        "files": [
+          "/app/cli/src/mastra/telemetry/file-exporter.ts",
+          "/app/cli/src/mastra/telemetry/init.ts"
+        ],
+        "deviations": ["File export used instead of console (better for CLI)"]
+      }
+    }
+  },
+  "groomingHints": {
+    "skipTasks": ["telemetry-config"],
+    "prioritizeTasks": [],
+    "reviewTasks": [],
+    "newTaskSuggestions": [
+      {
+        "title": "Document telemetry configuration options",
+        "description": "Create user guide for telemetry configuration",
+        "priority": "medium",
+        "reason": "Implementation complete but lacks user documentation"
+      }
+    ]
+  }
+}
+```
+
+**Create Backup Copies**:
+- Before modifying any task source files, create backups
+- Store in `context-network/meta/sync-backups/YYYY-MM-DD/`
+- Enable rollback if sync updates cause issues
+
+**Update Cross-References**:
+- Find all references to completed tasks in other documents
+- Update dependency chains (remove completed tasks as blockers)
+- Update progress indicators in project status documents
+
+### Phase 7: Sync Report Generation
 
 **Generate Comprehensive Sync Report**:
 
@@ -216,18 +334,24 @@ Recommended Next Steps: [Based on current state]
 
 ## Applied Changes
 
-### Files Updated
-- `path/to/task-status.md`: Marked 3 tasks complete
-- `path/to/sprint-plan.md`: Updated progress metrics
-- `path/to/implementation-log.md`: Added discovered implementations
+### Task Source Updates (NEW)
+- `context-network/planning/backlog.md`: Marked 3 tasks complete, moved to archive
+- `context-network/tasks/telemetry/status.md`: Updated from "planned" to "completed"
+- `context-network/decisions/pending/telemetry-config.md`: Moved to decisions/history/
 
-### Files Created
-- `path/to/undocumented-feature.md`: Documentation stub
+### Sync State Management (NEW)
+- `context-network/meta/sync-state.json`: Created/updated with 5 completions, 2 partial tasks
+- `context-network/meta/sync-backups/2025-08-20/`: Backup copies of modified files
+- Cross-references updated: Removed completed tasks from 7 dependency chains
+
+### Traditional Drift Documentation
+- `path/to/implementation-log.md`: Added discovered implementations
 - `path/to/drift-log-YYYY-MM-DD.md`: Detailed drift record
 
 ### Validation Needed
-- Please review: `path/to/ambiguous-status.md`
+- Please review: `path/to/ambiguous-status.md` 
 - Confirm completion: `path/to/partial-implementation.md`
+- **Groom Integration**: Run `/groom` to see filtered backlog based on sync findings
 ```
 
 ## Detection Heuristics
@@ -307,13 +431,15 @@ When implementation exists in unexpected locations:
 ## Sync Command Options
 
 ```bash
-/sync                    # Full sync of all active plans
-/sync --last 7d         # Only check work from last 7 days  
-/sync --project X       # Sync specific project area
-/sync --confidence high # Only apply high-confidence updates
-/sync --dry-run        # Preview changes without applying
-/sync --verbose        # Include detailed evidence
-/sync --interactive    # Prompt for ambiguous cases
+/sync                     # Full sync: detect completions + update task sources
+/sync --last 7d          # Only check work from last 7 days  
+/sync --project X        # Sync specific project area
+/sync --confidence high  # Only apply high-confidence updates
+/sync --dry-run         # Preview all changes (including task updates)
+/sync --verbose         # Include detailed evidence
+/sync --interactive     # Prompt for ambiguous cases
+/sync --groom-prep      # Prepare sync-state.json for groom integration
+/sync --no-task-updates # Skip file modifications, only update sync state
 ```
 
 ## Red Flags During Sync
@@ -334,8 +460,21 @@ When implementation exists in unexpected locations:
 
 ## Integration with Other Commands
 
+### Enhanced Groom Integration (NEW)
+- **Recommended workflow**: `/sync --groom-prep && /groom` for reality-based backlog
+- Sync updates task sources before groom reads them
+- Groom automatically filters out sync-confirmed completions
+- Reduces grooming of already-complete work
+
+### Traditional Integration
 - Run `/sync` before any planning session
-- Run `/sync` after any system crash or interruption
+- Run `/sync` after any system crash or interruption  
 - Run `/sync` when onboarding new team members
 - Include `/sync --dry-run` in regular health checks
 - Chain with audit command: `/sync && /audit`
+
+### Sync-State Lifecycle
+- Sync generates `context-network/meta/sync-state.json`
+- Groom consumes sync state for reality-aware task filtering
+- Sync state expires after 7 days (configurable)
+- Conflicts in sync state require manual resolution before grooming
