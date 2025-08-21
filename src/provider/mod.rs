@@ -40,6 +40,7 @@
 pub mod config;
 pub mod error;
 pub mod openai;
+pub mod openrouter;
 pub mod secret;
 pub mod types;
 
@@ -86,12 +87,22 @@ pub trait ModelProvider: Send + Sync {
 /// create an appropriate provider instance with sensible defaults.
 pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, ProviderError> {
     use crate::provider::openai::OpenAIProvider;
+    use crate::provider::openrouter::OpenRouterProvider;
 
     // Try to load configuration from environment
     let config_loader = ModelConfigLoader::new();
     let config = config_loader.load().await?;
 
     match &config.default_provider {
+        Provider::OpenRouter { api_key, base_url } => {
+            let mut provider = OpenRouterProvider::new(api_key.clone())?;
+
+            if let Some(url) = base_url {
+                provider = provider.with_base_url(url.clone());
+            }
+
+            Ok(Box::new(provider))
+        }
         Provider::OpenAI {
             api_key,
             organization,
@@ -110,13 +121,16 @@ pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, Provide
             Ok(Box::new(provider))
         }
         _ => {
-            // For now, fallback to OpenAI if we have the key in environment
-            if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
+            // Try environment variables for fallback providers in priority order
+            if let Ok(api_key) = std::env::var("OPENROUTER_API_KEY") {
+                let provider = OpenRouterProvider::new(api_key)?;
+                Ok(Box::new(provider))
+            } else if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
                 let provider = OpenAIProvider::new(api_key)?;
                 Ok(Box::new(provider))
             } else {
                 Err(ProviderError::ConfigurationError(
-                    "No valid provider configuration found. Set OPENAI_API_KEY environment variable.".to_string(),
+                    "No valid provider configuration found. Set OPENROUTER_API_KEY or OPENAI_API_KEY environment variable.".to_string(),
                 ))
             }
         }
