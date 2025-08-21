@@ -375,7 +375,10 @@ mod openrouter_provider_tests {
         // This will test our error handling when we get HTTP 429
         let result = provider.complete(request).await;
 
-        if let Err(ProviderError::RateLimited { retry_after: Some(duration) }) = result {
+        if let Err(ProviderError::RateLimited {
+            retry_after: Some(duration),
+        }) = result
+        {
             // Rate limit should include retry-after information
             assert!(duration > Duration::from_secs(0));
         }
