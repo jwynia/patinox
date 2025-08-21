@@ -37,6 +37,7 @@
 //! }
 //! ```
 
+pub mod anthropic;
 pub mod config;
 pub mod error;
 pub mod openai;
@@ -86,6 +87,7 @@ pub trait ModelProvider: Send + Sync {
 /// This function reads environment variables and configuration files to
 /// create an appropriate provider instance with sensible defaults.
 pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, ProviderError> {
+    use crate::provider::anthropic::AnthropicProvider;
     use crate::provider::openai::OpenAIProvider;
     use crate::provider::openrouter::OpenRouterProvider;
 
@@ -120,6 +122,15 @@ pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, Provide
 
             Ok(Box::new(provider))
         }
+        Provider::Anthropic { api_key, base_url } => {
+            let mut provider = AnthropicProvider::new(api_key.clone())?;
+
+            if let Some(url) = base_url {
+                provider = provider.with_base_url(url.clone());
+            }
+
+            Ok(Box::new(provider))
+        }
         _ => {
             // Try environment variables for fallback providers in priority order
             if let Ok(api_key) = std::env::var("OPENROUTER_API_KEY") {
@@ -128,9 +139,12 @@ pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, Provide
             } else if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
                 let provider = OpenAIProvider::new(api_key)?;
                 Ok(Box::new(provider))
+            } else if let Ok(api_key) = std::env::var("ANTHROPIC_API_KEY") {
+                let provider = AnthropicProvider::new(api_key)?;
+                Ok(Box::new(provider))
             } else {
                 Err(ProviderError::ConfigurationError(
-                    "No valid provider configuration found. Set OPENROUTER_API_KEY or OPENAI_API_KEY environment variable.".to_string(),
+                    "No valid provider configuration found. Set OPENROUTER_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY environment variable.".to_string(),
                 ))
             }
         }
