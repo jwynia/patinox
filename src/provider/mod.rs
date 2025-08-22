@@ -96,7 +96,7 @@ pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, Provide
     let config_loader = ModelConfigLoader::new();
     let config = config_loader.load().await?;
 
-    match &config.default_provider {
+    let provider: Box<dyn ModelProvider> = match &config.default_provider {
         Provider::OpenRouter { api_key, base_url } => {
             let mut provider = OpenRouterProvider::new(api_key.clone())?;
 
@@ -104,7 +104,7 @@ pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, Provide
                 provider = provider.with_base_url(url.clone());
             }
 
-            Ok(Box::new(provider))
+            Box::new(provider)
         }
         Provider::OpenAI {
             api_key,
@@ -121,7 +121,7 @@ pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, Provide
                 provider = provider.with_base_url(url.clone());
             }
 
-            Ok(Box::new(provider))
+            Box::new(provider)
         }
         Provider::Anthropic { api_key, base_url } => {
             let mut provider = AnthropicProvider::new(api_key.clone())?;
@@ -130,26 +130,28 @@ pub async fn create_default_provider() -> Result<Box<dyn ModelProvider>, Provide
                 provider = provider.with_base_url(url.clone());
             }
 
-            Ok(Box::new(provider))
+            Box::new(provider)
         }
-        _ => {
-            // Try environment variables for fallback providers in priority order
-            if let Ok(api_key) = std::env::var("OPENROUTER_API_KEY") {
-                let provider = OpenRouterProvider::new(api_key)?;
-                Ok(Box::new(provider))
-            } else if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
-                let provider = OpenAIProvider::new(api_key)?;
-                Ok(Box::new(provider))
-            } else if let Ok(api_key) = std::env::var("ANTHROPIC_API_KEY") {
-                let provider = AnthropicProvider::new(api_key)?;
-                Ok(Box::new(provider))
-            } else {
-                Err(ProviderError::ConfigurationError(
-                    "No valid provider configuration found. Set OPENROUTER_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY environment variable.".to_string(),
-                ))
-            }
+        Provider::Local { .. } => {
+            use crate::provider::local::LocalProvider;
+            let provider =
+                LocalProvider::with_config(crate::provider::local::LocalProviderConfig::default())
+                    .await?;
+            Box::new(provider)
         }
-    }
+        Provider::Ollama { endpoint, .. } => {
+            use crate::provider::local::OllamaProvider;
+            let provider = OllamaProvider::with_endpoint(endpoint.clone())?;
+            Box::new(provider)
+        }
+        Provider::LMStudio { endpoint, .. } => {
+            use crate::provider::local::LMStudioProvider;
+            let provider = LMStudioProvider::with_endpoint(endpoint.clone())?;
+            Box::new(provider)
+        }
+    };
+
+    Ok(provider)
 }
 
 /// Create a multi-provider setup with fallbacks

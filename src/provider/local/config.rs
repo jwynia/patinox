@@ -8,10 +8,10 @@ use std::time::Duration;
 pub struct LocalProviderConfig {
     /// Request timeout for HTTP calls
     pub request_timeout: Duration,
-    
+
     /// Connection pool size per host
     pub connection_pool_size: usize,
-    
+
     /// Service discovery configuration
     pub discovery: DiscoveryConfig,
 }
@@ -31,7 +31,7 @@ impl Default for LocalProviderConfig {
 pub struct DiscoveryConfig {
     /// Timeout for discovery operations
     pub discovery_timeout: Duration,
-    
+
     /// Health check configuration
     pub health_check: HealthCheckConfig,
 }
@@ -50,10 +50,10 @@ impl Default for DiscoveryConfig {
 pub struct HealthCheckConfig {
     /// Interval between health checks
     pub interval: Duration,
-    
+
     /// Timeout for each health check
     pub timeout: Duration,
-    
+
     /// Maximum consecutive failures before marking unavailable
     pub max_failures: u32,
 }

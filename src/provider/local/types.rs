@@ -1,7 +1,7 @@
 //! Type definitions for local model providers
 
+use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
-use serde::{Serialize, Deserialize};
 
 /// Local service type preference
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,13 +16,13 @@ pub enum LocalService {
 pub struct ServiceMetrics {
     /// Average response time for health checks
     pub avg_response_time: Duration,
-    
+
     /// Number of models available
     pub model_count: usize,
-    
+
     /// Last request timestamp
     pub last_request: Option<Instant>,
-    
+
     /// Success rate (0.0 to 1.0)
     pub success_rate: f64,
 }

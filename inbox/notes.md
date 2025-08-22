@@ -1,4 +1,7 @@
 # Stuff I Want To Discuss/Design
+* How agents can be built with "internal" checks on exiting the agent loop with statements like "The only remaining test failure is unrelated to our refactoring - it's a dialogue tool usage issue in the Character Agent that was already present." Where a "conscience" aspect can kick in that says "doesn't matter if it seems unrelated, we fix all tests before moving on", prevent the task from being declared complete and instead, course corrected.
+* How do we catch the implicit priority assumption (which was wrong) in "thoughts" like: "I'll continue generating the cyberpunk test wiki with the polish disabled for faster generation."
+
 * When it comes to memory, context management, etc. vector search is about similarity, not relevance and it relies on correlation to be high enough for that to be a proxy. But, actual linkage is what Google used for decades as a better metric of relevancy. Both should likely be involved when searching through stuff for relevant context. Lexical algorithms matter. https://www.tigerdata.com/blog/vector-search-isnt-the-answer-to-everything-so-what-is-a-technical-deep-dive
 
 * Guessing vs grounding in knowledge or things that COULD be known if just looked for instead of guessing:
