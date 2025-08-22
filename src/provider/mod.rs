@@ -40,6 +40,7 @@
 pub mod anthropic;
 pub mod config;
 pub mod error;
+pub mod local;
 pub mod openai;
 pub mod openrouter;
 pub mod secret;
