@@ -104,6 +104,24 @@ pub enum Provider {
         endpoint: String,
         /// Optional path to model files
         model_path: Option<String>,
+        /// Preferred local service (ollama, lmstudio, auto)
+        preferred_service: Option<String>,
+        /// Enable auto-discovery of local services
+        auto_discover: bool,
+    },
+    /// Ollama-specific provider configuration
+    Ollama {
+        /// Endpoint URL for Ollama
+        endpoint: String,
+        /// Optional path to Ollama models
+        models_path: Option<String>,
+    },
+    /// LMStudio-specific provider configuration
+    LMStudio {
+        /// Endpoint URL for LMStudio
+        endpoint: String,
+        /// Optional path to LMStudio models  
+        models_path: Option<String>,
     },
 }
 
@@ -115,6 +133,8 @@ impl Provider {
             Self::OpenAI { .. } => "openai",
             Self::Anthropic { .. } => "anthropic",
             Self::Local { .. } => "local",
+            Self::Ollama { .. } => "ollama",
+            Self::LMStudio { .. } => "lmstudio",
         }
     }
 }
@@ -141,9 +161,11 @@ pub struct GlobalModelConfig {
 impl Default for GlobalModelConfig {
     fn default() -> Self {
         Self {
-            default_provider: Provider::OpenRouter {
-                api_key: SecretString::new(""), // Will be loaded from environment
-                base_url: None,
+            default_provider: Provider::Local {
+                endpoint: "http://localhost:11434".to_string(),
+                model_path: None,
+                preferred_service: None,
+                auto_discover: true,
             },
             default_model: ModelId::new("anthropic/claude-3-sonnet"),
             fallback_models: vec![
@@ -212,7 +234,13 @@ impl ModelConfigLoader {
     pub fn load_from_env(&self) -> Result<GlobalModelConfig, ProviderError> {
         let mut config = GlobalModelConfig::default();
 
-        // Load provider configuration
+        // Check for auto-detection of local services first
+        let auto_detected_provider = self.auto_detect_local_provider()?;
+        if let Some(provider) = auto_detected_provider {
+            config.default_provider = provider;
+        }
+
+        // Load provider configuration (explicit PATINOX_MODEL_PROVIDER overrides auto-detection)
         if let Ok(provider_name) = std::env::var(format!("{}MODEL_PROVIDER", self.env_prefix)) {
             match provider_name.to_lowercase().as_str() {
                 "openrouter" => {
@@ -249,6 +277,44 @@ impl ModelConfigLoader {
                         };
                     }
                 }
+                "local" => {
+                    let endpoint = std::env::var("LOCAL_ENDPOINT")
+                        .or_else(|_| std::env::var("OLLAMA_ENDPOINT"))
+                        .or_else(|_| std::env::var("LMSTUDIO_ENDPOINT"))
+                        .unwrap_or_else(|_| "http://localhost:11434".to_string());
+
+                    config.default_provider = Provider::Local {
+                        endpoint,
+                        model_path: std::env::var("LOCAL_MODELS_PATH").ok(),
+                        preferred_service: std::env::var("LOCAL_PROVIDER_PREFERENCE").ok(),
+                        auto_discover: std::env::var("LOCAL_AUTO_DISCOVER")
+                            .unwrap_or_else(|_| "true".to_string())
+                            .parse()
+                            .unwrap_or(true),
+                    };
+                }
+                "ollama" => {
+                    let endpoint = std::env::var("OLLAMA_ENDPOINT")
+                        .unwrap_or_else(|_| "http://localhost:11434".to_string());
+
+                    config.default_provider = Provider::Ollama {
+                        endpoint,
+                        models_path: std::env::var("OLLAMA_MODELS_PATH")
+                            .or_else(|_| std::env::var("LOCAL_MODELS_PATH"))
+                            .ok(),
+                    };
+                }
+                "lmstudio" => {
+                    let endpoint = std::env::var("LMSTUDIO_ENDPOINT")
+                        .unwrap_or_else(|_| "http://localhost:1234".to_string());
+
+                    config.default_provider = Provider::LMStudio {
+                        endpoint,
+                        models_path: std::env::var("LMSTUDIO_MODELS_PATH")
+                            .or_else(|_| std::env::var("LOCAL_MODELS_PATH"))
+                            .ok(),
+                    };
+                }
                 _ => {
                     return Err(ProviderError::ConfigurationError(format!(
                         "Unknown provider: {}",
@@ -271,6 +337,70 @@ impl ModelConfigLoader {
         }
 
         Ok(config)
+    }
+
+    /// Auto-detect local providers from environment variables
+    fn auto_detect_local_provider(&self) -> Result<Option<Provider>, ProviderError> {
+        // Check for Ollama endpoint
+        if let Ok(endpoint) = std::env::var("OLLAMA_ENDPOINT") {
+            return Ok(Some(Provider::Ollama {
+                endpoint,
+                models_path: std::env::var("OLLAMA_MODELS_PATH")
+                    .or_else(|_| std::env::var("LOCAL_MODELS_PATH"))
+                    .ok(),
+            }));
+        }
+
+        // Check for LMStudio endpoint
+        if let Ok(endpoint) = std::env::var("LMSTUDIO_ENDPOINT") {
+            return Ok(Some(Provider::LMStudio {
+                endpoint,
+                models_path: std::env::var("LMSTUDIO_MODELS_PATH")
+                    .or_else(|_| std::env::var("LOCAL_MODELS_PATH"))
+                    .ok(),
+            }));
+        }
+
+        // Check for generic local endpoint
+        if let Ok(endpoint) = std::env::var("LOCAL_ENDPOINT") {
+            return Ok(Some(Provider::Local {
+                endpoint,
+                model_path: std::env::var("LOCAL_MODELS_PATH").ok(),
+                preferred_service: std::env::var("LOCAL_PROVIDER_PREFERENCE").ok(),
+                auto_discover: std::env::var("LOCAL_AUTO_DISCOVER")
+                    .unwrap_or_else(|_| "true".to_string())
+                    .parse()
+                    .unwrap_or(true),
+            }));
+        }
+
+        // Check for local provider preference without specific endpoint
+        if let Ok(preference) = std::env::var("LOCAL_PROVIDER_PREFERENCE") {
+            match preference.to_lowercase().as_str() {
+                "ollama" => {
+                    return Ok(Some(Provider::Ollama {
+                        endpoint: "http://localhost:11434".to_string(),
+                        models_path: std::env::var("LOCAL_MODELS_PATH").ok(),
+                    }));
+                }
+                "lmstudio" => {
+                    return Ok(Some(Provider::LMStudio {
+                        endpoint: "http://localhost:1234".to_string(),
+                        models_path: std::env::var("LOCAL_MODELS_PATH").ok(),
+                    }));
+                }
+                _ => {
+                    return Ok(Some(Provider::Local {
+                        endpoint: "http://localhost:11434".to_string(),
+                        model_path: std::env::var("LOCAL_MODELS_PATH").ok(),
+                        preferred_service: Some(preference),
+                        auto_discover: true,
+                    }));
+                }
+            }
+        }
+
+        Ok(None)
     }
 
     /// Load complete configuration (environment + defaults)
@@ -306,7 +436,9 @@ impl ModelConfigLoader {
                     ));
                 }
             }
-            Provider::Local { endpoint, .. } => {
+            Provider::Local { endpoint, .. }
+            | Provider::Ollama { endpoint, .. }
+            | Provider::LMStudio { endpoint, .. } => {
                 if endpoint.is_empty() {
                     return Err(ProviderError::ConfigurationError(
                         "Local provider requires endpoint URL".to_string(),
