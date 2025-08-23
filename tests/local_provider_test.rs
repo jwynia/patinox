@@ -61,7 +61,7 @@ mod service_discovery_tests {
         let config = create_test_discovery_config();
 
         // Act
-        let _discovery = ServiceDiscovery::new(config.clone());
+        let _discovery = ServiceDiscovery::new(config.clone()).expect("Should create discovery");
 
         // Assert
         // Should create without panicking
@@ -73,7 +73,7 @@ mod service_discovery_tests {
     async fn test_service_discovery_probe_ports_with_no_services() {
         // Arrange
         let config = create_test_discovery_config();
-        let discovery = ServiceDiscovery::new(config);
+        let discovery = ServiceDiscovery::new(config).expect("Should create discovery");
 
         // Act
         let result = discovery.discover_services().await;
@@ -96,7 +96,7 @@ mod service_discovery_tests {
     async fn test_service_discovery_probes_ollama_port() {
         // Arrange
         let config = create_test_discovery_config();
-        let discovery = ServiceDiscovery::new(config);
+        let discovery = ServiceDiscovery::new(config).expect("Should create discovery");
 
         // Act - probe for Ollama specifically
         let result = discovery
@@ -121,7 +121,7 @@ mod service_discovery_tests {
     async fn test_service_discovery_probes_lmstudio_port() {
         // Arrange
         let config = create_test_discovery_config();
-        let discovery = ServiceDiscovery::new(config);
+        let discovery = ServiceDiscovery::new(config).expect("Should create discovery");
 
         // Act - probe for LMStudio specifically
         let result = discovery
@@ -147,7 +147,7 @@ mod service_discovery_tests {
         // Arrange
         let mut config = create_test_discovery_config();
         config.health_check.timeout = Duration::from_millis(1); // Very short timeout
-        let discovery = ServiceDiscovery::new(config);
+        let discovery = ServiceDiscovery::new(config).expect("Should create discovery");
 
         // Act - try to health check a non-existent service
         let result = discovery
@@ -166,7 +166,7 @@ mod service_discovery_tests {
     async fn test_service_discovery_caches_results() {
         // Arrange
         let config = create_test_discovery_config();
-        let discovery = ServiceDiscovery::new(config);
+        let discovery = ServiceDiscovery::new(config).expect("Should create discovery");
 
         // Act - discover services twice
         let start = std::time::Instant::now();
@@ -190,7 +190,7 @@ mod service_discovery_tests {
     async fn test_service_discovery_available_services() {
         // Arrange
         let config = create_test_discovery_config();
-        let discovery = ServiceDiscovery::new(config);
+        let discovery = ServiceDiscovery::new(config).expect("Should create discovery");
 
         // Act
         let services = discovery.available_services().await;
@@ -216,7 +216,7 @@ mod service_discovery_tests {
     async fn test_service_discovery_get_service_info() {
         // Arrange
         let config = create_test_discovery_config();
-        let discovery = ServiceDiscovery::new(config);
+        let discovery = ServiceDiscovery::new(config).expect("Should create discovery");
 
         // Act
         let ollama_info = discovery.get_service_info(&ServiceType::Ollama).await;
@@ -254,7 +254,7 @@ mod service_discovery_tests {
     async fn test_service_discovery_concurrent_access() {
         // Arrange
         let config = create_test_discovery_config();
-        let discovery = std::sync::Arc::new(ServiceDiscovery::new(config));
+        let discovery = std::sync::Arc::new(ServiceDiscovery::new(config).expect("Should create discovery"));
 
         // Act - create multiple concurrent discovery tasks
         let mut handles = Vec::new();
@@ -286,7 +286,7 @@ mod service_discovery_tests {
     async fn test_service_discovery_model_discovery() {
         // Arrange
         let config = create_test_discovery_config();
-        let discovery = ServiceDiscovery::new(config);
+        let discovery = ServiceDiscovery::new(config).expect("Should create discovery");
 
         // Act - try to discover models for each service type
         let ollama_models = discovery.discover_models(&ServiceType::Ollama).await;

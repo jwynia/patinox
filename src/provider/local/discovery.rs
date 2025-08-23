@@ -1,7 +1,7 @@
 //! Service discovery for local model providers
 
 use super::config::DiscoveryConfig;
-use super::error::LocalProviderResult;
+use super::error::{LocalProviderError, LocalProviderResult};
 use super::types::ServiceMetrics;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -121,19 +121,21 @@ pub enum ServiceStatus {
 
 impl ServiceDiscovery {
     /// Create new service discovery with configuration
-    pub fn new(config: DiscoveryConfig) -> Self {
+    pub fn new(config: DiscoveryConfig) -> LocalProviderResult<Self> {
         let health_client = reqwest::Client::builder()
             .timeout(config.health_check.timeout)
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(|e| LocalProviderError::InvalidConfiguration(
+                format!("Failed to create HTTP client: {}", e)
+            ))?;
 
-        Self {
+        Ok(Self {
             config,
             services: RwLock::new(HashMap::new()),
             health_client,
             discovery_cache: RwLock::new(None),
             model_cache: RwLock::new(HashMap::new()),
-        }
+        })
     }
 
     /// Discover all enabled services

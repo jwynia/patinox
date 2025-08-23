@@ -91,7 +91,8 @@ impl LocalProvider {
             .build()
             .map_err(|e| ProviderError::ConfigurationError(e.to_string()))?;
 
-        let discovery = ServiceDiscovery::new(config.discovery.clone());
+        let discovery = ServiceDiscovery::new(config.discovery.clone())
+            .map_err(|e| ProviderError::ConfigurationError(e.to_string()))?;
 
         let provider = Self {
             discovery: Arc::new(discovery),
