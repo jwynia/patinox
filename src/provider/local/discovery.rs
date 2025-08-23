@@ -125,9 +125,12 @@ impl ServiceDiscovery {
         let health_client = reqwest::Client::builder()
             .timeout(config.health_check.timeout)
             .build()
-            .map_err(|e| LocalProviderError::InvalidConfiguration(
-                format!("Failed to create HTTP client: {}", e)
-            ))?;
+            .map_err(|e| {
+                LocalProviderError::InvalidConfiguration(format!(
+                    "Failed to create HTTP client: {}",
+                    e
+                ))
+            })?;
 
         Ok(Self {
             config,

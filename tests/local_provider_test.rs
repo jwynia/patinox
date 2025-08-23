@@ -254,7 +254,8 @@ mod service_discovery_tests {
     async fn test_service_discovery_concurrent_access() {
         // Arrange
         let config = create_test_discovery_config();
-        let discovery = std::sync::Arc::new(ServiceDiscovery::new(config).expect("Should create discovery"));
+        let discovery =
+            std::sync::Arc::new(ServiceDiscovery::new(config).expect("Should create discovery"));
 
         // Act - create multiple concurrent discovery tasks
         let mut handles = Vec::new();

@@ -85,7 +85,8 @@ impl LocalProvider {
     /// Create with custom configuration
     pub async fn with_config(config: LocalProviderConfig) -> ProviderResult<Self> {
         // Validate configuration first
-        config.validate()
+        config
+            .validate()
             .map_err(|e| ProviderError::ConfigurationError(e.to_string()))?;
 
         // Create HTTP client with connection pooling
