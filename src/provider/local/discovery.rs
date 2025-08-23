@@ -360,23 +360,27 @@ impl ServiceDiscovery {
         }
     }
 
-    /// Parse Ollama models response
-    fn parse_ollama_models(&self, response: &str) -> LocalProviderResult<Vec<String>> {
-        // Ollama returns JSON with "models" array
-        // Each model has a "name" field
+    /// Parse JSON response for model names using generic extraction
+    fn parse_json_response(
+        &self,
+        response: &str,
+        service_name: &str,
+        array_path: &str,
+        name_field: &str,
+    ) -> LocalProviderResult<Vec<String>> {
         use serde_json::Value;
 
         let json: Value = serde_json::from_str(response).map_err(|e| {
             super::error::LocalProviderError::ParseError(format!(
-                "Failed to parse Ollama response: {}",
-                e
+                "Failed to parse {} response: {}",
+                service_name, e
             ))
         })?;
 
-        if let Some(models) = json["models"].as_array() {
+        if let Some(models) = json[array_path].as_array() {
             let model_names: Vec<String> = models
                 .iter()
-                .filter_map(|model| model["name"].as_str().map(String::from))
+                .filter_map(|model| model[name_field].as_str().map(String::from))
                 .collect();
             Ok(model_names)
         } else {
@@ -384,27 +388,17 @@ impl ServiceDiscovery {
         }
     }
 
+    /// Parse Ollama models response
+    fn parse_ollama_models(&self, response: &str) -> LocalProviderResult<Vec<String>> {
+        // Ollama returns JSON with "models" array
+        // Each model has a "name" field
+        self.parse_json_response(response, "Ollama", "models", "name")
+    }
+
     /// Parse LMStudio models response  
     fn parse_lmstudio_models(&self, response: &str) -> LocalProviderResult<Vec<String>> {
         // LMStudio returns OpenAI-compatible models list
         // Each model has an "id" field
-        use serde_json::Value;
-
-        let json: Value = serde_json::from_str(response).map_err(|e| {
-            super::error::LocalProviderError::ParseError(format!(
-                "Failed to parse LMStudio response: {}",
-                e
-            ))
-        })?;
-
-        if let Some(models) = json["data"].as_array() {
-            let model_names: Vec<String> = models
-                .iter()
-                .filter_map(|model| model["id"].as_str().map(String::from))
-                .collect();
-            Ok(model_names)
-        } else {
-            Ok(Vec::new())
-        }
+        self.parse_json_response(response, "LMStudio", "data", "id")
     }
 }

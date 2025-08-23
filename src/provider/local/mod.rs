@@ -84,6 +84,10 @@ impl LocalProvider {
 
     /// Create with custom configuration
     pub async fn with_config(config: LocalProviderConfig) -> ProviderResult<Self> {
+        // Validate configuration first
+        config.validate()
+            .map_err(|e| ProviderError::ConfigurationError(e.to_string()))?;
+
         // Create HTTP client with connection pooling
         let http_client = reqwest::Client::builder()
             .timeout(config.request_timeout)
