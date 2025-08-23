@@ -65,8 +65,16 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// Default endpoint for Ollama service
+const DEFAULT_ENDPOINT: &str = "http://localhost:11434";
+
+/// Default timeout for HTTP requests to Ollama service
+const DEFAULT_TIMEOUT_SECS: u64 = 30;
+
+/// Default context window size for most Ollama models
+const DEFAULT_CONTEXT_WINDOW: usize = 4096;
+
 /// Ollama-specific provider implementation
-#[allow(dead_code)]
 pub struct OllamaProvider {
     /// HTTP client for API requests
     client: reqwest::Client,
@@ -81,13 +89,13 @@ pub struct OllamaProvider {
 impl OllamaProvider {
     /// Create new Ollama provider with default endpoint
     pub fn new() -> ProviderResult<Self> {
-        Self::with_endpoint("http://localhost:11434".to_string())
+        Self::with_endpoint(DEFAULT_ENDPOINT.to_string())
     }
 
     /// Create with custom endpoint
     pub fn with_endpoint(endpoint: String) -> ProviderResult<Self> {
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
+            .timeout(std::time::Duration::from_secs(DEFAULT_TIMEOUT_SECS))
             .build()
             .map_err(|e| ProviderError::ConfigurationError(e.to_string()))?;
 
@@ -244,7 +252,7 @@ impl ModelProvider for OllamaProvider {
             .map(|ollama_model| {
                 // Create default capabilities for Ollama models
                 let capabilities = ModelCapabilities {
-                    max_tokens: 4096, // Default context window for most Ollama models
+                    max_tokens: DEFAULT_CONTEXT_WINDOW,
                     supports_tools: false, // Most Ollama models don't support tools
                     supports_vision: false, // Vision support varies by model
                     supports_streaming: true, // Ollama supports streaming
