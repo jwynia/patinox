@@ -327,7 +327,10 @@ mod ollama_provider_tests {
         let result = OllamaProvider::new();
 
         // Assert
-        assert!(result.is_ok(), "Should create OllamaProvider with default endpoint");
+        assert!(
+            result.is_ok(),
+            "Should create OllamaProvider with default endpoint"
+        );
         let provider = result.unwrap();
         assert_eq!(provider.name(), "ollama");
     }
@@ -341,7 +344,10 @@ mod ollama_provider_tests {
         let result = OllamaProvider::with_endpoint(custom_endpoint.clone());
 
         // Assert
-        assert!(result.is_ok(), "Should create OllamaProvider with custom endpoint");
+        assert!(
+            result.is_ok(),
+            "Should create OllamaProvider with custom endpoint"
+        );
         let _provider = result.unwrap();
         // Provider should be configured with custom endpoint
     }
@@ -356,7 +362,10 @@ mod ollama_provider_tests {
 
         // Assert - should still create provider but may fail on actual requests
         // URL validation typically happens at request time, not creation time
-        assert!(result.is_ok(), "Provider creation should succeed even with invalid URL");
+        assert!(
+            result.is_ok(),
+            "Provider creation should succeed even with invalid URL"
+        );
     }
 
     #[tokio::test]
@@ -366,12 +375,15 @@ mod ollama_provider_tests {
 
         // Act & Assert - Test that all ModelProvider methods exist and can be called
         assert_eq!(provider.name(), "ollama");
-        
+
         // Test list_models method exists
         let models_result = provider.list_models().await;
-        assert!(models_result.is_ok() || models_result.is_err(), "list_models should return a result");
+        assert!(
+            models_result.is_ok() || models_result.is_err(),
+            "list_models should return a result"
+        );
 
-        // Test complete method exists  
+        // Test complete method exists
         let request = CompletionRequest {
             model: ModelId::new("llama3.2"),
             messages: vec!["Hello".to_string()],
@@ -380,16 +392,22 @@ mod ollama_provider_tests {
             tools: None,
         };
         let complete_result = provider.complete(request).await;
-        assert!(complete_result.is_ok() || complete_result.is_err(), "complete should return a result");
+        assert!(
+            complete_result.is_ok() || complete_result.is_err(),
+            "complete should return a result"
+        );
 
         // Test model support check
         let model_id = ModelId::new("llama3.2");
-        let supports = provider.supports_model(&model_id).await;
-        assert!(supports == true || supports == false, "supports_model should return boolean");
+        let _supports = provider.supports_model(&model_id).await;
+        // supports_model returns a boolean - no assertion needed, just verify it doesn't panic
 
         // Test model capabilities
         let capabilities = provider.model_capabilities(&model_id).await;
-        assert!(capabilities.is_some() || capabilities.is_none(), "model_capabilities should return Option");
+        assert!(
+            capabilities.is_some() || capabilities.is_none(),
+            "model_capabilities should return Option"
+        );
     }
 
     #[tokio::test]
@@ -402,7 +420,10 @@ mod ollama_provider_tests {
         let result = provider.list_models().await;
 
         // Assert
-        assert!(result.is_err(), "Should return error when Ollama service unavailable");
+        assert!(
+            result.is_err(),
+            "Should return error when Ollama service unavailable"
+        );
         match result.unwrap_err() {
             ProviderError::NetworkError(_) => {
                 // Expected error type for network failures
@@ -416,7 +437,7 @@ mod ollama_provider_tests {
         // Arrange - create provider pointing to non-existent service
         let provider = OllamaProvider::with_endpoint("http://localhost:99999".to_string())
             .expect("Should create provider");
-        
+
         let request = CompletionRequest {
             model: ModelId::new("llama3.2"),
             messages: vec!["Hello".to_string()],
@@ -429,7 +450,10 @@ mod ollama_provider_tests {
         let result = provider.complete(request).await;
 
         // Assert
-        assert!(result.is_err(), "Should return error when Ollama service unavailable");
+        assert!(
+            result.is_err(),
+            "Should return error when Ollama service unavailable"
+        );
         match result.unwrap_err() {
             ProviderError::NetworkError(_) => {
                 // Expected error type for network failures
@@ -449,7 +473,10 @@ mod ollama_provider_tests {
         let supports = provider.supports_model(&model_id).await;
 
         // Assert
-        assert!(!supports, "Should return false when cannot check model availability");
+        assert!(
+            !supports,
+            "Should return false when cannot check model availability"
+        );
     }
 
     #[tokio::test]
@@ -463,15 +490,18 @@ mod ollama_provider_tests {
         let capabilities = provider.model_capabilities(&model_id).await;
 
         // Assert
-        assert!(capabilities.is_none(), "Should return None when cannot get model capabilities");
+        assert!(
+            capabilities.is_none(),
+            "Should return None when cannot get model capabilities"
+        );
     }
 
-    #[tokio::test] 
+    #[tokio::test]
     async fn test_ollama_provider_handles_timeout_gracefully() {
         // Arrange - create provider with very short timeout
         // This test will actually require implementation to set timeouts
         let provider = OllamaProvider::new().expect("Should create provider");
-        
+
         let request = CompletionRequest {
             model: ModelId::new("llama3.2"),
             messages: vec!["Hello".to_string()],
@@ -488,8 +518,14 @@ mod ollama_provider_tests {
         // Assert
         // Should either succeed (if Ollama running) or fail with timeout/network error
         // Should not hang indefinitely
-        assert!(elapsed < std::time::Duration::from_secs(60), "Request should not hang indefinitely");
-        assert!(result.is_ok() || result.is_err(), "Should return a result, not hang");
+        assert!(
+            elapsed < std::time::Duration::from_secs(60),
+            "Request should not hang indefinitely"
+        );
+        assert!(
+            result.is_ok() || result.is_err(),
+            "Should return a result, not hang"
+        );
     }
 
     #[tokio::test]
@@ -510,8 +546,11 @@ mod ollama_provider_tests {
         let result = provider.complete(invalid_request).await;
 
         // Assert
-        assert!(result.is_err(), "Should validate request format and reject empty model name");
-        
+        assert!(
+            result.is_err(),
+            "Should validate request format and reject empty model name"
+        );
+
         // Should be validation error, not network error
         match result.unwrap_err() {
             ProviderError::InvalidRequest(_) | ProviderError::NetworkError(_) => {
@@ -524,10 +563,8 @@ mod ollama_provider_tests {
     #[tokio::test]
     async fn test_ollama_provider_concurrent_requests() {
         // Arrange
-        let provider = std::sync::Arc::new(
-            OllamaProvider::new().expect("Should create provider")
-        );
-        
+        let provider = std::sync::Arc::new(OllamaProvider::new().expect("Should create provider"));
+
         // Act - make multiple concurrent requests
         let mut handles = Vec::new();
         for i in 0..3 {
@@ -552,14 +589,17 @@ mod ollama_provider_tests {
             assert!(result.is_ok(), "Concurrent request {} should not panic", i);
             let completion_result = result.unwrap();
             // Each request should return a result (success or error, but not panic)
-            assert!(completion_result.is_ok() || completion_result.is_err(), 
-                "Completion result {} should be Ok or Err", i);
+            assert!(
+                completion_result.is_ok() || completion_result.is_err(),
+                "Completion result {} should be Ok or Err",
+                i
+            );
         }
     }
 
     // Integration tests - these test actual Ollama API integration when service is available
     // These tests will be ignored by default since they require running Ollama service
-    
+
     #[tokio::test]
     #[ignore = "requires running Ollama service"]
     async fn test_ollama_provider_list_models_integration() {
@@ -570,14 +610,23 @@ mod ollama_provider_tests {
         let result = provider.list_models().await;
 
         // Assert
-        assert!(result.is_ok(), "Should successfully list models when Ollama is running");
+        assert!(
+            result.is_ok(),
+            "Should successfully list models when Ollama is running"
+        );
         let models = result.unwrap();
-        
+
         // If Ollama is running, should return list of models (may be empty if no models installed)
         for model in models {
-            assert!(!model.id.name().is_empty(), "Model name should not be empty");
+            assert!(
+                !model.id.name().is_empty(),
+                "Model name should not be empty"
+            );
             // ModelCapabilities is not Option, it's a struct - so just check it exists
-            assert!(model.capabilities.max_tokens > 0, "Model should have valid capabilities");
+            assert!(
+                model.capabilities.max_tokens > 0,
+                "Model should have valid capabilities"
+            );
         }
     }
 
@@ -598,11 +647,17 @@ mod ollama_provider_tests {
         let result = provider.complete(request).await;
 
         // Assert
-        assert!(result.is_ok(), "Should successfully complete when Ollama is running with model");
+        assert!(
+            result.is_ok(),
+            "Should successfully complete when Ollama is running with model"
+        );
         let response = result.unwrap();
-        
+
         assert_eq!(response.model.name(), "llama3.2");
-        assert!(!response.content.is_empty(), "Response content should not be empty");
+        assert!(
+            !response.content.is_empty(),
+            "Response content should not be empty"
+        );
         assert!(response.usage.is_some(), "Should report token usage");
         if let Some(usage) = response.usage {
             assert!(usage.total_tokens > 0, "Should report positive token usage");
@@ -620,7 +675,10 @@ mod ollama_provider_tests {
         let supports = provider.supports_model(&model_id).await;
 
         // Assert
-        assert!(supports, "Should return true for available model when Ollama is running");
+        assert!(
+            supports,
+            "Should return true for available model when Ollama is running"
+        );
     }
 
     #[tokio::test]
@@ -634,26 +692,35 @@ mod ollama_provider_tests {
         let capabilities = provider.model_capabilities(&model_id).await;
 
         // Assert
-        assert!(capabilities.is_some(), "Should return capabilities for available model");
+        assert!(
+            capabilities.is_some(),
+            "Should return capabilities for available model"
+        );
         let caps = capabilities.unwrap();
-        
+
         // Validate basic capability structure
         assert!(caps.max_tokens > 0, "Should have positive context window");
         // Check that capabilities have valid values - no supported_formats field exists
-        assert!(caps.speed_tier == caps.speed_tier, "Should have valid speed tier");
+        assert!(
+            caps.speed_tier == caps.speed_tier,
+            "Should have valid speed tier"
+        );
     }
 
     #[tokio::test]
     #[ignore = "requires running Ollama service"]
     async fn test_ollama_provider_health_check_integration() {
-        // Arrange  
+        // Arrange
         let provider = OllamaProvider::new().expect("Should create provider");
 
         // Act - Use list_models as a health check since Ollama doesn't have dedicated health endpoint
         let result = provider.list_models().await;
 
         // Assert
-        assert!(result.is_ok(), "Health check via list_models should succeed when service is running");
+        assert!(
+            result.is_ok(),
+            "Health check via list_models should succeed when service is running"
+        );
     }
 }
 

@@ -83,6 +83,7 @@ pub struct OllamaProvider {
     base_url: String,
 
     /// Cached model information
+    #[allow(dead_code)] // Future caching implementation planned
     model_cache: Arc<RwLock<HashMap<String, ModelInfo>>>,
 }
 
@@ -114,13 +115,10 @@ impl OllamaProvider {
         T: serde::de::DeserializeOwned,
     {
         let url = format!("{}{}", self.base_url, path);
-        
-        let response = self
-            .client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| ProviderError::NetworkError(format!("Failed to connect to Ollama: {}", e)))?;
+
+        let response = self.client.get(&url).send().await.map_err(|e| {
+            ProviderError::NetworkError(format!("Failed to connect to Ollama: {}", e))
+        })?;
 
         if !response.status().is_success() {
             return Err(ProviderError::NetworkError(format!(
@@ -129,10 +127,9 @@ impl OllamaProvider {
             )));
         }
 
-        let body: T = response
-            .json()
-            .await
-            .map_err(|e| ProviderError::ApiError(format!("Failed to parse Ollama response: {}", e)))?;
+        let body: T = response.json().await.map_err(|e| {
+            ProviderError::ApiError(format!("Failed to parse Ollama response: {}", e))
+        })?;
 
         Ok(body)
     }
@@ -144,14 +141,16 @@ impl OllamaProvider {
         B: serde::Serialize,
     {
         let url = format!("{}{}", self.base_url, path);
-        
+
         let response = self
             .client
             .post(&url)
             .json(body)
             .send()
             .await
-            .map_err(|e| ProviderError::NetworkError(format!("Failed to connect to Ollama: {}", e)))?;
+            .map_err(|e| {
+                ProviderError::NetworkError(format!("Failed to connect to Ollama: {}", e))
+            })?;
 
         if !response.status().is_success() {
             return Err(ProviderError::NetworkError(format!(
@@ -160,10 +159,9 @@ impl OllamaProvider {
             )));
         }
 
-        let response_body: T = response
-            .json()
-            .await
-            .map_err(|e| ProviderError::ApiError(format!("Failed to parse Ollama response: {}", e)))?;
+        let response_body: T = response.json().await.map_err(|e| {
+            ProviderError::ApiError(format!("Failed to parse Ollama response: {}", e))
+        })?;
 
         Ok(response_body)
     }
@@ -231,7 +229,7 @@ struct OllamaGenerateResponse {
     #[serde(default)]
     done: bool,
     #[serde(default)]
-    #[allow(dead_code)] // Part of API response but not currently used  
+    #[allow(dead_code)] // Part of API response but not currently used
     total_duration: Option<u64>,
     #[serde(default)]
     #[allow(dead_code)] // Part of API response but not currently used
@@ -246,8 +244,9 @@ struct OllamaGenerateResponse {
 impl ModelProvider for OllamaProvider {
     async fn list_models(&self) -> ProviderResult<Vec<ModelInfo>> {
         let response: OllamaTagsResponse = self.make_request("/api/tags").await?;
-        
-        let models = response.models
+
+        let models = response
+            .models
             .into_iter()
             .map(|ollama_model| {
                 // Create default capabilities for Ollama models
@@ -276,12 +275,16 @@ impl ModelProvider for OllamaProvider {
     async fn complete(&self, request: CompletionRequest) -> ProviderResult<CompletionResponse> {
         // Validate request
         if request.model.name().is_empty() {
-            return Err(ProviderError::InvalidRequest("Model name cannot be empty".to_string()));
+            return Err(ProviderError::InvalidRequest(
+                "Model name cannot be empty".to_string(),
+            ));
         }
 
         // Convert messages to a single prompt (simplified for Ollama's generate endpoint)
         let prompt = if request.messages.is_empty() {
-            return Err(ProviderError::InvalidRequest("Messages cannot be empty".to_string()));
+            return Err(ProviderError::InvalidRequest(
+                "Messages cannot be empty".to_string(),
+            ));
         } else {
             request.messages.join("\n")
         };
@@ -299,14 +302,17 @@ impl ModelProvider for OllamaProvider {
             stream: false, // For now, only support non-streaming
         };
 
-        let response: OllamaGenerateResponse = self.make_post_request("/api/generate", &ollama_request).await?;
+        let response: OllamaGenerateResponse = self
+            .make_post_request("/api/generate", &ollama_request)
+            .await?;
 
         // Convert response
         let usage = if response.prompt_eval_count.is_some() || response.eval_count.is_some() {
             Some(crate::provider::types::Usage {
                 prompt_tokens: response.prompt_eval_count.unwrap_or(0) as usize,
                 completion_tokens: response.eval_count.unwrap_or(0) as usize,
-                total_tokens: (response.prompt_eval_count.unwrap_or(0) + response.eval_count.unwrap_or(0)) as usize,
+                total_tokens: (response.prompt_eval_count.unwrap_or(0)
+                    + response.eval_count.unwrap_or(0)) as usize,
             })
         } else {
             None
@@ -316,7 +322,11 @@ impl ModelProvider for OllamaProvider {
             model: request.model,
             content: response.response,
             usage,
-            finish_reason: if response.done { "stop".to_string() } else { "incomplete".to_string() },
+            finish_reason: if response.done {
+                "stop".to_string()
+            } else {
+                "incomplete".to_string()
+            },
         })
     }
 
