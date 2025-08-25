@@ -1,4 +1,59 @@
 //! Ollama provider implementation
+//!
+//! This module provides integration with Ollama, a local LLM runner that allows you to run
+//! large language models locally. Ollama supports various models including Llama, Mistral,
+//! Code Llama, and many others.
+//!
+//! ## Features
+//!
+//! - **Local Model Support**: Run models locally without cloud dependencies
+//! - **Model Management**: List and query available models
+//! - **Text Generation**: Complete text generation with temperature control
+//! - **Automatic Discovery**: Integrate with service discovery for automatic endpoint detection
+//!
+//! ## Usage
+//!
+//! ```rust,no_run
+//! use patinox::provider::local::OllamaProvider;
+//! use patinox::provider::{ModelProvider, types::{CompletionRequest, ModelId}};
+//!
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! // Create provider with default endpoint (http://localhost:11434)
+//! let provider = OllamaProvider::new()?;
+//!
+//! // Or specify custom endpoint
+//! let provider = OllamaProvider::with_endpoint("http://localhost:8080".to_string())?;
+//!
+//! // List available models
+//! let models = provider.list_models().await?;
+//!
+//! // Make completion request
+//! let request = CompletionRequest {
+//!     model: ModelId::new("llama3.2"),
+//!     messages: vec!["Hello, how are you?".to_string()],
+//!     temperature: Some(0.7),
+//!     max_tokens: Some(100),
+//!     tools: None,
+//! };
+//! let response = provider.complete(request).await?;
+//! println!("Response: {}", response.content);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## API Compatibility
+//!
+//! This implementation uses Ollama's REST API:
+//! - `/api/tags` - List available models
+//! - `/api/generate` - Generate completions
+//!
+//! ## Error Handling
+//!
+//! The provider returns appropriate `ProviderError` variants:
+//! - `NetworkError` - Connection issues or service unavailable
+//! - `ApiError` - Ollama API errors or malformed responses
+//! - `InvalidRequest` - Request validation failures
 
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
@@ -10,8 +65,16 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// Default endpoint for Ollama service
+const DEFAULT_ENDPOINT: &str = "http://localhost:11434";
+
+/// Default timeout for HTTP requests to Ollama service
+const DEFAULT_TIMEOUT_SECS: u64 = 30;
+
+/// Default context window size for most Ollama models
+const DEFAULT_CONTEXT_WINDOW: usize = 4096;
+
 /// Ollama-specific provider implementation
-#[allow(dead_code)]
 pub struct OllamaProvider {
     /// HTTP client for API requests
     client: reqwest::Client,
@@ -20,19 +83,20 @@ pub struct OllamaProvider {
     base_url: String,
 
     /// Cached model information
+    #[allow(dead_code)] // Future caching implementation planned
     model_cache: Arc<RwLock<HashMap<String, ModelInfo>>>,
 }
 
 impl OllamaProvider {
     /// Create new Ollama provider with default endpoint
     pub fn new() -> ProviderResult<Self> {
-        Self::with_endpoint("http://localhost:11434".to_string())
+        Self::with_endpoint(DEFAULT_ENDPOINT.to_string())
     }
 
     /// Create with custom endpoint
     pub fn with_endpoint(endpoint: String) -> ProviderResult<Self> {
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
+            .timeout(std::time::Duration::from_secs(DEFAULT_TIMEOUT_SECS))
             .build()
             .map_err(|e| ProviderError::ConfigurationError(e.to_string()))?;
 
@@ -44,35 +108,252 @@ impl OllamaProvider {
     }
 }
 
+impl OllamaProvider {
+    /// Internal helper to make HTTP requests to Ollama API
+    async fn make_request<T>(&self, path: &str) -> ProviderResult<T>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        let url = format!("{}{}", self.base_url, path);
+
+        let response = self.client.get(&url).send().await.map_err(|e| {
+            ProviderError::NetworkError(format!("Failed to connect to Ollama: {}", e))
+        })?;
+
+        if !response.status().is_success() {
+            return Err(ProviderError::NetworkError(format!(
+                "Ollama API returned status: {}",
+                response.status()
+            )));
+        }
+
+        let body: T = response.json().await.map_err(|e| {
+            ProviderError::ApiError(format!("Failed to parse Ollama response: {}", e))
+        })?;
+
+        Ok(body)
+    }
+
+    /// Internal helper for POST requests
+    async fn make_post_request<T, B>(&self, path: &str, body: &B) -> ProviderResult<T>
+    where
+        T: serde::de::DeserializeOwned,
+        B: serde::Serialize,
+    {
+        let url = format!("{}{}", self.base_url, path);
+
+        let response = self
+            .client
+            .post(&url)
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| {
+                ProviderError::NetworkError(format!("Failed to connect to Ollama: {}", e))
+            })?;
+
+        if !response.status().is_success() {
+            return Err(ProviderError::NetworkError(format!(
+                "Ollama API returned status: {}",
+                response.status()
+            )));
+        }
+
+        let response_body: T = response.json().await.map_err(|e| {
+            ProviderError::ApiError(format!("Failed to parse Ollama response: {}", e))
+        })?;
+
+        Ok(response_body)
+    }
+}
+
+/// Ollama API response for /api/tags endpoint
+#[derive(Debug, serde::Deserialize)]
+struct OllamaTagsResponse {
+    models: Vec<OllamaModelInfo>,
+}
+
+/// Ollama model information from /api/tags
+#[derive(Debug, serde::Deserialize)]
+struct OllamaModelInfo {
+    name: String,
+    #[serde(default)]
+    #[allow(dead_code)] // Part of API response but not currently used
+    size: Option<u64>,
+    #[serde(default)]
+    #[allow(dead_code)] // Part of API response but not currently used
+    digest: Option<String>,
+    #[serde(default)]
+    #[allow(dead_code)] // Part of API response but not currently used
+    details: Option<OllamaModelDetails>,
+}
+
+/// Ollama model details
+#[derive(Debug, serde::Deserialize)]
+struct OllamaModelDetails {
+    #[serde(default)]
+    #[allow(dead_code)] // Part of API response but not currently used
+    parameter_size: Option<String>,
+    #[serde(default)]
+    #[allow(dead_code)] // Part of API response but not currently used
+    quantization_level: Option<String>,
+}
+
+/// Ollama generate request
+#[derive(Debug, serde::Serialize)]
+struct OllamaGenerateRequest {
+    model: String,
+    prompt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    options: Option<OllamaGenerateOptions>,
+    stream: bool,
+}
+
+/// Ollama generate options
+#[derive(Debug, serde::Serialize)]
+struct OllamaGenerateOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    temperature: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    num_predict: Option<i32>, // max_tokens in Ollama
+}
+
+/// Ollama generate response
+#[derive(Debug, serde::Deserialize)]
+struct OllamaGenerateResponse {
+    #[serde(default)]
+    #[allow(dead_code)] // Part of API response but not currently used
+    model: String,
+    #[serde(default)]
+    response: String,
+    #[serde(default)]
+    done: bool,
+    #[serde(default)]
+    #[allow(dead_code)] // Part of API response but not currently used
+    total_duration: Option<u64>,
+    #[serde(default)]
+    #[allow(dead_code)] // Part of API response but not currently used
+    load_duration: Option<u64>,
+    #[serde(default)]
+    prompt_eval_count: Option<u32>,
+    #[serde(default)]
+    eval_count: Option<u32>,
+}
+
 #[async_trait]
 impl ModelProvider for OllamaProvider {
     async fn list_models(&self) -> ProviderResult<Vec<ModelInfo>> {
-        // For now, return empty list - will implement in next phase
-        Ok(Vec::new())
+        let response: OllamaTagsResponse = self.make_request("/api/tags").await?;
+
+        let models = response
+            .models
+            .into_iter()
+            .map(|ollama_model| {
+                // Create default capabilities for Ollama models
+                let capabilities = ModelCapabilities {
+                    max_tokens: DEFAULT_CONTEXT_WINDOW,
+                    supports_tools: false, // Most Ollama models don't support tools
+                    supports_vision: false, // Vision support varies by model
+                    supports_streaming: true, // Ollama supports streaming
+                    input_cost_per_1k: None, // Local models are free
+                    output_cost_per_1k: None, // Local models are free
+                    speed_tier: crate::provider::types::SpeedTier::Standard,
+                    quality_tier: crate::provider::types::QualityTier::Standard,
+                };
+
+                ModelInfo {
+                    id: ModelId::new(ollama_model.name.clone()).with_provider("ollama"),
+                    name: ollama_model.name,
+                    capabilities,
+                }
+            })
+            .collect();
+
+        Ok(models)
     }
 
-    async fn complete(&self, _request: CompletionRequest) -> ProviderResult<CompletionResponse> {
-        // For now, return error - will implement in next phase
-        Err(ProviderError::NetworkError(
-            "Ollama service not available".to_string(),
-        ))
+    async fn complete(&self, request: CompletionRequest) -> ProviderResult<CompletionResponse> {
+        // Validate request
+        if request.model.name().is_empty() {
+            return Err(ProviderError::InvalidRequest(
+                "Model name cannot be empty".to_string(),
+            ));
+        }
+
+        // Convert messages to a single prompt (simplified for Ollama's generate endpoint)
+        let prompt = if request.messages.is_empty() {
+            return Err(ProviderError::InvalidRequest(
+                "Messages cannot be empty".to_string(),
+            ));
+        } else {
+            request.messages.join("\n")
+        };
+
+        // Build Ollama request
+        let options = OllamaGenerateOptions {
+            temperature: request.temperature,
+            num_predict: request.max_tokens.map(|t| t as i32),
+        };
+
+        let ollama_request = OllamaGenerateRequest {
+            model: request.model.name().to_string(),
+            prompt,
+            options: Some(options),
+            stream: false, // For now, only support non-streaming
+        };
+
+        let response: OllamaGenerateResponse = self
+            .make_post_request("/api/generate", &ollama_request)
+            .await?;
+
+        // Convert response
+        let usage = if response.prompt_eval_count.is_some() || response.eval_count.is_some() {
+            Some(crate::provider::types::Usage {
+                prompt_tokens: response.prompt_eval_count.unwrap_or(0) as usize,
+                completion_tokens: response.eval_count.unwrap_or(0) as usize,
+                total_tokens: (response.prompt_eval_count.unwrap_or(0)
+                    + response.eval_count.unwrap_or(0)) as usize,
+            })
+        } else {
+            None
+        };
+
+        Ok(CompletionResponse {
+            model: request.model,
+            content: response.response,
+            usage,
+            finish_reason: if response.done {
+                "stop".to_string()
+            } else {
+                "incomplete".to_string()
+            },
+        })
     }
 
     async fn embed(&self, _request: EmbeddingRequest) -> ProviderResult<EmbeddingResponse> {
-        // For now, return error - will implement in next phase
-        Err(ProviderError::NetworkError(
-            "Ollama service not available".to_string(),
+        // Ollama supports embeddings but with different endpoint - will implement if needed
+        Err(ProviderError::ApiError(
+            "Embedding not yet implemented for Ollama provider".to_string(),
         ))
     }
 
-    async fn supports_model(&self, _model: &ModelId) -> bool {
-        // For now, return false - will implement in next phase
-        false
+    async fn supports_model(&self, model: &ModelId) -> bool {
+        // Check if model is in our list of available models
+        match self.list_models().await {
+            Ok(models) => models.iter().any(|m| m.id.name() == model.name()),
+            Err(_) => false, // If we can't list models, assume model is not supported
+        }
     }
 
-    async fn model_capabilities(&self, _model: &ModelId) -> Option<ModelCapabilities> {
-        // For now, return None - will implement in next phase
-        None
+    async fn model_capabilities(&self, model: &ModelId) -> Option<ModelCapabilities> {
+        // Get capabilities by finding the model in our list
+        match self.list_models().await {
+            Ok(models) => models
+                .into_iter()
+                .find(|m| m.id.name() == model.name())
+                .map(|m| m.capabilities),
+            Err(_) => None,
+        }
     }
 
     fn name(&self) -> &str {
