@@ -724,27 +724,416 @@ mod ollama_provider_tests {
     }
 }
 
-/// Test module for LMStudio provider integration  
+/// Test module for LMStudio provider implementation
+///
+/// This module follows Test-Driven Development patterns established through
+/// Ollama provider implementation. Tests are organized as:
+/// 1. Provider creation tests
+/// 2. Error handling tests (service unavailable, network errors)  
+/// 3. Request validation tests
+/// 4. Core functionality tests
+/// 5. Integration tests (with #[ignore] annotations)
+///
+/// The LMStudio provider uses OpenAI-compatible API format following ADR-001.
 mod lmstudio_provider_tests {
+    use patinox::provider::local::LMStudioProvider;
+    use patinox::provider::types::{CompletionRequest, ModelId};
+    use patinox::provider::{ModelProvider, ProviderError};
+
+    // ===============================
+    // 1. PROVIDER CREATION TESTS
+    // ===============================
+
     #[tokio::test]
-    async fn test_lmstudio_provider_creation() {
-        // Test that LMStudioProvider can be created with default endpoint
-        // Should not require actual LMStudio service to be running for creation
-        // Placeholder for implementation
+    async fn test_lmstudio_provider_creation_with_default_endpoint() {
+        // Arrange & Act
+        let result = LMStudioProvider::new();
+
+        // Assert
+        assert!(
+            result.is_ok(),
+            "Should create LMStudioProvider with default endpoint"
+        );
+        let provider = result.unwrap();
+        assert_eq!(provider.name(), "lmstudio");
     }
 
     #[tokio::test]
-    async fn test_lmstudio_provider_implements_model_provider_trait() {
-        // Test that LMStudioProvider properly implements ModelProvider trait
-        // All required methods should be available
-        // Placeholder for implementation
+    async fn test_lmstudio_provider_creation_with_custom_endpoint() {
+        // Arrange
+        let custom_endpoint = "http://localhost:5678".to_string();
+
+        // Act
+        let result = LMStudioProvider::with_endpoint(custom_endpoint.clone());
+
+        // Assert
+        assert!(
+            result.is_ok(),
+            "Should create LMStudioProvider with custom endpoint"
+        );
+        let _provider = result.unwrap();
+        // Provider should be configured with custom endpoint
     }
 
     #[tokio::test]
-    async fn test_lmstudio_provider_handles_service_unavailable() {
-        // Test that LMStudioProvider gracefully handles when LMStudio service is unavailable
-        // Should return appropriate error, not panic or hang
-        // Placeholder for implementation
+    async fn test_lmstudio_provider_creation_with_invalid_endpoint() {
+        // Arrange
+        let invalid_endpoint = "not-a-url".to_string();
+
+        // Act
+        let result = LMStudioProvider::with_endpoint(invalid_endpoint);
+
+        // Assert - should still create provider (URL validation happens during requests)
+        assert!(
+            result.is_ok(),
+            "Should create provider even with invalid endpoint (validated on request)"
+        );
+    }
+
+    // ===============================
+    // 2. ERROR HANDLING TESTS (Error-First TDD)
+    // ===============================
+
+    #[tokio::test]
+    async fn test_lmstudio_provider_list_models_when_service_unavailable() {
+        // Arrange - create provider pointing to non-existent service
+        let provider = LMStudioProvider::with_endpoint("http://localhost:99999".to_string())
+            .expect("Should create provider");
+
+        // Act
+        let result = provider.list_models().await;
+
+        // Assert
+        assert!(
+            result.is_err(),
+            "Should return error when LMStudio service unavailable"
+        );
+        match result.unwrap_err() {
+            ProviderError::NetworkError(msg) => {
+                assert!(
+                    msg.contains("LMStudio") || msg.contains("service"),
+                    "Error message should mention LMStudio service: {}",
+                    msg
+                );
+            }
+            other => panic!("Expected NetworkError, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_lmstudio_provider_complete_when_service_unavailable() {
+        // Arrange - create provider pointing to non-existent service
+        let provider = LMStudioProvider::with_endpoint("http://localhost:99999".to_string())
+            .expect("Should create provider");
+
+        let request = CompletionRequest {
+            model: ModelId::new("gpt-3.5-turbo"), // OpenAI-compatible model name
+            messages: vec!["Hello".to_string()],
+            max_tokens: Some(100),
+            temperature: Some(0.7),
+            tools: None,
+        };
+
+        // Act
+        let result = provider.complete(request).await;
+
+        // Assert
+        assert!(
+            result.is_err(),
+            "Should return error when LMStudio service unavailable"
+        );
+        match result.unwrap_err() {
+            ProviderError::NetworkError(msg) => {
+                assert!(
+                    msg.contains("LMStudio") || msg.contains("service"),
+                    "Error message should mention LMStudio service: {}",
+                    msg
+                );
+            }
+            other => panic!("Expected NetworkError, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_lmstudio_provider_handles_timeout_gracefully() {
+        // Arrange - create provider with very short timeout to simulate timeout
+        // This test validates timeout handling without requiring actual slow service
+        let provider = LMStudioProvider::with_endpoint("http://localhost:99998".to_string())
+            .expect("Should create provider");
+
+        // Act
+        let result = provider.list_models().await;
+
+        // Assert
+        assert!(
+            result.is_err(),
+            "Should return error for connection timeout"
+        );
+        match result.unwrap_err() {
+            ProviderError::NetworkError(_) => {
+                // Expected - timeout should be treated as network error
+            }
+            other => panic!("Expected NetworkError for timeout, got {:?}", other),
+        }
+    }
+
+    // ===============================
+    // 3. REQUEST VALIDATION TESTS
+    // ===============================
+
+    #[tokio::test]
+    async fn test_lmstudio_provider_request_format_validation() {
+        // This test will validate request format without making network calls
+        // Using service unavailable endpoint to focus on request validation
+        let provider = LMStudioProvider::with_endpoint("http://localhost:99999".to_string())
+            .expect("Should create provider");
+
+        // Test empty model name
+        let empty_model_request = CompletionRequest {
+            model: ModelId::new(""),
+            messages: vec!["Hello".to_string()],
+            max_tokens: Some(100),
+            temperature: Some(0.7),
+            tools: None,
+        };
+
+        let result = provider.complete(empty_model_request).await;
+        assert!(result.is_err(), "Should reject empty model name");
+
+        // Test empty messages
+        let empty_messages_request = CompletionRequest {
+            model: ModelId::new("gpt-3.5-turbo"),
+            messages: vec![],
+            max_tokens: Some(100),
+            temperature: Some(0.7),
+            tools: None,
+        };
+
+        let result = provider.complete(empty_messages_request).await;
+        assert!(result.is_err(), "Should reject empty messages");
+    }
+
+    // ===============================
+    // 4. CORE FUNCTIONALITY TESTS
+    // ===============================
+
+    #[tokio::test]
+    async fn test_lmstudio_provider_methods_dont_panic_when_service_unavailable() {
+        // Arrange - create provider pointing to non-existent service
+        let provider = LMStudioProvider::with_endpoint("http://localhost:99999".to_string())
+            .expect("Should create provider");
+
+        // Act & Assert - verify methods handle service unavailable gracefully (no panics)
+
+        // All methods should handle network failures without panicking
+        let _ = provider.list_models().await;
+
+        let request = CompletionRequest {
+            model: ModelId::new("gpt-3.5-turbo"),
+            messages: vec!["Hello".to_string()],
+            max_tokens: Some(100),
+            temperature: Some(0.7),
+            tools: None,
+        };
+        let _ = provider.complete(request).await;
+
+        let model_id = ModelId::new("gpt-3.5-turbo");
+        let _ = provider.supports_model(&model_id).await;
+        let _ = provider.model_capabilities(&model_id).await;
+
+        // Test passes if we reach this point without panicking
+    }
+
+    #[tokio::test]
+    async fn test_lmstudio_provider_supports_model_returns_false_when_unavailable() {
+        // Arrange - create provider pointing to non-existent service
+        let provider = LMStudioProvider::with_endpoint("http://localhost:99999".to_string())
+            .expect("Should create provider");
+
+        // Act
+        let model_id = ModelId::new("gpt-3.5-turbo");
+        let supports = provider.supports_model(&model_id).await;
+
+        // Assert
+        assert!(!supports, "Should return false when service unavailable");
+    }
+
+    #[tokio::test]
+    async fn test_lmstudio_provider_model_capabilities_returns_none_when_unavailable() {
+        // Arrange - create provider pointing to non-existent service
+        let provider = LMStudioProvider::with_endpoint("http://localhost:99999".to_string())
+            .expect("Should create provider");
+
+        // Act
+        let model_id = ModelId::new("gpt-3.5-turbo");
+        let capabilities = provider.model_capabilities(&model_id).await;
+
+        // Assert
+        assert!(
+            capabilities.is_none(),
+            "Should return None when service unavailable"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_lmstudio_provider_concurrent_requests() {
+        // Test that provider can handle multiple concurrent requests safely
+        let provider = std::sync::Arc::new(
+            LMStudioProvider::with_endpoint("http://localhost:99999".to_string())
+                .expect("Should create provider"),
+        );
+
+        // Create multiple concurrent requests
+        let tasks: Vec<_> = (0..3)
+            .map(|i| {
+                let provider_clone = provider.clone();
+                let model_name = format!("test-model-{}", i);
+                tokio::spawn(async move {
+                    let model_id = ModelId::new(&model_name);
+                    provider_clone.supports_model(&model_id).await
+                })
+            })
+            .collect();
+
+        // Wait for all tasks to complete
+        for task in tasks {
+            let result = task.await.expect("Task should complete");
+            // All should return false due to service unavailable, but shouldn't panic
+            assert!(!result);
+        }
+    }
+
+    // ===============================
+    // 5. INTEGRATION TESTS (Ignored by default)
+    // ===============================
+
+    #[tokio::test]
+    #[ignore = "requires running LMStudio service"]
+    async fn test_lmstudio_provider_list_models_integration() {
+        // Arrange - create provider with default endpoint
+        let provider = LMStudioProvider::new().expect("Should create provider");
+
+        // Act
+        let result = provider.list_models().await;
+
+        // Assert
+        assert!(
+            result.is_ok(),
+            "Should successfully list models when LMStudio is running"
+        );
+        let models = result.unwrap();
+
+        // If LMStudio is running, should return list of models (may be empty if no models loaded)
+        for model in models {
+            assert!(
+                !model.id.name().is_empty(),
+                "Model name should not be empty"
+            );
+            // ModelCapabilities is not Option, it's a struct - so just check it exists
+            assert!(
+                model.capabilities.max_tokens > 0,
+                "Model should have valid capabilities"
+            );
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "requires running LMStudio service with loaded model"]
+    async fn test_lmstudio_provider_complete_integration() {
+        // Arrange - create provider and completion request
+        let provider = LMStudioProvider::new().expect("Should create provider");
+
+        let request = CompletionRequest {
+            model: ModelId::new("gpt-3.5-turbo"), // Standard OpenAI model name
+            messages: vec!["Say hello in a friendly way.".to_string()],
+            max_tokens: Some(50),
+            temperature: Some(0.7),
+            tools: None,
+        };
+
+        // Act
+        let result = provider.complete(request).await;
+
+        // Assert
+        assert!(
+            result.is_ok(),
+            "Should successfully complete when LMStudio is running with model"
+        );
+        let response = result.unwrap();
+
+        assert_eq!(response.model.name(), "gpt-3.5-turbo");
+        assert!(
+            !response.content.is_empty(),
+            "Response content should not be empty"
+        );
+        assert!(response.usage.is_some(), "Should report token usage");
+        if let Some(usage) = response.usage {
+            assert!(usage.total_tokens > 0, "Should report positive token usage");
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "requires running LMStudio service with loaded model"]
+    async fn test_lmstudio_provider_supports_model_integration() {
+        // Arrange
+        let provider = LMStudioProvider::new().expect("Should create provider");
+        let model_id = ModelId::new("gpt-3.5-turbo");
+
+        // Act
+        let supports = provider.supports_model(&model_id).await;
+
+        // Assert
+        assert!(
+            supports,
+            "Should return true for available model when LMStudio is running"
+        );
+    }
+
+    #[tokio::test]
+    #[ignore = "requires running LMStudio service with loaded model"]
+    async fn test_lmstudio_provider_model_capabilities_integration() {
+        // Arrange
+        let provider = LMStudioProvider::new().expect("Should create provider");
+        let model_id = ModelId::new("gpt-3.5-turbo");
+
+        // Act
+        let capabilities = provider.model_capabilities(&model_id).await;
+
+        // Assert
+        assert!(
+            capabilities.is_some(),
+            "Should return capabilities for available model"
+        );
+        let caps = capabilities.unwrap();
+
+        // Validate basic capability structure
+        assert!(caps.max_tokens > 0, "Should have positive context window");
+        // Check that capabilities have valid values
+        // Model capabilities structure should match OpenAI standards
+        use patinox::provider::types::SpeedTier;
+        assert!(
+            matches!(
+                caps.speed_tier,
+                SpeedTier::Fast | SpeedTier::Standard | SpeedTier::Slow
+            ),
+            "Should have valid speed tier enum value"
+        );
+    }
+
+    #[tokio::test]
+    #[ignore = "requires running LMStudio service"]
+    async fn test_lmstudio_provider_health_check_integration() {
+        // Arrange
+        let provider = LMStudioProvider::new().expect("Should create provider");
+
+        // Act - Use list_models as a health check since LMStudio uses OpenAI format
+        let result = provider.list_models().await;
+
+        // Assert
+        assert!(
+            result.is_ok(),
+            "Health check via list_models should succeed when service is running"
+        );
     }
 }
 

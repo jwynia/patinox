@@ -24,7 +24,8 @@
       "Bash(gh pr checks:*)",
       "Bash(gh api:*)",
       "Bash(git fetch:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(rg:*)"
     ],
     "deny": [],
     "ask": []

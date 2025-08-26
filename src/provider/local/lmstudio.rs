@@ -1,14 +1,144 @@
 //! LMStudio provider implementation
+//!
+//! This module provides integration with LMStudio, a local LLM server that provides
+//! OpenAI-compatible API endpoints for running models locally.
+//!
+//! ## Features
+//!
+//! - **OpenAI-Compatible API**: Uses standard OpenAI API format for compatibility
+//! - **Local Model Support**: Run models locally without cloud dependencies
+//! - **Model Management**: List and query available models
+//! - **Text Generation**: Complete text generation with standard parameters
+//!
+//! ## Usage
+//!
+//! ```rust,no_run
+//! use patinox::provider::local::LMStudioProvider;
+//! use patinox::provider::{ModelProvider, types::{CompletionRequest, ModelId}};
+//!
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! // Create provider with default endpoint (http://localhost:1234)
+//! let provider = LMStudioProvider::new()?;
+//!
+//! // Or specify custom endpoint
+//! let provider = LMStudioProvider::with_endpoint("http://localhost:5678".to_string())?;
+//!
+//! // List available models
+//! let models = provider.list_models().await?;
+//!
+//! // Make completion request
+//! let request = CompletionRequest {
+//!     model: ModelId::new("gpt-3.5-turbo"),
+//!     messages: vec!["Hello, how are you?".to_string()],
+//!     temperature: Some(0.7),
+//!     max_tokens: Some(100),
+//!     tools: None,
+//! };
+//! let response = provider.complete(request).await?;
+//! println!("Response: {}", response.content);
+//! # Ok(())
+//! # }
+//! ```
 
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
-    ModelId, ModelInfo,
+    ModelId, ModelInfo, QualityTier, SpeedTier, Usage,
 };
 use crate::provider::{ModelProvider, ProviderError, ProviderResult};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+// LMStudio provider constants
+const DEFAULT_ENDPOINT: &str = "http://localhost:1234";
+const DEFAULT_TIMEOUT_SECS: u64 = 30;
+/// Default context window size for LMStudio models
+/// Based on common transformer model defaults. Individual models may have different limits
+/// that can be queried through the LMStudio API, but this provides a reasonable fallback.
+const DEFAULT_CONTEXT_WINDOW: usize = 4096;
+
+/// OpenAI-compatible models response structure for LMStudio
+#[derive(Deserialize, Debug)]
+struct LMStudioModelsResponse {
+    data: Vec<LMStudioModel>,
+}
+
+/// OpenAI-compatible model structure for LMStudio  
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)] // API response fields used for deserialization
+struct LMStudioModel {
+    id: String,
+    #[serde(default)]
+    object: String,
+    #[serde(default)]
+    created: u64,
+}
+
+/// OpenAI-compatible chat completion request for LMStudio
+#[derive(Serialize, Debug)]
+struct LMStudioCompletionRequest {
+    model: String,
+    messages: Vec<LMStudioMessage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    temperature: Option<f32>,
+    #[serde(default = "default_stream")]
+    stream: bool,
+}
+
+/// OpenAI-compatible message structure for LMStudio
+#[derive(Serialize, Debug)]
+struct LMStudioMessage {
+    role: String,
+    content: String,
+}
+
+/// OpenAI-compatible completion response from LMStudio
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)] // API response fields used for deserialization
+struct LMStudioCompletionResponse {
+    id: String,
+    object: String,
+    created: u64,
+    model: String,
+    choices: Vec<LMStudioChoice>,
+    usage: LMStudioUsage,
+}
+
+/// OpenAI-compatible choice structure from LMStudio
+#[derive(Deserialize, Debug)]
+struct LMStudioChoice {
+    #[allow(dead_code)]
+    index: u32,
+    message: LMStudioResponseMessage,
+    #[serde(default)]
+    finish_reason: Option<String>,
+}
+
+/// OpenAI-compatible response message structure from LMStudio
+#[derive(Deserialize, Debug)]
+struct LMStudioResponseMessage {
+    #[allow(dead_code)]
+    role: String,
+    content: String,
+}
+
+/// OpenAI-compatible usage statistics from LMStudio
+#[derive(Deserialize, Debug)]
+struct LMStudioUsage {
+    prompt_tokens: u32,
+    completion_tokens: u32,
+    total_tokens: u32,
+}
+
+#[allow(dead_code)]
+fn default_stream() -> bool {
+    false
+}
 
 /// LMStudio-specific provider implementation
 #[allow(dead_code)]
@@ -26,13 +156,13 @@ pub struct LMStudioProvider {
 impl LMStudioProvider {
     /// Create new LMStudio provider with default endpoint
     pub fn new() -> ProviderResult<Self> {
-        Self::with_endpoint("http://localhost:1234".to_string())
+        Self::with_endpoint(DEFAULT_ENDPOINT.to_string())
     }
 
     /// Create with custom endpoint
     pub fn with_endpoint(endpoint: String) -> ProviderResult<Self> {
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
+            .timeout(std::time::Duration::from_secs(DEFAULT_TIMEOUT_SECS))
             .build()
             .map_err(|e| ProviderError::ConfigurationError(e.to_string()))?;
 
@@ -42,37 +172,182 @@ impl LMStudioProvider {
             model_cache: Arc::new(RwLock::new(HashMap::new())),
         })
     }
+
+    /// Make HTTP GET request to LMStudio API
+    async fn make_request<T>(&self, path: &str) -> ProviderResult<T>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        let url = format!("{}{}", self.base_url, path);
+
+        let response = self.client.get(&url).send().await.map_err(|e| {
+            ProviderError::NetworkError(format!("Failed to GET from LMStudio at {}: {}", url, e))
+        })?;
+
+        if !response.status().is_success() {
+            return Err(ProviderError::NetworkError(format!(
+                "LMStudio API returned status: {}",
+                response.status()
+            )));
+        }
+
+        let body: T = response.json().await.map_err(|e| {
+            ProviderError::ApiError(format!("Failed to parse LMStudio response: {}", e))
+        })?;
+
+        Ok(body)
+    }
+
+    /// Make HTTP POST request to LMStudio API
+    async fn make_post_request<T, B>(&self, path: &str, body: &B) -> ProviderResult<T>
+    where
+        T: serde::de::DeserializeOwned,
+        B: serde::Serialize,
+    {
+        let url = format!("{}{}", self.base_url, path);
+
+        let response = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| {
+                ProviderError::NetworkError(format!("Failed to POST to LMStudio at {}: {}", url, e))
+            })?;
+
+        if !response.status().is_success() {
+            return Err(ProviderError::NetworkError(format!(
+                "LMStudio API returned status: {}",
+                response.status()
+            )));
+        }
+
+        let response_body: T = response.json().await.map_err(|e| {
+            ProviderError::ApiError(format!("Failed to parse LMStudio response: {}", e))
+        })?;
+
+        Ok(response_body)
+    }
 }
 
 #[async_trait]
 impl ModelProvider for LMStudioProvider {
     async fn list_models(&self) -> ProviderResult<Vec<ModelInfo>> {
-        // For now, return empty list - will implement in next phase
-        Ok(Vec::new())
+        let response: LMStudioModelsResponse = self.make_request("/v1/models").await?;
+
+        let models = response
+            .data
+            .into_iter()
+            .map(|lmstudio_model| {
+                // Create default capabilities for LMStudio models
+                let capabilities = ModelCapabilities {
+                    max_tokens: DEFAULT_CONTEXT_WINDOW,
+                    supports_tools: false, // LMStudio typically doesn't support tool calling
+                    supports_vision: false, // LMStudio typically doesn't support vision
+                    supports_streaming: true, // LMStudio can support streaming
+                    input_cost_per_1k: None, // Local model - no cost
+                    output_cost_per_1k: None, // Local model - no cost
+                    quality_tier: QualityTier::Standard,
+                    speed_tier: SpeedTier::Standard,
+                };
+
+                let model_name = lmstudio_model.id;
+                ModelInfo {
+                    id: ModelId::new(model_name.clone()).with_provider("lmstudio"),
+                    name: model_name,
+                    capabilities,
+                }
+            })
+            .collect();
+
+        Ok(models)
     }
 
-    async fn complete(&self, _request: CompletionRequest) -> ProviderResult<CompletionResponse> {
-        // For now, return error - will implement in next phase
-        Err(ProviderError::NetworkError(
-            "LMStudio service not available".to_string(),
-        ))
+    async fn complete(&self, request: CompletionRequest) -> ProviderResult<CompletionResponse> {
+        // Validate request
+        if request.model.name().is_empty() {
+            return Err(ProviderError::InvalidRequest(
+                "Model name cannot be empty".to_string(),
+            ));
+        }
+
+        // Convert messages to OpenAI format (simplified for now)
+        let prompt = if request.messages.is_empty() {
+            return Err(ProviderError::InvalidRequest(
+                "Messages cannot be empty".to_string(),
+            ));
+        } else {
+            // For simplicity, join messages. Production version would handle conversation format properly
+            request.messages.join("\n")
+        };
+
+        // Create LMStudio completion request (OpenAI-compatible)
+        let lmstudio_request = LMStudioCompletionRequest {
+            model: request.model.name().to_string(),
+            messages: vec![LMStudioMessage {
+                role: "user".to_string(),
+                content: prompt,
+            }],
+            max_tokens: request.max_tokens.map(|t| t as u32),
+            temperature: request.temperature,
+            stream: false, // For now, only support non-streaming
+        };
+
+        let response: LMStudioCompletionResponse = self
+            .make_post_request("/v1/chat/completions", &lmstudio_request)
+            .await?;
+
+        // Convert response to our format
+        let content = response
+            .choices
+            .first()
+            .map(|choice| choice.message.content.clone())
+            .unwrap_or_default();
+
+        let usage = Usage {
+            prompt_tokens: response.usage.prompt_tokens as usize,
+            completion_tokens: response.usage.completion_tokens as usize,
+            total_tokens: response.usage.total_tokens as usize,
+        };
+
+        Ok(CompletionResponse {
+            model: request.model,
+            content,
+            usage: Some(usage),
+            finish_reason: response
+                .choices
+                .first()
+                .and_then(|c| c.finish_reason.clone())
+                .unwrap_or_else(|| "stop".to_string()),
+        })
     }
 
     async fn embed(&self, _request: EmbeddingRequest) -> ProviderResult<EmbeddingResponse> {
-        // For now, return error - will implement in next phase
-        Err(ProviderError::NetworkError(
-            "LMStudio service not available".to_string(),
+        // LMStudio doesn't typically support embeddings, return appropriate error
+        Err(ProviderError::InvalidRequest(
+            "LMStudio provider does not support embeddings".to_string(),
         ))
     }
 
-    async fn supports_model(&self, _model: &ModelId) -> bool {
-        // For now, return false - will implement in next phase
-        false
+    async fn supports_model(&self, model: &ModelId) -> bool {
+        // Check if model exists in available models list
+        match self.list_models().await {
+            Ok(models) => models.iter().any(|m| m.id.name() == model.name()),
+            Err(_) => false, // If we can't get models list, assume not supported
+        }
     }
 
-    async fn model_capabilities(&self, _model: &ModelId) -> Option<ModelCapabilities> {
-        // For now, return None - will implement in next phase
-        None
+    async fn model_capabilities(&self, model: &ModelId) -> Option<ModelCapabilities> {
+        // Get capabilities from models list
+        match self.list_models().await {
+            Ok(models) => models
+                .into_iter()
+                .find(|m| m.id.name() == model.name())
+                .map(|m| m.capabilities),
+            Err(_) => None,
+        }
     }
 
     fn name(&self) -> &str {
