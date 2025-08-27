@@ -59,6 +59,7 @@ criterion.workspace = true
 proptest.workspace = true
 tokio.workspace = true
 tokio-test.workspace = true
+mockito.workspace = true
 
 [features]
 default = []
