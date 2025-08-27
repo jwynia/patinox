@@ -52,13 +52,17 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-// LMStudio provider constants
-const DEFAULT_ENDPOINT: &str = "http://localhost:1234";
-const DEFAULT_TIMEOUT_SECS: u64 = 30;
-/// Default context window size for LMStudio models
-/// Based on common transformer model defaults. Individual models may have different limits
-/// that can be queried through the LMStudio API, but this provides a reasonable fallback.
-const DEFAULT_CONTEXT_WINDOW: usize = 4096;
+/// Default configuration constants for LMStudio provider
+mod defaults {
+    /// Default LMStudio endpoint
+    pub const ENDPOINT: &str = "http://localhost:1234";
+    /// Default HTTP timeout in seconds
+    pub const TIMEOUT_SECS: u64 = 30;
+    /// Default context window size for LMStudio models
+    /// Based on common transformer model defaults. Individual models may have different limits
+    /// that can be queried through the LMStudio API, but this provides a reasonable fallback.
+    pub const CONTEXT_WINDOW: usize = 4096;
+}
 
 /// OpenAI-compatible models response structure for LMStudio
 #[derive(Deserialize, Debug)]
@@ -156,13 +160,13 @@ pub struct LMStudioProvider {
 impl LMStudioProvider {
     /// Create new LMStudio provider with default endpoint
     pub fn new() -> ProviderResult<Self> {
-        Self::with_endpoint(DEFAULT_ENDPOINT.to_string())
+        Self::with_endpoint(defaults::ENDPOINT.to_string())
     }
 
     /// Create with custom endpoint
     pub fn with_endpoint(endpoint: String) -> ProviderResult<Self> {
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(DEFAULT_TIMEOUT_SECS))
+            .timeout(std::time::Duration::from_secs(defaults::TIMEOUT_SECS))
             .build()
             .map_err(|e| ProviderError::ConfigurationError(e.to_string()))?;
 
@@ -181,7 +185,10 @@ impl LMStudioProvider {
         let url = format!("{}{}", self.base_url, path);
 
         let response = self.client.get(&url).send().await.map_err(|e| {
-            ProviderError::NetworkError(format!("Failed to GET from LMStudio at {}: {}", url, e))
+            ProviderError::NetworkError(format!(
+                "Failed to GET from LMStudio at {} (check if LMStudio is running): {}",
+                url, e
+            ))
         })?;
 
         if !response.status().is_success() {
@@ -214,7 +221,10 @@ impl LMStudioProvider {
             .send()
             .await
             .map_err(|e| {
-                ProviderError::NetworkError(format!("Failed to POST to LMStudio at {}: {}", url, e))
+                ProviderError::NetworkError(format!(
+                    "Failed to POST to LMStudio at {} (check if LMStudio is running): {}",
+                    url, e
+                ))
             })?;
 
         if !response.status().is_success() {
@@ -243,7 +253,7 @@ impl ModelProvider for LMStudioProvider {
             .map(|lmstudio_model| {
                 // Create default capabilities for LMStudio models
                 let capabilities = ModelCapabilities {
-                    max_tokens: DEFAULT_CONTEXT_WINDOW,
+                    max_tokens: defaults::CONTEXT_WINDOW,
                     supports_tools: false, // LMStudio typically doesn't support tool calling
                     supports_vision: false, // LMStudio typically doesn't support vision
                     supports_streaming: true, // LMStudio can support streaming
@@ -299,12 +309,14 @@ impl ModelProvider for LMStudioProvider {
             .make_post_request("/v1/chat/completions", &lmstudio_request)
             .await?;
 
-        // Convert response to our format
+        // Convert response to our format with validation
         let content = response
             .choices
             .first()
-            .map(|choice| choice.message.content.clone())
-            .unwrap_or_default();
+            .ok_or_else(|| ProviderError::ApiError("No choices in LMStudio response".to_string()))?
+            .message
+            .content
+            .clone();
 
         let usage = Usage {
             prompt_tokens: response.usage.prompt_tokens as usize,
