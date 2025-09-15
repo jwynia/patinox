@@ -3,10 +3,13 @@
 //! Validates LLM responses for accuracy, consistency, and grounding.
 
 use crate::error::{PatinoxError, ValidationError};
-use crate::provider::{ModelProvider, types::{CompletionRequest, ModelId}};
+use crate::provider::{
+    types::{CompletionRequest, ModelId},
+    ModelProvider,
+};
 use crate::traits::validator::{
-    ValidationContent, ValidationRequest, ValidationResponse, ValidationStage, ValidatorConfig,
-    Validator,
+    ValidationContent, ValidationRequest, ValidationResponse, ValidationStage, Validator,
+    ValidatorConfig,
 };
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -24,7 +27,8 @@ pub struct HallucinationConfig {
 impl Default for HallucinationConfig {
     fn default() -> Self {
         Self {
-            fact_check_prompt: "Check this response for factual accuracy and unsupported claims: {}".to_string(),
+            fact_check_prompt:
+                "Check this response for factual accuracy and unsupported claims: {}".to_string(),
             confidence_threshold: 0.7,
             context_window_size: 3,
             require_citations: false,
@@ -49,11 +53,11 @@ impl HallucinationDetector {
         let mut parameters = HashMap::new();
         parameters.insert(
             "confidence_threshold".to_string(),
-            serde_json::json!(hallucination_config.confidence_threshold)
+            serde_json::json!(hallucination_config.confidence_threshold),
         );
         parameters.insert(
             "require_citations".to_string(),
-            serde_json::json!(hallucination_config.require_citations)
+            serde_json::json!(hallucination_config.require_citations),
         );
 
         let config = ValidatorConfig {
@@ -79,13 +83,17 @@ impl HallucinationDetector {
         context: &HashMap<String, serde_json::Value>,
     ) -> Result<String, PatinoxError> {
         // Build analysis prompt with context
-        let mut analysis_prompt = self.hallucination_config.fact_check_prompt.replace("{}", response);
+        let mut analysis_prompt = self
+            .hallucination_config
+            .fact_check_prompt
+            .replace("{}", response);
 
         // Add tool call context if present
         if !tool_calls.is_empty() {
             analysis_prompt.push_str("\n\nTool calls made: ");
             for tool_call in tool_calls {
-                analysis_prompt.push_str(&format!("{}({}), ", tool_call.name, tool_call.parameters));
+                analysis_prompt
+                    .push_str(&format!("{}({}), ", tool_call.name, tool_call.parameters));
             }
         }
 
@@ -107,10 +115,9 @@ impl HallucinationDetector {
 
         match self.llm_provider.complete(request).await {
             Ok(response) => Ok(response.content),
-            Err(e) => Err(PatinoxError::Validation(ValidationError::InvalidInput(format!(
-                "Hallucination detection failed: {}",
-                e
-            )))),
+            Err(e) => Err(PatinoxError::Validation(ValidationError::InvalidInput(
+                format!("Hallucination detection failed: {}", e),
+            ))),
         }
     }
 
@@ -119,13 +126,13 @@ impl HallucinationDetector {
         let result_lower = analysis_result.to_lowercase();
 
         // Check for various indicators of inaccurate content
-        result_lower.contains("inaccurate") ||
-        result_lower.contains("unsupported") ||
-        result_lower.contains("hallucination") ||
-        result_lower.contains("false") ||
-        result_lower.contains("incorrect") ||
-        result_lower.contains("misleading") ||
-        result_lower.contains("inconsistent")
+        result_lower.contains("inaccurate")
+            || result_lower.contains("unsupported")
+            || result_lower.contains("hallucination")
+            || result_lower.contains("false")
+            || result_lower.contains("incorrect")
+            || result_lower.contains("misleading")
+            || result_lower.contains("inconsistent")
     }
 
     /// Check if tool calls are consistent with the response message
@@ -140,9 +147,9 @@ impl HallucinationDetector {
         }
 
         let analysis_lower = analysis_result.to_lowercase();
-        analysis_lower.contains("consistent") ||
-        analysis_lower.contains("appropriate") ||
-        !analysis_lower.contains("inconsistent")
+        analysis_lower.contains("consistent")
+            || analysis_lower.contains("appropriate")
+            || !analysis_lower.contains("inconsistent")
     }
 }
 
@@ -158,8 +165,8 @@ impl Validator for HallucinationDetector {
 
     fn should_validate(&self, request: &ValidationRequest) -> bool {
         // Validate PostExecution and PreResponse stages, focusing on LLM responses
-        self.config.stages.contains(&request.stage) &&
-        matches!(request.content, ValidationContent::LlmResponse { .. })
+        self.config.stages.contains(&request.stage)
+            && matches!(request.content, ValidationContent::LlmResponse { .. })
     }
 
     async fn validate(
@@ -168,7 +175,10 @@ impl Validator for HallucinationDetector {
     ) -> Result<ValidationResponse, PatinoxError> {
         // Only analyze LLM responses
         let (message, tool_calls) = match &request.content {
-            ValidationContent::LlmResponse { message, tool_calls } => (message, tool_calls),
+            ValidationContent::LlmResponse {
+                message,
+                tool_calls,
+            } => (message, tool_calls),
             _ => {
                 // Approve non-LLM responses by default
                 return Ok(ValidationResponse {
@@ -181,7 +191,9 @@ impl Validator for HallucinationDetector {
         };
 
         // Analyze the response with the LLM
-        let analysis_result = self.analyze_response(message, tool_calls, &request.context).await?;
+        let analysis_result = self
+            .analyze_response(message, tool_calls, &request.context)
+            .await?;
 
         // Check for hallucinations
         if self.is_hallucination_detected(&analysis_result) {

@@ -7,11 +7,11 @@ pub mod validators;
 
 use crate::error::PatinoxError;
 use crate::traits::validator::{ValidationRequest, ValidationResponse, Validator};
-use std::sync::Arc;
-use tower::{Layer, Service};
-use std::task::{Context, Poll};
-use std::pin::Pin;
 use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::task::{Context, Poll};
+use tower::{Layer, Service};
 
 /// Tower layer that adds validation middleware to a service
 #[derive(Clone)]
@@ -29,15 +29,15 @@ impl ValidationLayer {
     pub fn with_default_validators(llm_provider: Arc<dyn crate::provider::ModelProvider>) -> Self {
         let validators: Vec<Arc<dyn Validator>> = vec![
             Arc::new(validators::RequestValidator::new(
-                validators::RequestValidatorConfig::default()
+                validators::RequestValidatorConfig::default(),
             )),
             Arc::new(validators::AntiJailbreakValidator::new(
                 llm_provider.clone(),
-                validators::AntiJailbreakConfig::default()
+                validators::AntiJailbreakConfig::default(),
             )),
             Arc::new(validators::HallucinationDetector::new(
                 llm_provider,
-                validators::HallucinationConfig::default()
+                validators::HallucinationConfig::default(),
             )),
         ];
         Self::new(validators)
@@ -119,7 +119,10 @@ impl ValidationPipeline {
     }
 
     /// Validate a request using all validators in the pipeline
-    pub async fn validate(&self, request: ValidationRequest) -> Result<ValidationResponse, PatinoxError> {
+    pub async fn validate(
+        &self,
+        request: ValidationRequest,
+    ) -> Result<ValidationResponse, PatinoxError> {
         // Sort validators by priority
         let mut sorted_validators = self.validators.clone();
         sorted_validators.sort_by_key(|v| v.config().priority);
@@ -152,7 +155,8 @@ pub struct ValidationPipelineBuilder {
 impl ValidationPipelineBuilder {
     /// Add a request validator to the pipeline
     pub fn add_request_validator(mut self, config: validators::RequestValidatorConfig) -> Self {
-        self.validators.push(Arc::new(validators::RequestValidator::new(config)));
+        self.validators
+            .push(Arc::new(validators::RequestValidator::new(config)));
         self
     }
 
@@ -162,9 +166,11 @@ impl ValidationPipelineBuilder {
         llm_provider: Arc<dyn crate::provider::ModelProvider>,
         config: validators::AntiJailbreakConfig,
     ) -> Self {
-        self.validators.push(Arc::new(validators::AntiJailbreakValidator::new(
-            llm_provider, config
-        )));
+        self.validators
+            .push(Arc::new(validators::AntiJailbreakValidator::new(
+                llm_provider,
+                config,
+            )));
         self
     }
 
@@ -174,9 +180,11 @@ impl ValidationPipelineBuilder {
         llm_provider: Arc<dyn crate::provider::ModelProvider>,
         config: validators::HallucinationConfig,
     ) -> Self {
-        self.validators.push(Arc::new(validators::HallucinationDetector::new(
-            llm_provider, config
-        )));
+        self.validators
+            .push(Arc::new(validators::HallucinationDetector::new(
+                llm_provider,
+                config,
+            )));
         self
     }
 

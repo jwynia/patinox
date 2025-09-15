@@ -5,8 +5,8 @@
 
 use crate::error::PatinoxError;
 use crate::traits::validator::{
-    ValidationContent, ValidationRequest, ValidationResponse, ValidationStage, ValidatorConfig,
-    ValidationModifications, Validator,
+    ValidationContent, ValidationModifications, ValidationRequest, ValidationResponse,
+    ValidationStage, Validator, ValidatorConfig,
 };
 use async_trait::async_trait;
 use regex::Regex;
@@ -67,9 +67,18 @@ impl RequestValidator {
 
         // Create validator config
         let mut parameters = HashMap::new();
-        parameters.insert("max_message_length".to_string(), serde_json::json!(request_config.max_message_length));
-        parameters.insert("min_message_length".to_string(), serde_json::json!(request_config.min_message_length));
-        parameters.insert("sanitize_html".to_string(), serde_json::json!(request_config.sanitize_html));
+        parameters.insert(
+            "max_message_length".to_string(),
+            serde_json::json!(request_config.max_message_length),
+        );
+        parameters.insert(
+            "min_message_length".to_string(),
+            serde_json::json!(request_config.min_message_length),
+        );
+        parameters.insert(
+            "sanitize_html".to_string(),
+            serde_json::json!(request_config.sanitize_html),
+        );
 
         let config = ValidatorConfig {
             name: "request-validator".to_string(),
@@ -138,7 +147,8 @@ impl RequestValidator {
         }
 
         // Simple normalization (in production, use proper Unicode normalization)
-        message.chars()
+        message
+            .chars()
             .map(|c| match c {
                 'é' | 'è' | 'ê' | 'ë' => 'e',
                 'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' => 'a',
@@ -149,7 +159,10 @@ impl RequestValidator {
     }
 
     /// Check rate limiting based on context
-    fn check_rate_limiting(&self, context: &HashMap<String, serde_json::Value>) -> Result<(), String> {
+    fn check_rate_limiting(
+        &self,
+        context: &HashMap<String, serde_json::Value>,
+    ) -> Result<(), String> {
         if !self.request_config.check_rate_limiting {
             return Ok(());
         }

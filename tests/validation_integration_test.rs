@@ -8,9 +8,9 @@ use patinox::traits::validator::{
     ValidationContent, ValidationRequest, ValidationResponse, ValidationStage,
 };
 use patinox::validation::{ValidationLayer, ValidationPipeline};
-use tower::{Layer, Service, ServiceExt};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tower::{Layer, Service, ServiceExt};
 use uuid::Uuid;
 
 #[tokio::test]
@@ -18,14 +18,8 @@ async fn test_complete_validation_pipeline_integration() {
     // Arrange - Create a complete pipeline with all validators
     let pipeline = ValidationPipeline::builder()
         .add_request_validator(Default::default())
-        .add_anti_jailbreak_validator(
-            Arc::new(MockLlmProvider::new()),
-            Default::default()
-        )
-        .add_hallucination_detector(
-            Arc::new(MockLlmProvider::new()),
-            Default::default()
-        )
+        .add_anti_jailbreak_validator(Arc::new(MockLlmProvider::new()), Default::default())
+        .add_hallucination_detector(Arc::new(MockLlmProvider::new()), Default::default())
         .build();
 
     let request = ValidationRequest {
@@ -42,9 +36,15 @@ async fn test_complete_validation_pipeline_integration() {
     let response = pipeline.validate(request).await;
 
     // Assert
-    assert!(response.is_ok(), "Complete pipeline should validate successfully");
+    assert!(
+        response.is_ok(),
+        "Complete pipeline should validate successfully"
+    );
     let validation_response = response.unwrap();
-    assert!(validation_response.approved, "Safe content should pass all validators");
+    assert!(
+        validation_response.approved,
+        "Safe content should pass all validators"
+    );
 }
 
 #[tokio::test]
@@ -55,10 +55,7 @@ async fn test_validation_pipeline_stops_on_first_rejection() {
             max_message_length: 10, // Very short limit
             ..Default::default()
         })
-        .add_anti_jailbreak_validator(
-            Arc::new(MockLlmProvider::new()),
-            Default::default()
-        )
+        .add_anti_jailbreak_validator(Arc::new(MockLlmProvider::new()), Default::default())
         .build();
 
     let request = ValidationRequest {
@@ -77,20 +74,21 @@ async fn test_validation_pipeline_stops_on_first_rejection() {
     // Assert
     assert!(response.is_ok(), "Pipeline should complete validation");
     let validation_response = response.unwrap();
-    assert!(!validation_response.approved, "Should be rejected by first validator");
+    assert!(
+        !validation_response.approved,
+        "Should be rejected by first validator"
+    );
     assert!(validation_response.reason.unwrap().contains("too long"));
 }
 
 #[tokio::test]
 async fn test_validation_pipeline_with_tower_service_integration() {
     // Arrange - Test integration with Tower Service trait
-    let validation_layer = ValidationLayer::with_default_validators(
-        Arc::new(MockLlmProvider::new())
-    );
+    let validation_layer =
+        ValidationLayer::with_default_validators(Arc::new(MockLlmProvider::new()));
 
     let mut service = validation_layer.layer(MockAgentService::new());
-    let _ready_service = service.ready().await
-        .expect("Service should be ready");
+    let _ready_service = service.ready().await.expect("Service should be ready");
 
     let request = ValidationRequest {
         agent_id: Uuid::new_v4(),
@@ -142,8 +140,11 @@ async fn test_validation_pipeline_preserves_error_context() {
 
 // Mock implementations for integration testing
 
+use patinox::provider::types::{
+    CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
+    ModelId, ModelInfo,
+};
 use patinox::provider::{ModelProvider, ProviderResult};
-use patinox::provider::types::{CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelInfo, ModelId, ModelCapabilities};
 
 struct MockLlmProvider;
 
