@@ -53,6 +53,9 @@ pub mod memory;
 // LLM provider abstraction layer
 pub mod provider;
 
+// Validation pipeline with Tower middleware integration
+pub mod validation;
+
 // Re-export core types when they become available
 pub mod prelude {
     //! Common imports for working with Patinox
