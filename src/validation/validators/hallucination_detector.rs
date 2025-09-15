@@ -22,6 +22,9 @@ pub struct HallucinationConfig {
     pub confidence_threshold: f64,
     pub context_window_size: usize,
     pub require_citations: bool,
+    pub model_id: ModelId,
+    pub hallucination_patterns: Vec<String>,
+    pub timeout_seconds: u64,
 }
 
 impl Default for HallucinationConfig {
@@ -32,6 +35,17 @@ impl Default for HallucinationConfig {
             confidence_threshold: 0.7,
             context_window_size: 3,
             require_citations: false,
+            model_id: ModelId::new("gpt-3.5-turbo"), // Default model, but now configurable
+            hallucination_patterns: vec![
+                "inaccurate".to_string(),
+                "unsupported".to_string(),
+                "hallucination".to_string(),
+                "false".to_string(),
+                "incorrect".to_string(),
+                "misleading".to_string(),
+                "inconsistent".to_string(),
+            ],
+            timeout_seconds: 30,
         }
     }
 }
@@ -106,17 +120,27 @@ impl HallucinationDetector {
         }
 
         let request = CompletionRequest {
-            model: ModelId::new("gpt-3.5-turbo"), // Default model
+            model: self.hallucination_config.model_id.clone(),
             messages: vec![analysis_prompt],
             temperature: Some(0.1), // Low temperature for consistent analysis
             max_tokens: Some(300),
             tools: None,
         };
 
-        match self.llm_provider.complete(request).await {
-            Ok(response) => Ok(response.content),
-            Err(e) => Err(PatinoxError::Validation(ValidationError::InvalidInput(
+        // Apply timeout to the LLM call
+        let timeout_duration =
+            std::time::Duration::from_secs(self.hallucination_config.timeout_seconds);
+
+        match tokio::time::timeout(timeout_duration, self.llm_provider.complete(request)).await {
+            Ok(Ok(response)) => Ok(response.content),
+            Ok(Err(e)) => Err(PatinoxError::Validation(ValidationError::InvalidInput(
                 format!("Hallucination detection failed: {}", e),
+            ))),
+            Err(_) => Err(PatinoxError::Validation(ValidationError::InvalidInput(
+                format!(
+                    "Hallucination detection timed out after {} seconds",
+                    self.hallucination_config.timeout_seconds
+                ),
             ))),
         }
     }
@@ -125,14 +149,11 @@ impl HallucinationDetector {
     fn is_hallucination_detected(&self, analysis_result: &str) -> bool {
         let result_lower = analysis_result.to_lowercase();
 
-        // Check for various indicators of inaccurate content
-        result_lower.contains("inaccurate")
-            || result_lower.contains("unsupported")
-            || result_lower.contains("hallucination")
-            || result_lower.contains("false")
-            || result_lower.contains("incorrect")
-            || result_lower.contains("misleading")
-            || result_lower.contains("inconsistent")
+        // Check for configurable hallucination detection patterns
+        self.hallucination_config
+            .hallucination_patterns
+            .iter()
+            .any(|pattern| result_lower.contains(&pattern.to_lowercase()))
     }
 
     /// Check if tool calls are consistent with the response message

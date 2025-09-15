@@ -135,9 +135,8 @@ impl RequestValidator {
             return message.to_string();
         }
 
-        // Simple HTML tag removal (in production, use a proper HTML sanitizer)
-        let html_regex = Regex::new(r"<[^>]*>").unwrap();
-        html_regex.replace_all(message, "").to_string()
+        // Use proper HTML sanitization library instead of simple regex
+        ammonia::clean(message)
     }
 
     /// Normalize unicode content

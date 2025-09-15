@@ -49,6 +49,7 @@ log = "0.4"
 
 # Validation dependencies
 regex = "1.10"
+ammonia = "4.0"
 
 # HTTP client for provider implementations
 reqwest = { version = "0.12", features = ["json"] }

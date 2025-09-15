@@ -30,6 +30,8 @@ pub struct AntiJailbreakConfig {
     pub sensitivity_level: SensitivityLevel,
     pub timeout_seconds: u64,
     pub max_retries: u32,
+    pub model_id: ModelId,
+    pub detection_patterns: Vec<String>,
 }
 
 impl Default for AntiJailbreakConfig {
@@ -40,6 +42,15 @@ impl Default for AntiJailbreakConfig {
             sensitivity_level: SensitivityLevel::Medium,
             timeout_seconds: 30,
             max_retries: 3,
+            model_id: ModelId::new("gpt-3.5-turbo"), // Default model, but now configurable
+            detection_patterns: vec![
+                "jailbreak".to_string(),
+                "injection".to_string(),
+                "suspicious".to_string(),
+                "malicious".to_string(),
+                "manipulation".to_string(),
+                "attempt".to_string(),
+            ],
         }
     }
 }
@@ -91,17 +102,27 @@ impl AntiJailbreakValidator {
             .replace("{}", message);
 
         let request = CompletionRequest {
-            model: ModelId::new("gpt-3.5-turbo"), // Default model
+            model: self.anti_jailbreak_config.model_id.clone(),
             messages: vec![prompt],
             temperature: Some(0.1), // Low temperature for consistent analysis
             max_tokens: Some(200),
             tools: None,
         };
 
-        match self.llm_provider.complete(request).await {
-            Ok(response) => Ok(response.content),
-            Err(e) => Err(PatinoxError::Validation(ValidationError::InvalidInput(
+        // Apply timeout to the LLM call
+        let timeout_duration =
+            std::time::Duration::from_secs(self.anti_jailbreak_config.timeout_seconds);
+
+        match tokio::time::timeout(timeout_duration, self.llm_provider.complete(request)).await {
+            Ok(Ok(response)) => Ok(response.content),
+            Ok(Err(e)) => Err(PatinoxError::Validation(ValidationError::InvalidInput(
                 format!("Anti-jailbreak validation failed: {}", e),
+            ))),
+            Err(_) => Err(PatinoxError::Validation(ValidationError::InvalidInput(
+                format!(
+                    "Anti-jailbreak validation timed out after {} seconds",
+                    self.anti_jailbreak_config.timeout_seconds
+                ),
             ))),
         }
     }
@@ -110,13 +131,11 @@ impl AntiJailbreakValidator {
     fn is_jailbreak_detected(&self, llm_response: &str) -> bool {
         let response_lower = llm_response.to_lowercase();
 
-        // Check for various indicators of jailbreak detection
-        response_lower.contains("jailbreak")
-            || response_lower.contains("injection")
-            || response_lower.contains("suspicious")
-            || response_lower.contains("malicious")
-            || response_lower.contains("manipulation")
-            || response_lower.contains("attempt")
+        // Check for configurable detection patterns
+        self.anti_jailbreak_config
+            .detection_patterns
+            .iter()
+            .any(|pattern| response_lower.contains(&pattern.to_lowercase()))
     }
 }
 

@@ -21,7 +21,9 @@ pub struct ValidationLayer {
 
 impl ValidationLayer {
     /// Create a new validation layer with the specified validators
-    pub fn new(validators: Vec<Arc<dyn Validator>>) -> Self {
+    pub fn new(mut validators: Vec<Arc<dyn Validator>>) -> Self {
+        // Pre-sort validators by priority during construction for better performance
+        validators.sort_by_key(|v| v.config().priority);
         Self { validators }
     }
 
@@ -83,12 +85,9 @@ where
         let validators = self.validators.clone();
 
         Box::pin(async move {
-            // Sort validators by priority (lower numbers first)
-            let mut sorted_validators = validators;
-            sorted_validators.sort_by_key(|v| v.config().priority);
-
+            // Validators are already sorted by priority during construction
             // Run validators in priority order
-            for validator in sorted_validators {
+            for validator in validators {
                 if validator.should_validate(&req) {
                     let validation_result = validator.validate(req.clone()).await?;
 
@@ -123,11 +122,8 @@ impl ValidationPipeline {
         &self,
         request: ValidationRequest,
     ) -> Result<ValidationResponse, PatinoxError> {
-        // Sort validators by priority
-        let mut sorted_validators = self.validators.clone();
-        sorted_validators.sort_by_key(|v| v.config().priority);
-
-        for validator in sorted_validators {
+        // Validators are already sorted by priority during construction
+        for validator in &self.validators {
             if validator.should_validate(&request) {
                 let result = validator.validate(request.clone()).await?;
 
@@ -195,7 +191,9 @@ impl ValidationPipelineBuilder {
     }
 
     /// Build the validation pipeline
-    pub fn build(self) -> ValidationPipeline {
+    pub fn build(mut self) -> ValidationPipeline {
+        // Pre-sort validators by priority during construction for better performance
+        self.validators.sort_by_key(|v| v.config().priority);
         ValidationPipeline {
             validators: self.validators,
         }
