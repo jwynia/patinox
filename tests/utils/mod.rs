@@ -34,6 +34,11 @@
 use patinox::provider::{CompletionRequest, ModelId, ProviderError};
 use std::time::Duration;
 
+// Constants for default values to improve maintainability
+const DEFAULT_MAX_TOKENS: usize = 1000;
+const DEFAULT_TEMPERATURE: f32 = 0.7;
+const MOCK_TIMESTAMP: i64 = 1677610602; // 2023-02-28 - Fixed timestamp for consistent testing
+
 /// Builder for creating test completion requests with sensible defaults
 pub struct ProviderTestBuilder {
     model: Option<String>,
@@ -74,16 +79,17 @@ impl ProviderTestBuilder {
 
     pub fn build_completion_request(self) -> CompletionRequest {
         CompletionRequest {
-            model: ModelId::new(&self.model.expect("Model must be set")),
+            model: ModelId::new(&self.model.expect("ProviderTestBuilder: model must be set via with_model() before calling build_completion_request()")),
             messages: self.messages,
-            max_tokens: self.max_tokens.or(Some(1000)), // Default to 1000 if not specified
-            temperature: self.temperature.or(Some(0.7)), // Default to 0.7 if not specified
+            max_tokens: self.max_tokens.or(Some(DEFAULT_MAX_TOKENS)),
+            temperature: self.temperature.or(Some(DEFAULT_TEMPERATURE)),
             tools: None,
         }
     }
 }
 
 /// Builder for creating mock HTTP responses
+#[allow(dead_code)] // Some methods intended for future use
 pub struct MockHttpBuilder {
     status_code: Option<u16>,
     endpoint: Option<String>,
@@ -137,7 +143,7 @@ impl MockHttpBuilder {
     pub fn with_models_response(self, models: &[&str]) -> Self {
         // Create a JSON response for models list
         let models_json = models.iter()
-            .map(|model| format!(r#"{{"id":"{}","object":"model","created":1677610602}}"#, model))
+            .map(|model| format!(r#"{{"id":"{}","object":"model","created":{}}}"#, model, MOCK_TIMESTAMP))
             .collect::<Vec<_>>()
             .join(",");
         let response_body = format!(r#"{{"data":[{}]}}"#, models_json);
@@ -189,6 +195,7 @@ impl MockHttpBuilder {
 }
 
 /// Mock HTTP response for testing
+#[allow(dead_code)] // Methods intended for future use
 pub struct MockHttpResponse {
     status_code: u16,
     endpoint: String,
@@ -223,6 +230,7 @@ impl MockHttpResponse {
 pub struct ErrorTestHelper;
 
 impl ErrorTestHelper {
+    #[allow(dead_code)] // Methods intended for future provider test usage
     pub fn assert_service_unavailable_error(error: &ProviderError) {
         match error {
             ProviderError::NetworkError(_) => {
