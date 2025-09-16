@@ -14,7 +14,7 @@ use patinox::provider::{
 
 // Import our testing utilities
 mod utils;
-use utils::{ProviderTestBuilder, ErrorTestHelper, ProviderConfigHelper};
+use utils::{ErrorTestHelper, ProviderConfigHelper, ProviderTestBuilder};
 
 /// Demonstration: Service unavailable error testing with utilities
 mod service_unavailable_with_utilities {
@@ -30,7 +30,10 @@ mod service_unavailable_with_utilities {
         let result = provider.list_models().await;
 
         // Assert - Using utility for consistent error validation
-        assert!(result.is_err(), "Should return error when service unavailable");
+        assert!(
+            result.is_err(),
+            "Should return error when service unavailable"
+        );
         ErrorTestHelper::assert_service_unavailable_error(&result.unwrap_err());
     }
 
@@ -52,7 +55,10 @@ mod service_unavailable_with_utilities {
         let result = provider.complete(request).await;
 
         // Assert - Using utility for consistent error validation
-        assert!(result.is_err(), "Should return error when service unavailable");
+        assert!(
+            result.is_err(),
+            "Should return error when service unavailable"
+        );
         ErrorTestHelper::assert_service_unavailable_error(&result.unwrap_err());
     }
 
@@ -95,9 +101,8 @@ mod configuration_testing_with_utilities {
         // Using utility for consistent empty API key testing
         let config_helper = ProviderConfigHelper::new();
 
-        let result = config_helper.test_empty_api_key_validation(|| {
-            AnthropicProvider::new("").map(|_| ())
-        });
+        let result =
+            config_helper.test_empty_api_key_validation(|| AnthropicProvider::new("").map(|_| ()));
 
         result.expect("Should handle empty API key validation correctly");
     }
@@ -189,17 +194,18 @@ mod code_reduction_metrics {
 
         // BEFORE: Manual test setup
         let manual_setup_lines = 15; // Typical lines for:
-        // - CompletionRequest creation: 7 lines
-        // - Error type matching: 5 lines
-        // - Provider configuration: 3 lines
+                                     // - CompletionRequest creation: 7 lines
+                                     // - Error type matching: 5 lines
+                                     // - Provider configuration: 3 lines
 
         // AFTER: Using utilities
         let utility_setup_lines = 8; // Using utilities:
-        // - ProviderTestBuilder: 4 lines
-        // - ErrorTestHelper: 1 line
-        // - Provider configuration: 3 lines
+                                     // - ProviderTestBuilder: 4 lines
+                                     // - ErrorTestHelper: 1 line
+                                     // - Provider configuration: 3 lines
 
-        let reduction = ((manual_setup_lines - utility_setup_lines) as f64 / manual_setup_lines as f64) * 100.0;
+        let reduction =
+            ((manual_setup_lines - utility_setup_lines) as f64 / manual_setup_lines as f64) * 100.0;
 
         assert!(
             reduction >= 40.0,
@@ -208,6 +214,9 @@ mod code_reduction_metrics {
         );
 
         println!("Code reduction achieved: {:.1}%", reduction);
-        println!("Manual setup: {} lines -> Utility setup: {} lines", manual_setup_lines, utility_setup_lines);
+        println!(
+            "Manual setup: {} lines -> Utility setup: {} lines",
+            manual_setup_lines, utility_setup_lines
+        );
     }
 }

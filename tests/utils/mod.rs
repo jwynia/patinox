@@ -142,8 +142,14 @@ impl MockHttpBuilder {
 
     pub fn with_models_response(self, models: &[&str]) -> Self {
         // Create a JSON response for models list
-        let models_json = models.iter()
-            .map(|model| format!(r#"{{"id":"{}","object":"model","created":{}}}"#, model, MOCK_TIMESTAMP))
+        let models_json = models
+            .iter()
+            .map(|model| {
+                format!(
+                    r#"{{"id":"{}","object":"model","created":{}}}"#,
+                    model, MOCK_TIMESTAMP
+                )
+            })
             .collect::<Vec<_>>()
             .join(",");
         let response_body = format!(r#"{{"data":[{}]}}"#, models_json);
@@ -177,7 +183,7 @@ impl MockHttpBuilder {
     }
 
     pub fn build(self) -> MockHttpResponse {
-        let error_message = self.error_message.unwrap_or("".to_string());
+        let error_message = self.error_message.unwrap_or_else(String::new);
         let response_body = if error_message.is_empty() {
             "{}".to_string()
         } else {
@@ -186,7 +192,7 @@ impl MockHttpBuilder {
 
         MockHttpResponse {
             status_code: self.status_code.unwrap_or(200),
-            endpoint: self.endpoint.unwrap_or("/".to_string()),
+            endpoint: self.endpoint.unwrap_or_else(|| "/".to_string()),
             error_message,
             response_body,
             retry_after: self.retry_after,
@@ -265,7 +271,10 @@ impl ErrorTestHelper {
                     msg
                 );
             }
-            _ => panic!("Expected API error with message '{}', got: {:?}", expected_message, error),
+            _ => panic!(
+                "Expected API error with message '{}', got: {:?}",
+                expected_message, error
+            ),
         }
     }
 }
@@ -290,12 +299,19 @@ impl ProviderConfigHelper {
                     Err(format!("Expected empty API key error, got: {}", msg))
                 }
             }
-            Err(other_error) => Err(format!("Expected ConfigurationError, got: {:?}", other_error)),
+            Err(other_error) => Err(format!(
+                "Expected ConfigurationError, got: {:?}",
+                other_error
+            )),
             Ok(()) => Err("Expected error for empty API key, but got success".to_string()),
         }
     }
 
-    pub fn test_base_url_configuration<F>(&self, expected_url: &str, provider_fn: F) -> Result<(), String>
+    pub fn test_base_url_configuration<F>(
+        &self,
+        expected_url: &str,
+        provider_fn: F,
+    ) -> Result<(), String>
     where
         F: FnOnce() -> Result<String, ProviderError>,
     {
@@ -304,14 +320,24 @@ impl ProviderConfigHelper {
                 if actual_url == expected_url {
                     Ok(())
                 } else {
-                    Err(format!("Expected base URL '{}', got '{}'", expected_url, actual_url))
+                    Err(format!(
+                        "Expected base URL '{}', got '{}'",
+                        expected_url, actual_url
+                    ))
                 }
             }
-            Err(error) => Err(format!("Expected successful base URL configuration, got error: {:?}", error)),
+            Err(error) => Err(format!(
+                "Expected successful base URL configuration, got error: {:?}",
+                error
+            )),
         }
     }
 
-    pub fn test_provider_name_validation<F>(&self, expected_name: &str, provider_fn: F) -> Result<(), String>
+    pub fn test_provider_name_validation<F>(
+        &self,
+        expected_name: &str,
+        provider_fn: F,
+    ) -> Result<(), String>
     where
         F: FnOnce() -> Result<String, ProviderError>,
     {
@@ -320,10 +346,16 @@ impl ProviderConfigHelper {
                 if actual_name == expected_name {
                     Ok(())
                 } else {
-                    Err(format!("Expected provider name '{}', got '{}'", expected_name, actual_name))
+                    Err(format!(
+                        "Expected provider name '{}', got '{}'",
+                        expected_name, actual_name
+                    ))
                 }
             }
-            Err(error) => Err(format!("Expected successful provider name validation, got error: {:?}", error)),
+            Err(error) => Err(format!(
+                "Expected successful provider name validation, got error: {:?}",
+                error
+            )),
         }
     }
 }

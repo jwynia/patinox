@@ -107,7 +107,9 @@ mod mock_http_builder_tests {
         // Should configure mock for service unavailable
         assert_eq!(mock.status_code(), 503);
         assert_eq!(mock.endpoint(), "/v1/models");
-        assert!(mock.error_message().contains("Service Temporarily Unavailable"));
+        assert!(mock
+            .error_message()
+            .contains("Service Temporarily Unavailable"));
     }
 
     #[tokio::test]
@@ -248,7 +250,7 @@ mod provider_config_helper_tests {
         let result = helper.test_empty_api_key_validation(|| {
             // This would be the provider creation code that should fail
             Err(patinox::provider::ProviderError::ConfigurationError(
-                "API key cannot be empty".to_string()
+                "API key cannot be empty".to_string(),
             ))
         });
 
@@ -260,10 +262,9 @@ mod provider_config_helper_tests {
         // Test helper for base URL configuration validation
         let helper = utils::ProviderConfigHelper::new();
 
-        let result = helper.test_base_url_configuration(
-            "https://api.example.com",
-            || Ok("https://api.example.com".to_string())
-        );
+        let result = helper.test_base_url_configuration("https://api.example.com", || {
+            Ok("https://api.example.com".to_string())
+        });
 
         result.expect("Should handle base URL configuration correctly");
     }
@@ -273,10 +274,8 @@ mod provider_config_helper_tests {
         // Test helper for provider name validation
         let helper = utils::ProviderConfigHelper::new();
 
-        let result = helper.test_provider_name_validation(
-            "test-provider",
-            || Ok("test-provider".to_string())
-        );
+        let result = helper
+            .test_provider_name_validation("test-provider", || Ok("test-provider".to_string()));
 
         result.expect("Should handle provider name validation correctly");
     }
@@ -308,7 +307,9 @@ mod integration_tests {
         // Act & Assert - Verify they work together
         assert!(request.model.name() == "test-model");
         assert!(mock.status_code() == 200);
-        assert!(config_helper.test_provider_name_validation("test", || Ok("test".to_string())).is_ok());
+        assert!(config_helper
+            .test_provider_name_validation("test", || Ok("test".to_string()))
+            .is_ok());
     }
 
     #[tokio::test]
@@ -322,10 +323,13 @@ mod integration_tests {
         // After: Using utilities (simulated line count)
         let utility_lines = 8; // Lines when using our utilities
 
-        let reduction_percentage = ((manual_lines - utility_lines) as f64 / manual_lines as f64) * 100.0;
+        let reduction_percentage =
+            ((manual_lines - utility_lines) as f64 / manual_lines as f64) * 100.0;
 
-        assert!(reduction_percentage >= 40.0,
+        assert!(
+            reduction_percentage >= 40.0,
             "Utilities should provide at least 40% reduction in code, got {}%",
-            reduction_percentage);
+            reduction_percentage
+        );
     }
 }
