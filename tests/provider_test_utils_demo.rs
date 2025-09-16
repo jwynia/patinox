@@ -9,7 +9,7 @@
 
 use patinox::provider::{
     local::{LMStudioProvider, OllamaProvider},
-    ModelProvider, ProviderError,
+    ModelProvider,
 };
 
 // Import our testing utilities
@@ -186,7 +186,7 @@ mod request_building_comparison {
 /// Code reduction metrics demonstration
 #[cfg(test)]
 mod code_reduction_metrics {
-    use super::*;
+    // Note: No imports needed for this metrics-only test module
 
     #[test]
     fn test_demonstrate_40_percent_code_reduction() {

@@ -37,6 +37,7 @@ use std::time::Duration;
 // Constants for default values to improve maintainability
 const DEFAULT_MAX_TOKENS: usize = 1000;
 const DEFAULT_TEMPERATURE: f32 = 0.7;
+#[allow(dead_code)] // Used in future mock response implementations
 const MOCK_TIMESTAMP: i64 = 1677610602; // 2023-02-28 - Fixed timestamp for consistent testing
 
 /// Builder for creating test completion requests with sensible defaults
@@ -79,7 +80,7 @@ impl ProviderTestBuilder {
 
     pub fn build_completion_request(self) -> CompletionRequest {
         CompletionRequest {
-            model: ModelId::new(&self.model.expect("ProviderTestBuilder: model must be set via with_model() before calling build_completion_request()")),
+            model: ModelId::new(self.model.expect("ProviderTestBuilder: model must be set via with_model() before calling build_completion_request()")),
             messages: self.messages,
             max_tokens: self.max_tokens.or(Some(DEFAULT_MAX_TOKENS)),
             temperature: self.temperature.or(Some(DEFAULT_TEMPERATURE)),
@@ -97,6 +98,7 @@ pub struct MockHttpBuilder {
     retry_after: Option<Duration>,
 }
 
+#[allow(dead_code)] // Testing utilities for use in provider integration tests
 impl MockHttpBuilder {
     pub fn new() -> Self {
         Self {
@@ -183,7 +185,7 @@ impl MockHttpBuilder {
     }
 
     pub fn build(self) -> MockHttpResponse {
-        let error_message = self.error_message.unwrap_or_else(String::new);
+        let error_message = self.error_message.unwrap_or_default();
         let response_body = if error_message.is_empty() {
             "{}".to_string()
         } else {
@@ -210,6 +212,7 @@ pub struct MockHttpResponse {
     retry_after: Option<Duration>,
 }
 
+#[allow(dead_code)] // Response accessors for use in provider integration tests
 impl MockHttpResponse {
     pub fn status_code(&self) -> u16 {
         self.status_code
@@ -249,6 +252,7 @@ impl ErrorTestHelper {
         }
     }
 
+    #[allow(dead_code)] // For use in authentication error testing scenarios
     pub fn assert_authentication_error(error: &ProviderError) {
         match error {
             ProviderError::AuthenticationError(_) => {
@@ -261,6 +265,7 @@ impl ErrorTestHelper {
         }
     }
 
+    #[allow(dead_code)] // For use in API error validation scenarios
     pub fn assert_api_error(error: &ProviderError, expected_message: &str) {
         match error {
             ProviderError::ApiError(msg) => {
@@ -307,6 +312,7 @@ impl ProviderConfigHelper {
         }
     }
 
+    #[allow(dead_code)] // For use in base URL configuration testing
     pub fn test_base_url_configuration<F>(
         &self,
         expected_url: &str,

@@ -7,7 +7,7 @@
 //! These tests are written BEFORE the implementation to define the contract
 //! and ensure the utilities provide the expected functionality.
 
-use patinox::provider::{CompletionRequest, ModelId, ProviderError};
+// Note: Provider types not directly used in utility tests, accessed through utility interfaces
 use std::time::Duration;
 
 // Include the utilities module we're testing
