@@ -7,7 +7,7 @@ use super::error::{ProviderError, ProviderResult};
 use super::secret::SecretString;
 use super::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
-    ModelId, ModelInfo, QualityTier, SpeedTier, Usage,
+    ModelId, ModelInfo, QualityTier, SpeedTier, StreamingResponse, Usage,
 };
 use super::ModelProvider;
 use async_trait::async_trait;
@@ -363,6 +363,16 @@ impl ModelProvider for AnthropicProvider {
             .map_err(|e| ProviderError::NetworkError(e.to_string()))?;
 
         self.parse_anthropic_response(&response_text)
+    }
+
+    async fn stream_completion(
+        &self,
+        _request: CompletionRequest,
+    ) -> ProviderResult<StreamingResponse> {
+        // TODO: Implement streaming for Anthropic provider
+        Err(ProviderError::ApiError(
+            "Streaming not yet implemented for Anthropic provider".to_string(),
+        ))
     }
 
     async fn embed(&self, _request: EmbeddingRequest) -> ProviderResult<EmbeddingResponse> {

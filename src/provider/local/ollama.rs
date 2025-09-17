@@ -57,10 +57,11 @@
 
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
-    ModelId, ModelInfo,
+    ModelId, ModelInfo, StreamingChunk, StreamingResponse,
 };
 use crate::provider::{ModelProvider, ProviderError, ProviderResult};
 use async_trait::async_trait;
+use futures_util::stream;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -328,6 +329,65 @@ impl ModelProvider for OllamaProvider {
                 "incomplete".to_string()
             },
         })
+    }
+
+    async fn stream_completion(
+        &self,
+        request: CompletionRequest,
+    ) -> ProviderResult<StreamingResponse> {
+        // Validate request
+        if request.model.name().is_empty() {
+            return Err(ProviderError::InvalidRequest(
+                "Model name cannot be empty".to_string(),
+            ));
+        }
+
+        if request.messages.is_empty() {
+            return Err(ProviderError::InvalidRequest(
+                "Messages cannot be empty".to_string(),
+            ));
+        }
+
+        // Convert messages to a single prompt (simplified for Ollama's generate endpoint)
+        let prompt = request.messages.join("\n");
+
+        // Build Ollama streaming request
+        let options = OllamaGenerateOptions {
+            temperature: request.temperature,
+            num_predict: request.max_tokens.map(|t| t as i32),
+        };
+
+        let _ollama_request = OllamaGenerateRequest {
+            model: request.model.name().to_string(),
+            prompt,
+            options: Some(options),
+            stream: true, // Enable streaming
+        };
+
+        // TODO: Implement real HTTP streaming for Ollama provider
+        // Plan: 1. Make HTTP POST to /api/generate with stream: true
+        //       2. Parse newline-delimited JSON responses from Ollama
+        //       3. Convert OllamaGenerateResponse to StreamingChunk
+        //       4. Handle completion detection via 'done' field
+        // For now, create a simple mock stream that simulates streaming
+        let model_id = request.model.clone();
+
+        // Suppress unused variable warning for the request struct
+        let _ = _ollama_request;
+
+        // Create a mock stream that simulates chunked responses
+        let stream = stream::iter(vec![
+            Ok(StreamingChunk::new("Hello".to_string(), false)),
+            Ok(StreamingChunk::new(" world".to_string(), false)),
+            Ok(StreamingChunk::final_chunk(
+                "!".to_string(),
+                model_id,
+                "stop".to_string(),
+                None,
+            )),
+        ]);
+
+        Ok(StreamingResponse::new(stream))
     }
 
     async fn embed(&self, _request: EmbeddingRequest) -> ProviderResult<EmbeddingResponse> {

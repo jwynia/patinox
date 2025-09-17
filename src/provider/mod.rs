@@ -55,7 +55,8 @@ pub use error::{ProviderError, ProviderResult};
 pub use secret::SecretString;
 pub use types::{
     CompletionMessage, CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse,
-    ModelCapabilities, ModelId, ModelInfo, QualityTier, SpeedTier, ToolCall, Usage,
+    ModelCapabilities, ModelId, ModelInfo, QualityTier, SpeedTier, StreamingChunk, StreamingResponse,
+    ToolCall, Usage,
 };
 
 /// Core trait that all LLM providers must implement
@@ -69,6 +70,12 @@ pub trait ModelProvider: Send + Sync {
         &self,
         request: CompletionRequest,
     ) -> Result<CompletionResponse, ProviderError>;
+
+    /// Create a streaming text completion
+    async fn stream_completion(
+        &self,
+        request: CompletionRequest,
+    ) -> Result<StreamingResponse, ProviderError>;
 
     /// Create embeddings for text
     async fn embed(&self, request: EmbeddingRequest) -> Result<EmbeddingResponse, ProviderError>;

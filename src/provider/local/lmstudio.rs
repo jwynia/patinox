@@ -43,10 +43,11 @@
 
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
-    ModelId, ModelInfo, QualityTier, SpeedTier, Usage,
+    ModelId, ModelInfo, QualityTier, SpeedTier, StreamingChunk, StreamingResponse, Usage,
 };
 use crate::provider::{ModelProvider, ProviderError, ProviderResult};
 use async_trait::async_trait;
+use futures_util::stream;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -334,6 +335,65 @@ impl ModelProvider for LMStudioProvider {
                 .and_then(|c| c.finish_reason.clone())
                 .unwrap_or_else(|| "stop".to_string()),
         })
+    }
+
+    async fn stream_completion(
+        &self,
+        request: CompletionRequest,
+    ) -> ProviderResult<StreamingResponse> {
+        // Validate request
+        if request.model.name().is_empty() {
+            return Err(ProviderError::InvalidRequest(
+                "Model name cannot be empty".to_string(),
+            ));
+        }
+
+        if request.messages.is_empty() {
+            return Err(ProviderError::InvalidRequest(
+                "Messages cannot be empty".to_string(),
+            ));
+        }
+
+        // Convert messages to OpenAI format
+        let prompt = request.messages.join("\n");
+
+        // Create LMStudio streaming request (OpenAI-compatible)
+        let _lmstudio_request = LMStudioCompletionRequest {
+            model: request.model.name().to_string(),
+            messages: vec![LMStudioMessage {
+                role: "user".to_string(),
+                content: prompt,
+            }],
+            max_tokens: request.max_tokens.map(|t| t as u32),
+            temperature: request.temperature,
+            stream: true, // Enable streaming
+        };
+
+        // TODO: Implement real HTTP streaming for LMStudio provider
+        // Plan: 1. Make HTTP POST to /v1/chat/completions with stream: true
+        //       2. Parse Server-Sent Events in OpenAI format from LMStudio
+        //       3. Handle data: [DONE] completion signal
+        //       4. Convert OpenAI delta format to StreamingChunk
+        // For now, create a simple mock stream that simulates OpenAI-compatible streaming
+        let model_id = request.model.clone();
+
+        // Suppress unused variable warning for the request struct
+        let _ = _lmstudio_request;
+
+        // Create a mock stream that simulates OpenAI-compatible chunked responses
+        let stream = stream::iter(vec![
+            Ok(StreamingChunk::new("Hello".to_string(), false)),
+            Ok(StreamingChunk::new(" from".to_string(), false)),
+            Ok(StreamingChunk::new(" LMStudio".to_string(), false)),
+            Ok(StreamingChunk::final_chunk(
+                "!".to_string(),
+                model_id,
+                "stop".to_string(),
+                None,
+            )),
+        ]);
+
+        Ok(StreamingResponse::new(stream))
     }
 
     async fn embed(&self, _request: EmbeddingRequest) -> ProviderResult<EmbeddingResponse> {

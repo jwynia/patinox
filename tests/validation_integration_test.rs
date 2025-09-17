@@ -142,7 +142,7 @@ async fn test_validation_pipeline_preserves_error_context() {
 
 use patinox::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
-    ModelId, ModelInfo,
+    ModelId, ModelInfo, StreamingResponse,
 };
 use patinox::provider::{ModelProvider, ProviderResult};
 
@@ -167,6 +167,13 @@ impl ModelProvider for MockLlmProvider {
             usage: None,
             finish_reason: "stop".to_string(),
         })
+    }
+
+    async fn stream_completion(
+        &self,
+        _request: CompletionRequest,
+    ) -> ProviderResult<StreamingResponse> {
+        unimplemented!("Not needed for validation testing")
     }
 
     async fn embed(&self, _request: EmbeddingRequest) -> ProviderResult<EmbeddingResponse> {

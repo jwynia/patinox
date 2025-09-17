@@ -55,6 +55,14 @@ pub enum ProviderError {
     #[error("Serialization error: {0}")]
     SerializationError(String),
 
+    /// Streaming-related errors
+    #[error("Stream error: {0}")]
+    StreamError(String),
+
+    /// Response parsing errors
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
     /// Unknown provider error
     #[error("Unknown provider error: {0}")]
     Unknown(String),
@@ -77,6 +85,8 @@ impl ProviderError {
             Self::ConfigurationError(_) => false,
             Self::AllProvidersFailed => false,
             Self::SerializationError(_) => false,
+            Self::StreamError(_) => true, // Streaming errors are often retriable
+            Self::ParseError(_) => false, // Parse errors typically aren't retriable
             Self::Unknown(_) => false,
         }
     }
@@ -127,6 +137,14 @@ impl ProviderError {
                     format!("Provider serialization error: {}", msg),
                 ))
             }
+            Self::StreamError(msg) => PatinoxError::Network(NetworkError::Timeout(format!(
+                "Provider stream error: {}",
+                msg
+            ))),
+            Self::ParseError(msg) => PatinoxError::Execution(ExecutionError::ToolExecutionFailed(
+                "parsing".to_string(),
+                format!("Provider parse error: {}", msg),
+            )),
             Self::Unknown(msg) => PatinoxError::Execution(ExecutionError::ToolExecutionFailed(
                 "unknown".to_string(),
                 format!("Unknown provider error: {}", msg),

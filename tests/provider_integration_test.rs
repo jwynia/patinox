@@ -84,6 +84,16 @@ impl ModelProvider for MockProvider {
         })
     }
 
+    async fn stream_completion(
+        &self,
+        _request: patinox::provider::CompletionRequest,
+    ) -> Result<patinox::provider::StreamingResponse, ProviderError> {
+        // Mock streaming implementation
+        Err(ProviderError::ApiError(
+            "Streaming not implemented in mock provider".to_string(),
+        ))
+    }
+
     async fn embed(
         &self,
         _request: patinox::provider::EmbeddingRequest,

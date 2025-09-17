@@ -95,6 +95,7 @@ pub struct MockHttpBuilder {
     status_code: Option<u16>,
     endpoint: Option<String>,
     error_message: Option<String>,
+    response_body: Option<String>,
     retry_after: Option<Duration>,
 }
 
@@ -105,6 +106,7 @@ impl MockHttpBuilder {
             status_code: None,
             endpoint: None,
             error_message: None,
+            response_body: None,
             retry_after: None,
         }
     }
@@ -160,6 +162,7 @@ impl MockHttpBuilder {
             endpoint: self.endpoint,
             status_code: self.status_code,
             error_message: Some(response_body),
+            response_body: None,
             retry_after: self.retry_after,
         }
     }
@@ -175,6 +178,7 @@ impl MockHttpBuilder {
             endpoint: self.endpoint,
             status_code: self.status_code,
             error_message: Some(response_body),
+            response_body: None,
             retry_after: self.retry_after,
         }
     }
@@ -184,13 +188,102 @@ impl MockHttpBuilder {
         self
     }
 
+    // Streaming-specific mock methods
+    #[allow(dead_code)]
+    pub fn with_streaming_response(mut self) -> Self {
+        // Set up for streaming response
+        self.status_code = Some(200);
+        self.response_body = Some("streaming_chunks".to_string()); // Placeholder for streaming
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_chunks(mut self, chunks: Vec<&str>) -> Self {
+        // Store chunks as JSON array for test parsing
+        let chunks_json: Vec<String> = chunks.iter().map(|c| c.to_string()).collect();
+        self.response_body = Some(serde_json::to_string(&chunks_json).unwrap());
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_streaming_chunks(self, chunks: Vec<&str>) -> Self {
+        self.with_streaming_response().with_chunks(chunks)
+    }
+
+    #[allow(dead_code)]
+    pub fn with_openai_streaming_response(mut self) -> Self {
+        // Set up for OpenAI-compatible streaming
+        self.status_code = Some(200);
+        self.response_body = Some("openai_streaming".to_string());
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_openai_streaming_chunks(mut self, chunks: Vec<&str>) -> Self {
+        // Format as OpenAI streaming chunks
+        let formatted_chunks: Vec<String> = chunks
+            .iter()
+            .map(|content| format!(r#"data: {{"choices":[{{"delta":{{"content":"{}"}}}}]}}"#, content))
+            .collect();
+        self.response_body = Some(serde_json::to_string(&formatted_chunks).unwrap());
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_connection_error(mut self) -> Self {
+        self.status_code = Some(0); // Indicate connection failure
+        self.error_message = Some("Connection failed".to_string());
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_partial_streaming_response(mut self, partial_chunks: Vec<&str>) -> Self {
+        // Simulate a stream that cuts off
+        self.status_code = Some(200);
+        self.response_body = Some(format!("partial:{}", serde_json::to_string(&partial_chunks).unwrap()));
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_slow_streaming_response(mut self, delay: Duration) -> Self {
+        // Simulate slow streaming
+        self.status_code = Some(200);
+        self.response_body = Some(format!("slow:{}ms", delay.as_millis()));
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_malformed_sse_response(mut self) -> Self {
+        // Simulate malformed Server-Sent Events
+        self.status_code = Some(200);
+        self.response_body = Some("malformed_sse".to_string());
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_openai_completion_response(mut self) -> Self {
+        // Standard OpenAI completion response for backward compatibility tests
+        self.status_code = Some(200);
+        self.response_body = Some(r#"{"choices":[{"message":{"content":"Test response"}}]}"#.to_string());
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn expect_json_body_contains(mut self, expected_fragment: &str) -> Self {
+        // Store expectation for request body validation
+        self.response_body = Some(format!("expect:{}", expected_fragment));
+        self
+    }
+
     pub fn build(self) -> MockHttpResponse {
         let error_message = self.error_message.unwrap_or_default();
-        let response_body = if error_message.is_empty() {
-            "{}".to_string()
-        } else {
-            error_message.clone()
-        };
+        let response_body = self.response_body.unwrap_or_else(|| {
+            if error_message.is_empty() {
+                "{}".to_string()
+            } else {
+                error_message.clone()
+            }
+        });
 
         MockHttpResponse {
             status_code: self.status_code.unwrap_or(200),
@@ -362,6 +455,53 @@ impl ProviderConfigHelper {
                 "Expected successful provider name validation, got error: {:?}",
                 error
             )),
+        }
+    }
+
+    // Streaming-specific error assertion methods
+    #[allow(dead_code)]
+    pub fn assert_connection_error(error: &ProviderError) {
+        match error {
+            ProviderError::NetworkError(_) => {
+                // Connection errors are expected to be network errors
+            }
+            other => panic!("Expected NetworkError for connection failure, got: {:?}", other),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn assert_incomplete_stream_error(error: &ProviderError) {
+        match error {
+            ProviderError::StreamError(_) => {
+                // Stream errors are expected for incomplete streams
+            }
+            ProviderError::ApiError(msg) if msg.contains("incomplete") || msg.contains("stream") => {
+                // API errors can also indicate stream issues
+            }
+            other => panic!("Expected StreamError for incomplete stream, got: {:?}", other),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn assert_model_not_found_error(error: &ProviderError) {
+        match error {
+            ProviderError::ApiError(msg) if msg.contains("not found") || msg.contains("404") => {
+                // Model not found typically manifests as API error
+            }
+            other => panic!("Expected model not found error, got: {:?}", other),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn assert_parse_error(error: &ProviderError) {
+        match error {
+            ProviderError::ParseError(_) => {
+                // Parse errors are expected for malformed responses
+            }
+            ProviderError::ApiError(msg) if msg.contains("parse") || msg.contains("malformed") => {
+                // API errors can also indicate parsing issues
+            }
+            other => panic!("Expected ParseError for malformed response, got: {:?}", other),
         }
     }
 }
