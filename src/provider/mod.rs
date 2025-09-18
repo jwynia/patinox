@@ -55,8 +55,8 @@ pub use error::{ProviderError, ProviderResult};
 pub use secret::SecretString;
 pub use types::{
     CompletionMessage, CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse,
-    ModelCapabilities, ModelId, ModelInfo, QualityTier, SpeedTier, StreamingChunk, StreamingResponse,
-    ToolCall, Usage,
+    ModelCapabilities, ModelId, ModelInfo, QualityTier, SpeedTier, StreamingChunk,
+    StreamingResponse, ToolCall, Usage,
 };
 
 /// Core trait that all LLM providers must implement

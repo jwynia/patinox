@@ -223,7 +223,12 @@ impl MockHttpBuilder {
         // Format as OpenAI streaming chunks
         let formatted_chunks: Vec<String> = chunks
             .iter()
-            .map(|content| format!(r#"data: {{"choices":[{{"delta":{{"content":"{}"}}}}]}}"#, content))
+            .map(|content| {
+                format!(
+                    r#"data: {{"choices":[{{"delta":{{"content":"{}"}}}}]}}"#,
+                    content
+                )
+            })
             .collect();
         self.response_body = Some(serde_json::to_string(&formatted_chunks).unwrap());
         self
@@ -240,7 +245,10 @@ impl MockHttpBuilder {
     pub fn with_partial_streaming_response(mut self, partial_chunks: Vec<&str>) -> Self {
         // Simulate a stream that cuts off
         self.status_code = Some(200);
-        self.response_body = Some(format!("partial:{}", serde_json::to_string(&partial_chunks).unwrap()));
+        self.response_body = Some(format!(
+            "partial:{}",
+            serde_json::to_string(&partial_chunks).unwrap()
+        ));
         self
     }
 
@@ -264,7 +272,8 @@ impl MockHttpBuilder {
     pub fn with_openai_completion_response(mut self) -> Self {
         // Standard OpenAI completion response for backward compatibility tests
         self.status_code = Some(200);
-        self.response_body = Some(r#"{"choices":[{"message":{"content":"Test response"}}]}"#.to_string());
+        self.response_body =
+            Some(r#"{"choices":[{"message":{"content":"Test response"}}]}"#.to_string());
         self
     }
 
@@ -465,7 +474,10 @@ impl ProviderConfigHelper {
             ProviderError::NetworkError(_) => {
                 // Connection errors are expected to be network errors
             }
-            other => panic!("Expected NetworkError for connection failure, got: {:?}", other),
+            other => panic!(
+                "Expected NetworkError for connection failure, got: {:?}",
+                other
+            ),
         }
     }
 
@@ -475,10 +487,15 @@ impl ProviderConfigHelper {
             ProviderError::StreamError(_) => {
                 // Stream errors are expected for incomplete streams
             }
-            ProviderError::ApiError(msg) if msg.contains("incomplete") || msg.contains("stream") => {
+            ProviderError::ApiError(msg)
+                if msg.contains("incomplete") || msg.contains("stream") =>
+            {
                 // API errors can also indicate stream issues
             }
-            other => panic!("Expected StreamError for incomplete stream, got: {:?}", other),
+            other => panic!(
+                "Expected StreamError for incomplete stream, got: {:?}",
+                other
+            ),
         }
     }
 
@@ -501,7 +518,10 @@ impl ProviderConfigHelper {
             ProviderError::ApiError(msg) if msg.contains("parse") || msg.contains("malformed") => {
                 // API errors can also indicate parsing issues
             }
-            other => panic!("Expected ParseError for malformed response, got: {:?}", other),
+            other => panic!(
+                "Expected ParseError for malformed response, got: {:?}",
+                other
+            ),
         }
     }
 }

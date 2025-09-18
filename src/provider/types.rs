@@ -299,7 +299,8 @@ impl StreamingChunk {
 
 /// Streaming response that implements the Stream trait
 pub struct StreamingResponse {
-    inner: Pin<Box<dyn Stream<Item = Result<StreamingChunk, crate::provider::ProviderError>> + Send>>,
+    inner:
+        Pin<Box<dyn Stream<Item = Result<StreamingChunk, crate::provider::ProviderError>> + Send>>,
 }
 
 impl std::fmt::Debug for StreamingResponse {

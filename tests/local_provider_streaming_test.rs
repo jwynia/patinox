@@ -65,20 +65,32 @@ mod ollama_streaming {
         let stream_result = provider.stream_completion(request).await;
 
         // Assert: Should return a streaming response (even if mock)
-        assert!(stream_result.is_ok(), "Stream completion should not fail for basic request");
+        assert!(
+            stream_result.is_ok(),
+            "Stream completion should not fail for basic request"
+        );
 
         let stream = stream_result.unwrap();
 
         // Convert to something we can iterate over
         let chunks_result = StreamingTestHelper::collect_chunks_from_stream(stream).await;
-        assert!(chunks_result.is_ok(), "Should be able to collect chunks from stream");
+        assert!(
+            chunks_result.is_ok(),
+            "Should be able to collect chunks from stream"
+        );
 
         let chunks = chunks_result.unwrap();
-        assert!(!chunks.is_empty(), "Stream should produce at least one chunk");
+        assert!(
+            !chunks.is_empty(),
+            "Stream should produce at least one chunk"
+        );
 
         // Verify we get the expected mock content
         let full_content: String = chunks.iter().map(|c| c.content.as_str()).collect();
-        assert_eq!(full_content, OLLAMA_MOCK_RESPONSE, "Should get expected mock content");
+        assert_eq!(
+            full_content, OLLAMA_MOCK_RESPONSE,
+            "Should get expected mock content"
+        );
 
         // Verify final chunk
         let final_chunk = chunks.iter().find(|c| c.is_final);
@@ -199,18 +211,30 @@ mod lmstudio_streaming {
         let stream_result = provider.stream_completion(request).await;
 
         // Assert: Should return a streaming response (even if mock)
-        assert!(stream_result.is_ok(), "Stream completion should not fail for basic request");
+        assert!(
+            stream_result.is_ok(),
+            "Stream completion should not fail for basic request"
+        );
 
         let stream = stream_result.unwrap();
         let chunks_result = StreamingTestHelper::collect_chunks_from_stream(stream).await;
-        assert!(chunks_result.is_ok(), "Should be able to collect chunks from stream");
+        assert!(
+            chunks_result.is_ok(),
+            "Should be able to collect chunks from stream"
+        );
 
         let chunks = chunks_result.unwrap();
-        assert!(!chunks.is_empty(), "Stream should produce at least one chunk");
+        assert!(
+            !chunks.is_empty(),
+            "Stream should produce at least one chunk"
+        );
 
         // Verify we get the expected mock content
         let full_content: String = chunks.iter().map(|c| c.content.as_str()).collect();
-        assert_eq!(full_content, LMSTUDIO_MOCK_RESPONSE, "Should get expected mock content");
+        assert_eq!(
+            full_content, LMSTUDIO_MOCK_RESPONSE,
+            "Should get expected mock content"
+        );
 
         // Verify final chunk
         let final_chunk = chunks.iter().find(|c| c.is_final);
@@ -249,7 +273,9 @@ mod lmstudio_streaming {
         let provider = match LMStudioProvider::new() {
             Ok(p) => p,
             Err(_) => {
-                println!("Skipping LMStudio backward compatibility test - provider creation failed");
+                println!(
+                    "Skipping LMStudio backward compatibility test - provider creation failed"
+                );
                 return;
             }
         };
@@ -277,7 +303,7 @@ mod trait_extension_tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_model_provider_trait_has_stream_completion() {
+    async fn test_stream_completion_trait_method_exists() {
         // Arrange: This test ensures the trait extension compiles
         let provider = match OllamaProvider::new() {
             Ok(p) => p,
