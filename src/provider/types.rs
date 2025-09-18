@@ -1,6 +1,9 @@
 //! Core types for the LLM provider abstraction layer
 
+use futures_util::Stream;
 use serde::{Deserialize, Serialize};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 /// Unique identifier for a language model
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -248,6 +251,84 @@ pub struct EmbeddingResponse {
     pub model: ModelId,
     /// Token usage information
     pub usage: Option<Usage>,
+}
+
+/// A single chunk in a streaming response
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StreamingChunk {
+    /// Partial content for this chunk
+    pub content: String,
+    /// Whether this is the final chunk in the stream
+    pub is_final: bool,
+    /// Model that generated this chunk
+    pub model: Option<ModelId>,
+    /// Reason for finishing (only present in final chunk)
+    pub finish_reason: Option<String>,
+    /// Usage information (typically only in final chunk)
+    pub usage: Option<Usage>,
+}
+
+impl StreamingChunk {
+    /// Create a new streaming chunk
+    pub fn new(content: String, is_final: bool) -> Self {
+        Self {
+            content,
+            is_final,
+            model: None,
+            finish_reason: None,
+            usage: None,
+        }
+    }
+
+    /// Create a final chunk with completion information
+    pub fn final_chunk(
+        content: String,
+        model: ModelId,
+        finish_reason: String,
+        usage: Option<Usage>,
+    ) -> Self {
+        Self {
+            content,
+            is_final: true,
+            model: Some(model),
+            finish_reason: Some(finish_reason),
+            usage,
+        }
+    }
+}
+
+/// Streaming response that implements the Stream trait
+pub struct StreamingResponse {
+    inner:
+        Pin<Box<dyn Stream<Item = Result<StreamingChunk, crate::provider::ProviderError>> + Send>>,
+}
+
+impl std::fmt::Debug for StreamingResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StreamingResponse")
+            .field("inner", &"<stream>")
+            .finish()
+    }
+}
+
+impl StreamingResponse {
+    /// Create a new streaming response from a stream
+    pub fn new<S>(stream: S) -> Self
+    where
+        S: Stream<Item = Result<StreamingChunk, crate::provider::ProviderError>> + Send + 'static,
+    {
+        Self {
+            inner: Box::pin(stream),
+        }
+    }
+}
+
+impl Stream for StreamingResponse {
+    type Item = Result<StreamingChunk, crate::provider::ProviderError>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.inner.as_mut().poll_next(cx)
+    }
 }
 
 #[cfg(test)]

@@ -4,7 +4,7 @@ use super::error::{ProviderError, ProviderResult};
 use super::secret::SecretString;
 use super::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
-    ModelId, ModelInfo, QualityTier, SpeedTier, Usage,
+    ModelId, ModelInfo, QualityTier, SpeedTier, StreamingResponse, Usage,
 };
 use super::ModelProvider;
 use async_trait::async_trait;
@@ -257,6 +257,16 @@ impl ModelProvider for OpenAIProvider {
             usage,
             finish_reason: choice.finish_reason,
         })
+    }
+
+    async fn stream_completion(
+        &self,
+        _request: CompletionRequest,
+    ) -> ProviderResult<StreamingResponse> {
+        // TODO: Implement streaming for OpenAI provider
+        Err(ProviderError::ApiError(
+            "Streaming not yet implemented for OpenAI provider".to_string(),
+        ))
     }
 
     async fn embed(&self, request: EmbeddingRequest) -> ProviderResult<EmbeddingResponse> {

@@ -41,7 +41,7 @@ pub use types::{LocalService, ServiceMetrics};
 
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
-    ModelId, ModelInfo,
+    ModelId, ModelInfo, StreamingResponse,
 };
 use crate::provider::{ModelProvider, ProviderError, ProviderResult};
 use async_trait::async_trait;
@@ -134,6 +134,16 @@ impl ModelProvider for LocalProvider {
     }
 
     async fn complete(&self, _request: CompletionRequest) -> ProviderResult<CompletionResponse> {
+        // For now, return error until services are implemented
+        Err(ProviderError::NetworkError(
+            "No local services available".to_string(),
+        ))
+    }
+
+    async fn stream_completion(
+        &self,
+        _request: CompletionRequest,
+    ) -> ProviderResult<StreamingResponse> {
         // For now, return error until services are implemented
         Err(ProviderError::NetworkError(
             "No local services available".to_string(),
