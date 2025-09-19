@@ -152,9 +152,9 @@ During the memory management utilities implementation, we encountered a pattern 
 ## Related Patterns
 
 **See Also**:
-- [[Code Review Workflow]] - Integration with review process
-- [[Task Planning and Prioritization]] - How to sequence deferred work
-- [[Risk Assessment Framework]] - Systematic risk evaluation approach
+- [Code Review Workflow](../processes/code-review-workflow.md) - Integration with review process
+- [Task Planning and Prioritization](../processes/task-planning-and-prioritization.md) - How to sequence deferred work
+- [Risk Assessment Framework](../processes/risk-assessment-framework.md) - Systematic risk evaluation approach
 
 ## Future Applications
 

@@ -193,10 +193,10 @@ impl Ord for CleanupRequest {
 ## Related Documentation
 
 **Discovery Records**:
-- [[2025-01-20-001-async-drop-pattern]] - Drop trait async cleanup approach
-- [[2025-01-20-002-priority-queue-cleanup]] - BinaryHeap implementation details
-- [[2025-01-20-003-tdd-async-workflow]] - Test-driven development approach
+- [2025-01-20-001-async-drop-pattern](../discovery/2025-01-20-001-async-drop-pattern.md) - Drop trait async cleanup approach
+- [2025-01-20-002-priority-queue-cleanup](../discovery/2025-01-20-002-priority-queue-cleanup.md) - BinaryHeap implementation details
+- [2025-01-20-003-tdd-async-workflow](../discovery/2025-01-20-003-tdd-async-workflow.md) - Test-driven development approach
 
-**Component Index**: [[memory-management-index]] - Location and relationship mapping  
-**Task Management**: [[task-management-patterns]] - Code review recommendation handling  
+**Component Index**: [memory-management-index](../components/memory-management-index.md) - Location and relationship mapping  
+**Task Management**: [task-management-patterns](../tasks/task-management-patterns.md) - Code review recommendation handling  
 **Architecture Overview**: [[memory-management-architecture]] - High-level system design

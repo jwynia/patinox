@@ -105,8 +105,8 @@ All CleanupError variants convert to `PatinoxError::Execution(ExecutionError::Re
 ## Related Documentation
 
 **Architecture Decisions**:
-- [[2025-01-20-001-async-drop-pattern]] - Drop trait async cleanup approach
-- [[2025-01-20-002-priority-queue-cleanup]] - BinaryHeap priority queue implementation
+- [2025-01-20-001-async-drop-pattern](../discovery/2025-01-20-001-async-drop-pattern.md) - Drop trait async cleanup approach
+- [2025-01-20-002-priority-queue-cleanup](../discovery/2025-01-20-002-priority-queue-cleanup.md) - BinaryHeap priority queue implementation
 
 **Implementation Notes**:
 - [[Memory Management Design Decisions]] - Trade-offs and alternatives considered

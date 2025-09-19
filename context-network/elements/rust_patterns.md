@@ -466,12 +466,14 @@ type DevelopmentPipeline = ValidationPipeline<false>;
 ```
 
 ## Relationships
-- **Parent Nodes:** [elements/architecture_overview.md]
+- **Parent Nodes:** [elements/architecture_overview.md] - implements - Rust-specific patterns used in architecture
 - **Child Nodes:** None
-- **Related Nodes:** 
-  - [elements/technology_stack.md] - implements - Uses these libraries
-  - [foundation/principles.md] - embodies - Safety principles
-  - [elements/monitoring_strategy.md] - enables - Zero-cost monitoring
+- **Related Nodes:**
+  - [elements/technology_stack.md] - implements - Technology-specific patterns and implementations
+  - [foundation/principles.md] - implements - Rust patterns that embody these principles
+  - [elements/monitoring_strategy.md] - enables - Zero-cost monitoring through Rust patterns
+  - [elements/dependency_injection_philosophy.md] - implements - DI patterns in Rust context
+  - [planning/foundational_implementation_strategy.md] - guides - Rust pattern implementation strategy
 
 ## Navigation Guidance
 - **Access Context:** Reference when implementing Rust-specific features or patterns

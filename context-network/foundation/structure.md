@@ -134,14 +134,16 @@ flowchart LR
 - **Extended Language Support**: Go, Java, and Ruby bindings
 
 ## Relationships
-- **Parent Nodes:** [foundation/project_definition.md]
-- **Child Nodes:** 
-  - [elements/*/structure.md] - details - Element-specific structural details
-  - [decisions/*] - justifies - Key decisions that shaped this structure
-- **Related Nodes:** 
+- **Parent Nodes:** [foundation/project_definition.md] - implements - Structural implementation of project goals and objectives
+- **Child Nodes:**
+  - [elements/index.md] - contains - Overview of all structural elements
+  - [connections/dependencies.md] - details - Dependencies between structural elements
+  - [connections/interfaces.md] - specifies - Interfaces between structural elements
+- **Related Nodes:**
   - [foundation/principles.md] - guides - Principles that guided structural decisions
-  - [connections/dependencies.md] - details - Dependencies between elements
-  - [connections/interfaces.md] - specifies - Interfaces between elements
+  - [planning/roadmap.md] - supports - Structure enables roadmap implementation
+  - [elements/architecture_overview.md] - details - Technical architecture implementation
+  - [elements/technology_stack.md] - specifies - Technology choices supporting structure
 
 ## Navigation Guidance
 - **Access Context:** Use this document when needing to understand the overall project structure and design

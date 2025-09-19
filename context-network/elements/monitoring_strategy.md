@@ -290,12 +290,14 @@ auto_merge_enabled = false
 ```
 
 ## Relationships
-- **Parent Nodes:** [elements/architecture_overview.md]
+- **Parent Nodes:** [elements/architecture_overview.md] - details - Monitoring layer implementation within architecture
 - **Child Nodes:** None
-- **Related Nodes:** 
-  - [elements/rust_patterns.md] - uses - Pattern implementation
-  - [elements/technology_stack.md] - integrates - OpenTelemetry tools
-  - [foundation/principles.md] - implements - Monitoring philosophy
+- **Related Nodes:**
+  - [elements/rust_patterns.md] - enables - Zero-cost monitoring through Rust patterns
+  - [elements/technology_stack.md] - integrates - OpenTelemetry and observability tools
+  - [foundation/principles.md] - implements - Monitoring architecture implements these principles
+  - [processes/validation.md] - implements - Validation pipeline implementation patterns
+  - [planning/foundational_implementation_strategy.md] - guides - Implementation strategy for monitoring components
 
 ## Navigation Guidance
 - **Access Context:** Reference when implementing validators or configuring monitoring

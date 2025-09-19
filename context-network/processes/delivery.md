@@ -364,9 +364,9 @@ graph TD
 - **Update Patterns:** This document should be updated when delivery processes change or are refined
 
 ## Metadata
-- **Created:** 5/16/2025
-- **Last Updated:** 5/16/2025
+- **Created:** 2025-05-16
+- **Last Updated:** 2025-05-16
 - **Updated By:** Context Network Update
 
 ## Change History
-- 5/16/2025: Created from deployment.md template with more generic terminology
+- 2025-05-16: Created from deployment.md template with more generic terminology

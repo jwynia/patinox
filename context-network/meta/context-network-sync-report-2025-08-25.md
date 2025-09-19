@@ -62,7 +62,7 @@ The implementation significantly exceeded planned scope by creating reusable dev
 - `context-network/implementation/tdd-provider-implementation-pattern.md`
 - `context-network/implementation/provider-http-error-mapping-guide.md`  
 - `context-network/discovery/2025-08-23-001-local-provider-integration-patterns.md`
-- `context-network/implementation/README.md`
+- `context-network/implementation/index.md`
 - `context-network/meta/retrospective-2025-08-23-ollama-implementation.md`
 
 ## Strategic Impact Analysis

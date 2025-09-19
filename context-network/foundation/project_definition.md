@@ -113,12 +113,15 @@ Patinox provides production-grade AI agent orchestration for systems requiring s
 
 ## Relationships
 - **Parent Nodes:** None
-- **Child Nodes:** 
-  - [foundation/structure.md] - implements - Structural implementation of project goals
-  - [foundation/principles.md] - guides - Principles that guide project execution
-- **Related Nodes:** 
-  - [planning/roadmap.md] - details - Specific implementation plan for project goals
-  - [planning/milestones.md] - schedules - Timeline for achieving project objectives
+- **Child Nodes:**
+  - [foundation/structure.md] - implements - Structural implementation of project goals and objectives
+  - [foundation/principles.md] - guides - Principles that guide project execution and decision-making
+- **Related Nodes:**
+  - [planning/roadmap.md] - details - Specific implementation timeline and feature development plan
+  - [planning/milestones.md] - schedules - Detailed timeline for achieving project objectives
+  - [processes/creation.md] - served-by - Creation processes serve project objectives
+  - [elements/architecture_overview.md] - realizes - Technical architecture that implements the project vision
+  - [elements/technology_stack.md] - specifies - Technology choices that support project requirements
 
 ## Navigation Guidance
 - **Access Context:** Use this document when needing to understand the fundamental purpose and scope of the project

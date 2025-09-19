@@ -149,12 +149,15 @@ This document outlines the core principles and standards that guide decision-mak
 - **Logging sensitive data**: Only in explicit debug mode with user consent
 
 ## Relationships
-- **Parent Nodes:** [foundation/project_definition.md]
+- **Parent Nodes:** [foundation/project_definition.md] - guides - Principles that guide project execution and decision-making
 - **Child Nodes:** None
-- **Related Nodes:** 
-  - [foundation/structure.md] - implements - Project structure implements these principles
+- **Related Nodes:**
+  - [foundation/structure.md] - guides - Principles that guided structural decisions
   - [processes/creation.md] - guided-by - Creation processes follow these principles
-  - [decisions/*] - evaluated-against - Decisions are evaluated against these principles
+  - [processes/validation.md] - informs - Validation approaches based on these principles
+  - [decisions/*] - evaluated-against - All decisions are evaluated against these principles
+  - [elements/architecture_overview.md] - guides - Architectural decisions follow these principles
+  - [elements/rust_patterns.md] - implements - Rust patterns that embody these principles
 
 ## Navigation Guidance
 - **Access Context:** Use this document when making significant decisions or evaluating options
