@@ -285,12 +285,15 @@ let service = ServiceBuilder::new()
 - Breaking changes: With major Patinox versions only
 
 ## Relationships
-- **Parent Nodes:** [elements/architecture_overview.md]
+- **Parent Nodes:** [elements/architecture_overview.md] - specifies - Technology choices that realize the architecture
 - **Child Nodes:** None
-- **Related Nodes:** 
-  - [foundation/structure.md] - implements - Crate structure
-  - [elements/rust_patterns.md] - uses - Pattern implementations
-  - [planning/roadmap.md] - schedules - Integration timeline
+- **Related Nodes:**
+  - [foundation/project_definition.md] - specifies - Technology choices that support project requirements
+  - [foundation/structure.md] - supports - Technology choices supporting structure
+  - [elements/rust_patterns.md] - implements - Technology-specific patterns and implementations
+  - [elements/monitoring_strategy.md] - integrates - OpenTelemetry and observability tools
+  - [planning/roadmap.md] - schedules - Technology integration timeline and milestones
+  - [elements/dependency_injection_philosophy.md] - enables - DI patterns through selected technologies
 
 ## Navigation Guidance
 - **Access Context:** Reference when adding dependencies or evaluating alternatives

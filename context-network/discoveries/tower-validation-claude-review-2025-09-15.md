@@ -67,11 +67,11 @@ The review validates our architectural decisions and confirms the Tower Validati
 
 ## 🔗 Related Context
 
-- **Implementation**: [[tower-validation-pipeline-implementation]]
-- **Testing Strategy**: [[validation-tdd-methodology]]
-- **Performance**: [[validator-sorting-optimization]]
-- **Security**: [[html-sanitization-upgrade]]
-- **Backlog Tasks**: [[groomed-backlog-2025-09-15]] (Tasks #4-5)
+- **Implementation**: [Tower Validation Pipeline Implementation](../implementations/tower-validation-pipeline-implementation.md)
+- **Testing Strategy**: [Validation TDD Methodology](../methodologies/validation-tdd-methodology.md)
+- **Performance**: [Validator Sorting Optimization](../implementations/validator-sorting-optimization.md)
+- **Security**: [HTML Sanitization Upgrade](../implementations/html-sanitization-upgrade.md)
+- **Backlog Tasks**: [groomed-backlog-2025-09-15](../planning/groomed_backlog_2025-09-15.md) (Tasks #4-5)
 
 ## 📈 Follow-up Actions
 

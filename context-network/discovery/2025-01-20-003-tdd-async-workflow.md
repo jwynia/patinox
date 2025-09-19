@@ -204,9 +204,9 @@ assert!(tracker.load(Ordering::Relaxed)); // Tests real effect
 ## Related Patterns
 
 **See Also**:
-- [[Async Testing Best Practices]]  
-- [[Error-Driven Development]]
-- [[Concurrent Testing Strategies]]
+- [Async Testing Best Practices](../methodologies/async-testing-best-practices.md)  
+- [Error-Driven Development](../methodologies/error-driven-development.md)
+- [Concurrent Testing Strategies](../methodologies/concurrent-testing-strategies.md)
 
 ## Future Applications
 

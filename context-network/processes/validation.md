@@ -406,12 +406,14 @@ graph TD
 [Describe the requirements for validation reports]
 
 ## Relationships
-- **Parent Nodes:** [processes/creation.md]
+- **Parent Nodes:** [processes/creation.md] - coordinates - Validation processes within creation workflow
 - **Child Nodes:** None
-- **Related Nodes:** 
-  - [processes/delivery.md] - follows - Delivery follows validation
-  - [foundation/principles.md] - guided-by - Validation follows project principles
+- **Related Nodes:**
+  - [processes/delivery.md] - precedes - Validation must complete before delivery
+  - [foundation/principles.md] - informs - Validation approaches based on these principles
   - [foundation/structure.md] - validates - Validation ensures structure is implemented correctly
+  - [elements/monitoring_strategy.md] - implements - Validation pipeline implementation patterns
+  - [elements/rust_patterns.md] - uses - Rust-specific validation patterns
 
 ## Navigation Guidance
 - **Access Context:** Use this document when planning or performing validation activities
@@ -420,9 +422,9 @@ graph TD
 - **Update Patterns:** This document should be updated when validation processes change or are refined
 
 ## Metadata
-- **Created:** [Date]
-- **Last Updated:** [Date]
+- **Created:** 2025-09-18
+- **Last Updated:** 2025-09-18
 - **Updated By:** [Role/Agent]
 
 ## Change History
-- [Date]: Initial creation of validation process document
+- 2025-09-18: Updated with actual date during audit remediation
