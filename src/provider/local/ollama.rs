@@ -364,29 +364,73 @@ impl ModelProvider for OllamaProvider {
             stream: true, // Enable streaming
         };
 
-        // TODO: Implement real HTTP streaming for Ollama provider
-        // Plan: 1. Make HTTP POST to /api/generate with stream: true
-        //       2. Parse newline-delimited JSON responses from Ollama
-        //       3. Convert OllamaGenerateResponse to StreamingChunk
-        //       4. Handle completion detection via 'done' field
-        // For now, create a simple mock stream that simulates streaming
+        // Make HTTP POST request with streaming enabled
+        let url = format!("{}/api/generate", self.base_url);
+        let response = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(&_ollama_request)
+            .send()
+            .await
+            .map_err(|e| ProviderError::NetworkError(e.to_string()))?;
+
+        // Check for HTTP errors
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(ProviderError::ApiError(format!(
+                "HTTP {}: {}",
+                status, error_text
+            )));
+        }
+
         let model_id = request.model.clone();
 
-        // Suppress unused variable warning for the request struct
-        let _ = _ollama_request;
+        // Convert the response to text first, then process
+        let response_text = response
+            .text()
+            .await
+            .map_err(|e| ProviderError::NetworkError(e.to_string()))?;
 
-        // Create a mock stream that simulates chunked responses
-        let stream = stream::iter(vec![
-            Ok(StreamingChunk::new("Hello".to_string(), false)),
-            Ok(StreamingChunk::new(" world".to_string(), false)),
-            Ok(StreamingChunk::final_chunk(
-                "!".to_string(),
-                model_id,
-                "stop".to_string(),
-                None,
-            )),
-        ]);
+        // Parse newline-delimited JSON responses
+        let chunks: Result<Vec<StreamingChunk>, ProviderError> = response_text
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .map(|line| {
+                let ollama_response: OllamaGenerateResponse = serde_json::from_str(line)
+                    .map_err(|e| ProviderError::ParseError(e.to_string()))?;
 
+                if ollama_response.done {
+                    // Final chunk with usage information
+                    let usage = if ollama_response.prompt_eval_count.is_some() || ollama_response.eval_count.is_some() {
+                        Some(crate::provider::types::Usage {
+                            prompt_tokens: ollama_response.prompt_eval_count.unwrap_or(0) as usize,
+                            completion_tokens: ollama_response.eval_count.unwrap_or(0) as usize,
+                            total_tokens: (ollama_response.prompt_eval_count.unwrap_or(0)
+                                + ollama_response.eval_count.unwrap_or(0)) as usize,
+                        })
+                    } else {
+                        None
+                    };
+
+                    Ok(StreamingChunk::final_chunk(
+                        ollama_response.response,
+                        model_id.clone(),
+                        "stop".to_string(),
+                        usage,
+                    ))
+                } else {
+                    // Regular chunk
+                    Ok(StreamingChunk::new(ollama_response.response, false))
+                }
+            })
+            .collect();
+
+        let stream = stream::iter(chunks?.into_iter().map(Ok));
         Ok(StreamingResponse::new(stream))
     }
 

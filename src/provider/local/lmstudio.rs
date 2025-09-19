@@ -140,6 +140,34 @@ struct LMStudioUsage {
     total_tokens: u32,
 }
 
+/// OpenAI-compatible streaming chunk response from LMStudio
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)] // API response fields used for deserialization
+struct LMStudioStreamingResponse {
+    id: String,
+    object: String,
+    created: u64,
+    model: String,
+    choices: Vec<LMStudioStreamingChoice>,
+    usage: Option<LMStudioUsage>,
+}
+
+/// OpenAI-compatible streaming choice for LMStudio
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)] // API response fields used for deserialization
+struct LMStudioStreamingChoice {
+    index: u32,
+    delta: LMStudioDelta,
+    finish_reason: Option<String>,
+}
+
+/// OpenAI-compatible delta content for streaming
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)] // API response fields used for deserialization
+struct LMStudioDelta {
+    content: Option<String>,
+}
+
 #[allow(dead_code)]
 fn default_stream() -> bool {
     false
@@ -369,30 +397,90 @@ impl ModelProvider for LMStudioProvider {
             stream: true, // Enable streaming
         };
 
-        // TODO: Implement real HTTP streaming for LMStudio provider
-        // Plan: 1. Make HTTP POST to /v1/chat/completions with stream: true
-        //       2. Parse Server-Sent Events in OpenAI format from LMStudio
-        //       3. Handle data: [DONE] completion signal
-        //       4. Convert OpenAI delta format to StreamingChunk
-        // For now, create a simple mock stream that simulates OpenAI-compatible streaming
+        // Make HTTP POST request with streaming enabled
+        let url = format!("{}/v1/chat/completions", self.base_url);
+        let response = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(&_lmstudio_request)
+            .send()
+            .await
+            .map_err(|e| ProviderError::NetworkError(e.to_string()))?;
+
+        // Check for HTTP errors
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(ProviderError::ApiError(format!(
+                "HTTP {}: {}",
+                status, error_text
+            )));
+        }
+
         let model_id = request.model.clone();
 
-        // Suppress unused variable warning for the request struct
-        let _ = _lmstudio_request;
+        // Convert the response to text and parse SSE format
+        let response_text = response
+            .text()
+            .await
+            .map_err(|e| ProviderError::NetworkError(e.to_string()))?;
 
-        // Create a mock stream that simulates OpenAI-compatible chunked responses
-        let stream = stream::iter(vec![
-            Ok(StreamingChunk::new("Hello".to_string(), false)),
-            Ok(StreamingChunk::new(" from".to_string(), false)),
-            Ok(StreamingChunk::new(" LMStudio".to_string(), false)),
-            Ok(StreamingChunk::final_chunk(
-                "!".to_string(),
-                model_id,
-                "stop".to_string(),
-                None,
-            )),
-        ]);
+        // Parse Server-Sent Events format
+        let chunks: Result<Vec<StreamingChunk>, ProviderError> = response_text
+            .lines()
+            .filter(|line| line.starts_with("data: ") && !line.trim().is_empty())
+            .map(|line| {
+                // Remove "data: " prefix
+                let data = &line[6..];
 
+                // Check for completion signal
+                if data.trim() == "[DONE]" {
+                    return Ok(None); // Skip DONE marker
+                }
+
+                // Parse JSON data
+                let streaming_response: LMStudioStreamingResponse = serde_json::from_str(data)
+                    .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+
+                // Extract content from first choice
+                if let Some(choice) = streaming_response.choices.first() {
+                    if let Some(finish_reason) = &choice.finish_reason {
+                        // Final chunk with usage information
+                        let usage = streaming_response.usage.map(|u| crate::provider::types::Usage {
+                            prompt_tokens: u.prompt_tokens as usize,
+                            completion_tokens: u.completion_tokens as usize,
+                            total_tokens: u.total_tokens as usize,
+                        });
+
+                        let content = choice.delta.content.clone().unwrap_or_default();
+                        Ok(Some(StreamingChunk::final_chunk(
+                            content,
+                            model_id.clone(),
+                            finish_reason.clone(),
+                            usage,
+                        )))
+                    } else {
+                        // Regular chunk
+                        let content = choice.delta.content.clone().unwrap_or_default();
+                        Ok(Some(StreamingChunk::new(content, false)))
+                    }
+                } else {
+                    // No choices, skip this chunk
+                    Ok(None)
+                }
+            })
+            .filter_map(|result| match result {
+                Ok(Some(chunk)) => Some(Ok(chunk)),
+                Ok(None) => None,
+                Err(e) => Some(Err(e)),
+            })
+            .collect();
+
+        let stream = stream::iter(chunks?.into_iter().map(Ok));
         Ok(StreamingResponse::new(stream))
     }
 
