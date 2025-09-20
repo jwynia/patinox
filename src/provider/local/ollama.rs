@@ -55,6 +55,7 @@
 //! - `ApiError` - Ollama API errors or malformed responses
 //! - `InvalidRequest` - Request validation failures
 
+use super::validation::{validate_chunk_size, MAX_CHUNK_SIZE};
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
     ModelId, ModelInfo, StreamingChunk, StreamingResponse, Usage,
@@ -74,10 +75,6 @@ const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
 /// Default context window size for most Ollama models
 const DEFAULT_CONTEXT_WINDOW: usize = 4096;
-
-/// Maximum allowed size for a single streaming chunk (in characters)
-/// This prevents memory exhaustion from extremely large responses
-const MAX_CHUNK_SIZE: usize = 1024 * 1024; // 1MB in characters
 
 /// Default finish reason for completed streaming responses
 const DEFAULT_FINISH_REASON: &str = "stop";
@@ -441,13 +438,7 @@ impl ModelProvider for OllamaProvider {
                                     .map_err(|e| ProviderError::ParseError(e.to_string()))?;
 
                             // Validate chunk size to prevent memory exhaustion
-                            if ollama_response.response.len() > MAX_CHUNK_SIZE {
-                                return Err(ProviderError::ApiError(format!(
-                                    "Chunk size ({} chars) exceeds limit ({} chars)",
-                                    ollama_response.response.len(),
-                                    MAX_CHUNK_SIZE
-                                )));
-                            }
+                            validate_chunk_size(&ollama_response.response, MAX_CHUNK_SIZE)?;
 
                             if ollama_response.done {
                                 // Final chunk with usage information
@@ -487,14 +478,8 @@ impl ModelProvider for OllamaProvider {
                                             ProviderError::ParseError(e.to_string())
                                         })?;
 
-                                    // Validate chunk size
-                                    if ollama_response.response.len() > MAX_CHUNK_SIZE {
-                                        return Err(ProviderError::ApiError(format!(
-                                            "Chunk size ({} chars) exceeds limit ({} chars)",
-                                            ollama_response.response.len(),
-                                            MAX_CHUNK_SIZE
-                                        )));
-                                    }
+                                    // Validate chunk size to prevent memory exhaustion
+                                    validate_chunk_size(&ollama_response.response, MAX_CHUNK_SIZE)?;
 
                                     if ollama_response.done {
                                         let usage =

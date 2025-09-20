@@ -30,6 +30,7 @@ pub mod error;
 pub mod lmstudio;
 pub mod ollama;
 pub mod types;
+pub mod validation;
 
 // Re-export main types for convenient access
 pub use config::{DiscoveryConfig, HealthCheckConfig, LocalProviderConfig};

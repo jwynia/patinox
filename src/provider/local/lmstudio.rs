@@ -41,6 +41,7 @@
 //! # }
 //! ```
 
+use super::validation::{validate_chunk_size, MAX_CHUNK_SIZE};
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
     ModelId, ModelInfo, QualityTier, SpeedTier, StreamingChunk, StreamingResponse, Usage,
@@ -63,10 +64,6 @@ mod defaults {
     /// Based on common transformer model defaults. Individual models may have different limits
     /// that can be queried through the LMStudio API, but this provides a reasonable fallback.
     pub const CONTEXT_WINDOW: usize = 4096;
-    /// Maximum allowed size for a single streaming chunk (in characters)
-    /// This prevents memory exhaustion from extremely large responses
-    pub const MAX_CHUNK_SIZE: usize = 1024 * 1024; // 1MB in characters
-
     /// SSE (Server-Sent Events) data line prefix
     pub const SSE_DATA_PREFIX: &str = "data: ";
 
@@ -488,13 +485,7 @@ impl ModelProvider for LMStudioProvider {
                                     let content = choice.delta.content.clone().unwrap_or_default();
 
                                     // Validate chunk size to prevent memory exhaustion
-                                    if content.len() > defaults::MAX_CHUNK_SIZE {
-                                        return Err(ProviderError::ApiError(format!(
-                                            "Chunk size ({} chars) exceeds limit ({} chars)",
-                                            content.len(),
-                                            defaults::MAX_CHUNK_SIZE
-                                        )));
-                                    }
+                                    validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
 
                                     let final_chunk = StreamingChunk::final_chunk(
                                         content,
@@ -508,13 +499,7 @@ impl ModelProvider for LMStudioProvider {
                                     let content = choice.delta.content.clone().unwrap_or_default();
 
                                     // Validate chunk size to prevent memory exhaustion
-                                    if content.len() > defaults::MAX_CHUNK_SIZE {
-                                        return Err(ProviderError::ApiError(format!(
-                                            "Chunk size ({} chars) exceeds limit ({} chars)",
-                                            content.len(),
-                                            defaults::MAX_CHUNK_SIZE
-                                        )));
-                                    }
+                                    validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
 
                                     // Only yield chunk if it has content
                                     if !content.is_empty() {
@@ -576,13 +561,7 @@ impl ModelProvider for LMStudioProvider {
                                                         .unwrap_or_default();
 
                                                     // Validate chunk size
-                                                    if content.len() > defaults::MAX_CHUNK_SIZE {
-                                                        return Err(ProviderError::ApiError(format!(
-                                                            "Chunk size ({} chars) exceeds limit ({} chars)",
-                                                            content.len(),
-                                                            defaults::MAX_CHUNK_SIZE
-                                                        )));
-                                                    }
+                                                    validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
 
                                                     let final_chunk = StreamingChunk::final_chunk(
                                                         content,
@@ -603,13 +582,7 @@ impl ModelProvider for LMStudioProvider {
                                                         .unwrap_or_default();
 
                                                     // Validate chunk size
-                                                    if content.len() > defaults::MAX_CHUNK_SIZE {
-                                                        return Err(ProviderError::ApiError(format!(
-                                                            "Chunk size ({} chars) exceeds limit ({} chars)",
-                                                            content.len(),
-                                                            defaults::MAX_CHUNK_SIZE
-                                                        )));
-                                                    }
+                                                    validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
 
                                                     // Only yield chunk if it has content
                                                     if !content.is_empty() {
