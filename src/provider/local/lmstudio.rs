@@ -63,6 +63,9 @@ mod defaults {
     /// Based on common transformer model defaults. Individual models may have different limits
     /// that can be queried through the LMStudio API, but this provides a reasonable fallback.
     pub const CONTEXT_WINDOW: usize = 4096;
+    /// Maximum allowed size for a single streaming chunk (in characters)
+    /// This prevents memory exhaustion from extremely large responses
+    pub const MAX_CHUNK_SIZE: usize = 1024 * 1024; // 1MB in characters
 }
 
 /// OpenAI-compatible models response structure for LMStudio
@@ -91,7 +94,7 @@ struct LMStudioCompletionRequest {
     max_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f32>,
-    #[serde(default = "default_stream")]
+    #[serde(default)]
     stream: bool,
 }
 
@@ -166,11 +169,6 @@ struct LMStudioStreamingChoice {
 #[allow(dead_code)] // API response fields used for deserialization
 struct LMStudioDelta {
     content: Option<String>,
-}
-
-#[allow(dead_code)]
-fn default_stream() -> bool {
-    false
 }
 
 /// LMStudio-specific provider implementation
@@ -406,7 +404,12 @@ impl ModelProvider for LMStudioProvider {
             .json(&_lmstudio_request)
             .send()
             .await
-            .map_err(|e| ProviderError::NetworkError(e.to_string()))?;
+            .map_err(|e| {
+                ProviderError::NetworkError(format!(
+                    "Failed to connect to LMStudio streaming at {}: {}",
+                    url, e
+                ))
+            })?;
 
         // Check for HTTP errors
         if !response.status().is_success() {
@@ -424,10 +427,12 @@ impl ModelProvider for LMStudioProvider {
         let model_id = request.model.clone();
 
         // Convert the response to text and parse SSE format
-        let response_text = response
-            .text()
-            .await
-            .map_err(|e| ProviderError::NetworkError(e.to_string()))?;
+        let response_text = response.text().await.map_err(|e| {
+            ProviderError::NetworkError(format!(
+                "Failed to read LMStudio streaming response: {}",
+                e
+            ))
+        })?;
 
         // Parse Server-Sent Events format
         let chunks: Result<Vec<StreamingChunk>, ProviderError> = response_text
@@ -460,6 +465,16 @@ impl ModelProvider for LMStudioProvider {
                                 });
 
                         let content = choice.delta.content.clone().unwrap_or_default();
+
+                        // Validate chunk size to prevent memory exhaustion
+                        if content.len() > defaults::MAX_CHUNK_SIZE {
+                            return Err(ProviderError::ApiError(format!(
+                                "Chunk size ({} chars) exceeds limit ({} chars)",
+                                content.len(),
+                                defaults::MAX_CHUNK_SIZE
+                            )));
+                        }
+
                         Ok(Some(StreamingChunk::final_chunk(
                             content,
                             model_id.clone(),
@@ -469,6 +484,16 @@ impl ModelProvider for LMStudioProvider {
                     } else {
                         // Regular chunk
                         let content = choice.delta.content.clone().unwrap_or_default();
+
+                        // Validate chunk size to prevent memory exhaustion
+                        if content.len() > defaults::MAX_CHUNK_SIZE {
+                            return Err(ProviderError::ApiError(format!(
+                                "Chunk size ({} chars) exceeds limit ({} chars)",
+                                content.len(),
+                                defaults::MAX_CHUNK_SIZE
+                            )));
+                        }
+
                         Ok(Some(StreamingChunk::new(content, false)))
                     }
                 } else {

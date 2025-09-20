@@ -75,6 +75,10 @@ const DEFAULT_TIMEOUT_SECS: u64 = 30;
 /// Default context window size for most Ollama models
 const DEFAULT_CONTEXT_WINDOW: usize = 4096;
 
+/// Maximum allowed size for a single streaming chunk (in characters)
+/// This prevents memory exhaustion from extremely large responses
+const MAX_CHUNK_SIZE: usize = 1024 * 1024; // 1MB in characters
+
 /// Ollama-specific provider implementation
 pub struct OllamaProvider {
     /// HTTP client for API requests
@@ -118,7 +122,7 @@ impl OllamaProvider {
         let url = format!("{}{}", self.base_url, path);
 
         let response = self.client.get(&url).send().await.map_err(|e| {
-            ProviderError::NetworkError(format!("Failed to connect to Ollama: {}", e))
+            ProviderError::NetworkError(format!("Failed to connect to Ollama at {}: {}", url, e))
         })?;
 
         if !response.status().is_success() {
@@ -150,7 +154,10 @@ impl OllamaProvider {
             .send()
             .await
             .map_err(|e| {
-                ProviderError::NetworkError(format!("Failed to connect to Ollama: {}", e))
+                ProviderError::NetworkError(format!(
+                    "Failed to connect to Ollama at {}: {}",
+                    url, e
+                ))
             })?;
 
         if !response.status().is_success() {
@@ -373,7 +380,12 @@ impl ModelProvider for OllamaProvider {
             .json(&_ollama_request)
             .send()
             .await
-            .map_err(|e| ProviderError::NetworkError(e.to_string()))?;
+            .map_err(|e| {
+                ProviderError::NetworkError(format!(
+                    "Failed to connect to Ollama streaming at {}: {}",
+                    url, e
+                ))
+            })?;
 
         // Check for HTTP errors
         if !response.status().is_success() {
@@ -391,10 +403,9 @@ impl ModelProvider for OllamaProvider {
         let model_id = request.model.clone();
 
         // Convert the response to text first, then process
-        let response_text = response
-            .text()
-            .await
-            .map_err(|e| ProviderError::NetworkError(e.to_string()))?;
+        let response_text = response.text().await.map_err(|e| {
+            ProviderError::NetworkError(format!("Failed to read Ollama streaming response: {}", e))
+        })?;
 
         // Parse newline-delimited JSON responses
         let chunks: Result<Vec<StreamingChunk>, ProviderError> = response_text
@@ -403,6 +414,15 @@ impl ModelProvider for OllamaProvider {
             .map(|line| {
                 let ollama_response: OllamaGenerateResponse = serde_json::from_str(line)
                     .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+
+                // Validate chunk size to prevent memory exhaustion
+                if ollama_response.response.len() > MAX_CHUNK_SIZE {
+                    return Err(ProviderError::ApiError(format!(
+                        "Chunk size ({} chars) exceeds limit ({} chars)",
+                        ollama_response.response.len(),
+                        MAX_CHUNK_SIZE
+                    )));
+                }
 
                 if ollama_response.done {
                     // Final chunk with usage information
