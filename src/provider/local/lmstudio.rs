@@ -430,7 +430,7 @@ impl ModelProvider for LMStudioProvider {
             )));
         }
 
-        let model_id = request.model.clone();
+        let model_id = &request.model;
 
         // Stream response using bytes_stream for true streaming memory efficiency
         // This avoids loading the entire SSE response into memory

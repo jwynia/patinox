@@ -57,7 +57,7 @@
 
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
-    ModelId, ModelInfo, StreamingChunk, StreamingResponse,
+    ModelId, ModelInfo, StreamingChunk, StreamingResponse, Usage,
 };
 use crate::provider::{ModelProvider, ProviderError, ProviderResult};
 use async_trait::async_trait;
@@ -99,6 +99,20 @@ impl OllamaProvider {
     /// Create new Ollama provider with default endpoint
     pub fn new() -> ProviderResult<Self> {
         Self::with_endpoint(DEFAULT_ENDPOINT.to_string())
+    }
+
+    /// Create usage information from Ollama response
+    fn create_usage_from_response(response: &OllamaGenerateResponse) -> Option<Usage> {
+        if response.prompt_eval_count.is_some() || response.eval_count.is_some() {
+            Some(Usage {
+                prompt_tokens: response.prompt_eval_count.unwrap_or(0) as usize,
+                completion_tokens: response.eval_count.unwrap_or(0) as usize,
+                total_tokens: (response.prompt_eval_count.unwrap_or(0)
+                    + response.eval_count.unwrap_or(0)) as usize,
+            })
+        } else {
+            None
+        }
     }
 
     /// Create with custom endpoint
@@ -318,16 +332,7 @@ impl ModelProvider for OllamaProvider {
             .await?;
 
         // Convert response
-        let usage = if response.prompt_eval_count.is_some() || response.eval_count.is_some() {
-            Some(crate::provider::types::Usage {
-                prompt_tokens: response.prompt_eval_count.unwrap_or(0) as usize,
-                completion_tokens: response.eval_count.unwrap_or(0) as usize,
-                total_tokens: (response.prompt_eval_count.unwrap_or(0)
-                    + response.eval_count.unwrap_or(0)) as usize,
-            })
-        } else {
-            None
-        };
+        let usage = Self::create_usage_from_response(&response);
 
         Ok(CompletionResponse {
             model: request.model,
@@ -403,7 +408,7 @@ impl ModelProvider for OllamaProvider {
             )));
         }
 
-        let model_id = request.model.clone();
+        let model_id = &request.model;
 
         // Stream response using bytes_stream for true streaming memory efficiency
         // This avoids loading the entire response into memory
@@ -446,19 +451,7 @@ impl ModelProvider for OllamaProvider {
 
                 if ollama_response.done {
                     // Final chunk with usage information
-                    let usage = if ollama_response.prompt_eval_count.is_some()
-                        || ollama_response.eval_count.is_some()
-                    {
-                        Some(crate::provider::types::Usage {
-                            prompt_tokens: ollama_response.prompt_eval_count.unwrap_or(0) as usize,
-                            completion_tokens: ollama_response.eval_count.unwrap_or(0) as usize,
-                            total_tokens: (ollama_response.prompt_eval_count.unwrap_or(0)
-                                + ollama_response.eval_count.unwrap_or(0))
-                                as usize,
-                        })
-                    } else {
-                        None
-                    };
+                    let usage = Self::create_usage_from_response(&ollama_response);
 
                     chunks.push(StreamingChunk::final_chunk(
                         ollama_response.response,
@@ -493,19 +486,7 @@ impl ModelProvider for OllamaProvider {
 
             if ollama_response.done {
                 // Final chunk with usage information
-                let usage = if ollama_response.prompt_eval_count.is_some()
-                    || ollama_response.eval_count.is_some()
-                {
-                    Some(crate::provider::types::Usage {
-                        prompt_tokens: ollama_response.prompt_eval_count.unwrap_or(0) as usize,
-                        completion_tokens: ollama_response.eval_count.unwrap_or(0) as usize,
-                        total_tokens: (ollama_response.prompt_eval_count.unwrap_or(0)
-                            + ollama_response.eval_count.unwrap_or(0))
-                            as usize,
-                    })
-                } else {
-                    None
-                };
+                let usage = Self::create_usage_from_response(&ollama_response);
 
                 chunks.push(StreamingChunk::final_chunk(
                     ollama_response.response,
