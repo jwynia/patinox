@@ -47,7 +47,7 @@ use crate::provider::types::{
 };
 use crate::provider::{ModelProvider, ProviderError, ProviderResult};
 use async_trait::async_trait;
-use futures_util::stream;
+use futures_util::{stream, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -66,6 +66,12 @@ mod defaults {
     /// Maximum allowed size for a single streaming chunk (in characters)
     /// This prevents memory exhaustion from extremely large responses
     pub const MAX_CHUNK_SIZE: usize = 1024 * 1024; // 1MB in characters
+
+    /// SSE (Server-Sent Events) data line prefix
+    pub const SSE_DATA_PREFIX: &str = "data: ";
+
+    /// SSE completion marker
+    pub const SSE_DONE_MARKER: &str = "[DONE]";
 }
 
 /// OpenAI-compatible models response structure for LMStudio
@@ -424,27 +430,43 @@ impl ModelProvider for LMStudioProvider {
             )));
         }
 
-        let model_id = request.model.clone();
+        let model_id = &request.model;
 
-        // Convert the response to text and parse SSE format
-        let response_text = response.text().await.map_err(|e| {
-            ProviderError::NetworkError(format!(
-                "Failed to read LMStudio streaming response: {}",
-                e
-            ))
-        })?;
+        // Stream response using bytes_stream for true streaming memory efficiency
+        // This avoids loading the entire SSE response into memory
+        let mut stream = response.bytes_stream();
+        let mut buffer = String::new();
+        let mut chunks = Vec::new();
 
-        // Parse Server-Sent Events format
-        let chunks: Result<Vec<StreamingChunk>, ProviderError> = response_text
-            .lines()
-            .filter(|line| line.starts_with("data: ") && !line.trim().is_empty())
-            .map(|line| {
-                // Remove "data: " prefix
-                let data = &line[6..];
+        // Process bytes as they arrive from the network
+        while let Some(chunk_bytes) = stream.try_next().await.map_err(|e| {
+            ProviderError::NetworkError(format!("Failed to read LMStudio streaming bytes: {}", e))
+        })? {
+            // Convert bytes to string and add to buffer
+            let chunk_str = std::str::from_utf8(&chunk_bytes).map_err(|e| {
+                ProviderError::ParseError(format!("Invalid UTF-8 in response: {}", e))
+            })?;
+            buffer.push_str(chunk_str);
+
+            // Process complete lines from buffer
+            while let Some(newline_pos) = buffer.find('\n') {
+                let line = buffer[..newline_pos].to_string();
+                buffer.drain(..=newline_pos); // Remove processed line + newline
+
+                // Only process lines that start with SSE data prefix
+                if !line.starts_with(defaults::SSE_DATA_PREFIX) || line.trim().is_empty() {
+                    continue;
+                }
+
+                // Remove SSE data prefix
+                let data = &line[defaults::SSE_DATA_PREFIX.len()..];
 
                 // Check for completion signal
-                if data.trim() == "[DONE]" {
-                    return Ok(None); // Skip DONE marker
+                if data.trim() == defaults::SSE_DONE_MARKER {
+                    // End of stream, return accumulated chunks
+                    return Ok(StreamingResponse::new(stream::iter(
+                        chunks.into_iter().map(Ok),
+                    )));
                 }
 
                 // Parse JSON data
@@ -475,12 +497,16 @@ impl ModelProvider for LMStudioProvider {
                             )));
                         }
 
-                        Ok(Some(StreamingChunk::final_chunk(
+                        chunks.push(StreamingChunk::final_chunk(
                             content,
                             model_id.clone(),
                             finish_reason.clone(),
                             usage,
-                        )))
+                        ));
+                        // Final chunk reached, return immediately
+                        return Ok(StreamingResponse::new(stream::iter(
+                            chunks.into_iter().map(Ok),
+                        )));
                     } else {
                         // Regular chunk
                         let content = choice.delta.content.clone().unwrap_or_default();
@@ -494,21 +520,83 @@ impl ModelProvider for LMStudioProvider {
                             )));
                         }
 
-                        Ok(Some(StreamingChunk::new(content, false)))
+                        // Only add chunk if it has content
+                        if !content.is_empty() {
+                            chunks.push(StreamingChunk::new(content, false));
+                        }
                     }
-                } else {
-                    // No choices, skip this chunk
-                    Ok(None)
                 }
-            })
-            .filter_map(|result| match result {
-                Ok(Some(chunk)) => Some(Ok(chunk)),
-                Ok(None) => None,
-                Err(e) => Some(Err(e)),
-            })
-            .collect();
+                // Skip lines with no choices
+            }
+        }
 
-        let stream = stream::iter(chunks?.into_iter().map(Ok));
+        // Process any remaining data in buffer that didn't end with newline
+        if !buffer.trim().is_empty() {
+            // Only process if it starts with SSE data prefix
+            if buffer.starts_with(defaults::SSE_DATA_PREFIX) {
+                let line = buffer;
+                let data = &line[defaults::SSE_DATA_PREFIX.len()..];
+
+                // Check for completion signal
+                if data.trim() != defaults::SSE_DONE_MARKER {
+                    // Parse JSON data
+                    let streaming_response: LMStudioStreamingResponse = serde_json::from_str(data)
+                        .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+
+                    // Extract content from first choice
+                    if let Some(choice) = streaming_response.choices.first() {
+                        if let Some(finish_reason) = &choice.finish_reason {
+                            // Final chunk with usage information
+                            let usage =
+                                streaming_response
+                                    .usage
+                                    .map(|u| crate::provider::types::Usage {
+                                        prompt_tokens: u.prompt_tokens as usize,
+                                        completion_tokens: u.completion_tokens as usize,
+                                        total_tokens: u.total_tokens as usize,
+                                    });
+
+                            let content = choice.delta.content.clone().unwrap_or_default();
+
+                            // Validate chunk size to prevent memory exhaustion
+                            if content.len() > defaults::MAX_CHUNK_SIZE {
+                                return Err(ProviderError::ApiError(format!(
+                                    "Chunk size ({} chars) exceeds limit ({} chars)",
+                                    content.len(),
+                                    defaults::MAX_CHUNK_SIZE
+                                )));
+                            }
+
+                            chunks.push(StreamingChunk::final_chunk(
+                                content,
+                                model_id.clone(),
+                                finish_reason.clone(),
+                                usage,
+                            ));
+                        } else {
+                            // Regular chunk
+                            let content = choice.delta.content.clone().unwrap_or_default();
+
+                            // Validate chunk size to prevent memory exhaustion
+                            if content.len() > defaults::MAX_CHUNK_SIZE {
+                                return Err(ProviderError::ApiError(format!(
+                                    "Chunk size ({} chars) exceeds limit ({} chars)",
+                                    content.len(),
+                                    defaults::MAX_CHUNK_SIZE
+                                )));
+                            }
+
+                            // Only add chunk if it has content
+                            if !content.is_empty() {
+                                chunks.push(StreamingChunk::new(content, false));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let stream = stream::iter(chunks.into_iter().map(Ok));
         Ok(StreamingResponse::new(stream))
     }
 
