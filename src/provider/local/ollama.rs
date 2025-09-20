@@ -436,8 +436,9 @@ impl ModelProvider for OllamaProvider {
                             }
 
                             // Parse JSON line
-                            let ollama_response: OllamaGenerateResponse = serde_json::from_str(&line)
-                                .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+                            let ollama_response: OllamaGenerateResponse =
+                                serde_json::from_str(&line)
+                                    .map_err(|e| ProviderError::ParseError(e.to_string()))?;
 
                             // Validate chunk size to prevent memory exhaustion
                             if ollama_response.response.len() > MAX_CHUNK_SIZE {
@@ -469,16 +470,22 @@ impl ModelProvider for OllamaProvider {
                         match stream.try_next().await {
                             Ok(Some(chunk_bytes)) => {
                                 // Convert bytes to string and add to buffer
-                                let chunk_str = std::str::from_utf8(&chunk_bytes)
-                                    .map_err(|e| ProviderError::ParseError(format!("Invalid UTF-8 in response: {}", e)))?;
+                                let chunk_str = std::str::from_utf8(&chunk_bytes).map_err(|e| {
+                                    ProviderError::ParseError(format!(
+                                        "Invalid UTF-8 in response: {}",
+                                        e
+                                    ))
+                                })?;
                                 buffer.push_str(chunk_str);
                                 // Continue to process any complete lines
-                            },
+                            }
                             Ok(None) => {
                                 // End of stream, process remaining buffer
                                 if !buffer.trim().is_empty() {
-                                    let ollama_response: OllamaGenerateResponse = serde_json::from_str(&buffer)
-                                        .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+                                    let ollama_response: OllamaGenerateResponse =
+                                        serde_json::from_str(&buffer).map_err(|e| {
+                                            ProviderError::ParseError(e.to_string())
+                                        })?;
 
                                     // Validate chunk size
                                     if ollama_response.response.len() > MAX_CHUNK_SIZE {
@@ -490,7 +497,8 @@ impl ModelProvider for OllamaProvider {
                                     }
 
                                     if ollama_response.done {
-                                        let usage = Self::create_usage_from_response(&ollama_response);
+                                        let usage =
+                                            Self::create_usage_from_response(&ollama_response);
                                         let final_chunk = StreamingChunk::final_chunk(
                                             ollama_response.response,
                                             model_id.clone(),
@@ -499,19 +507,23 @@ impl ModelProvider for OllamaProvider {
                                         );
                                         return Ok(Some((final_chunk, (stream, buffer, true))));
                                     } else {
-                                        let chunk = StreamingChunk::new(ollama_response.response, false);
+                                        let chunk =
+                                            StreamingChunk::new(ollama_response.response, false);
                                         return Ok(Some((chunk, (stream, buffer, true))));
                                     }
                                 }
                                 return Ok(None);
-                            },
+                            }
                             Err(e) => {
-                                return Err(ProviderError::NetworkError(format!("Failed to read Ollama streaming bytes: {}", e)));
+                                return Err(ProviderError::NetworkError(format!(
+                                    "Failed to read Ollama streaming bytes: {}",
+                                    e
+                                )));
                             }
                         }
                     }
                 }
-            }
+            },
         );
 
         Ok(StreamingResponse::new(chunk_stream))

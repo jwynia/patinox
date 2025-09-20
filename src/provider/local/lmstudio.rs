@@ -453,7 +453,9 @@ impl ModelProvider for LMStudioProvider {
                             buffer.drain(..=newline_pos);
 
                             // Only process lines that start with SSE data prefix
-                            if !line.starts_with(defaults::SSE_DATA_PREFIX) || line.trim().is_empty() {
+                            if !line.starts_with(defaults::SSE_DATA_PREFIX)
+                                || line.trim().is_empty()
+                            {
                                 continue;
                             }
 
@@ -467,17 +469,20 @@ impl ModelProvider for LMStudioProvider {
                             }
 
                             // Parse JSON data
-                            let streaming_response: LMStudioStreamingResponse = serde_json::from_str(data)
-                                .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+                            let streaming_response: LMStudioStreamingResponse =
+                                serde_json::from_str(data)
+                                    .map_err(|e| ProviderError::ParseError(e.to_string()))?;
 
                             // Extract content from first choice
                             if let Some(choice) = streaming_response.choices.first() {
                                 if let Some(finish_reason) = &choice.finish_reason {
                                     // Final chunk with usage information
-                                    let usage = streaming_response.usage.map(|u| crate::provider::types::Usage {
-                                        prompt_tokens: u.prompt_tokens as usize,
-                                        completion_tokens: u.completion_tokens as usize,
-                                        total_tokens: u.total_tokens as usize,
+                                    let usage = streaming_response.usage.map(|u| {
+                                        crate::provider::types::Usage {
+                                            prompt_tokens: u.prompt_tokens as usize,
+                                            completion_tokens: u.completion_tokens as usize,
+                                            total_tokens: u.total_tokens as usize,
+                                        }
                                     });
 
                                     let content = choice.delta.content.clone().unwrap_or_default();
@@ -525,11 +530,15 @@ impl ModelProvider for LMStudioProvider {
                         match stream.try_next().await {
                             Ok(Some(chunk_bytes)) => {
                                 // Convert bytes to string and add to buffer
-                                let chunk_str = std::str::from_utf8(&chunk_bytes)
-                                    .map_err(|e| ProviderError::ParseError(format!("Invalid UTF-8 in response: {}", e)))?;
+                                let chunk_str = std::str::from_utf8(&chunk_bytes).map_err(|e| {
+                                    ProviderError::ParseError(format!(
+                                        "Invalid UTF-8 in response: {}",
+                                        e
+                                    ))
+                                })?;
                                 buffer.push_str(chunk_str);
                                 // Continue to process any complete lines
-                            },
+                            }
                             Ok(None) => {
                                 // End of stream, process remaining buffer
                                 if !buffer.trim().is_empty() {
@@ -541,20 +550,30 @@ impl ModelProvider for LMStudioProvider {
                                         // Check for completion signal
                                         if data.trim() != defaults::SSE_DONE_MARKER {
                                             // Parse JSON data
-                                            let streaming_response: LMStudioStreamingResponse = serde_json::from_str(data)
-                                                .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+                                            let streaming_response: LMStudioStreamingResponse =
+                                                serde_json::from_str(data).map_err(|e| {
+                                                    ProviderError::ParseError(e.to_string())
+                                                })?;
 
                                             // Extract content from first choice
-                                            if let Some(choice) = streaming_response.choices.first() {
+                                            if let Some(choice) = streaming_response.choices.first()
+                                            {
                                                 if let Some(finish_reason) = &choice.finish_reason {
                                                     // Final chunk with usage information
-                                                    let usage = streaming_response.usage.map(|u| crate::provider::types::Usage {
-                                                        prompt_tokens: u.prompt_tokens as usize,
-                                                        completion_tokens: u.completion_tokens as usize,
-                                                        total_tokens: u.total_tokens as usize,
+                                                    let usage = streaming_response.usage.map(|u| {
+                                                        crate::provider::types::Usage {
+                                                            prompt_tokens: u.prompt_tokens as usize,
+                                                            completion_tokens: u.completion_tokens
+                                                                as usize,
+                                                            total_tokens: u.total_tokens as usize,
+                                                        }
                                                     });
 
-                                                    let content = choice.delta.content.clone().unwrap_or_default();
+                                                    let content = choice
+                                                        .delta
+                                                        .content
+                                                        .clone()
+                                                        .unwrap_or_default();
 
                                                     // Validate chunk size
                                                     if content.len() > defaults::MAX_CHUNK_SIZE {
@@ -571,10 +590,17 @@ impl ModelProvider for LMStudioProvider {
                                                         finish_reason.clone(),
                                                         usage,
                                                     );
-                                                    return Ok(Some((final_chunk, (stream, buffer, true))));
+                                                    return Ok(Some((
+                                                        final_chunk,
+                                                        (stream, buffer, true),
+                                                    )));
                                                 } else {
                                                     // Regular chunk
-                                                    let content = choice.delta.content.clone().unwrap_or_default();
+                                                    let content = choice
+                                                        .delta
+                                                        .content
+                                                        .clone()
+                                                        .unwrap_or_default();
 
                                                     // Validate chunk size
                                                     if content.len() > defaults::MAX_CHUNK_SIZE {
@@ -587,8 +613,12 @@ impl ModelProvider for LMStudioProvider {
 
                                                     // Only yield chunk if it has content
                                                     if !content.is_empty() {
-                                                        let chunk = StreamingChunk::new(content, false);
-                                                        return Ok(Some((chunk, (stream, buffer, true))));
+                                                        let chunk =
+                                                            StreamingChunk::new(content, false);
+                                                        return Ok(Some((
+                                                            chunk,
+                                                            (stream, buffer, true),
+                                                        )));
                                                     }
                                                 }
                                             }
@@ -596,14 +626,17 @@ impl ModelProvider for LMStudioProvider {
                                     }
                                 }
                                 return Ok(None);
-                            },
+                            }
                             Err(e) => {
-                                return Err(ProviderError::NetworkError(format!("Failed to read LMStudio streaming bytes: {}", e)));
+                                return Err(ProviderError::NetworkError(format!(
+                                    "Failed to read LMStudio streaming bytes: {}",
+                                    e
+                                )));
                             }
                         }
                     }
                 }
-            }
+            },
         );
 
         Ok(StreamingResponse::new(chunk_stream))

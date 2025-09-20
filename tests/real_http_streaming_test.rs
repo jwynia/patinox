@@ -208,7 +208,10 @@ mod ollama_real_http_streaming {
             Err(ProviderError::ParseError(_)) => {
                 // Expected error type - JSON parsing failed when consuming stream
             }
-            other => panic!("Expected ParseError when consuming stream, got: {:?}", other),
+            other => panic!(
+                "Expected ParseError when consuming stream, got: {:?}",
+                other
+            ),
         }
 
         mock.assert_async().await;
@@ -511,7 +514,7 @@ mod memory_optimization_tests {
                 "response": content,
                 "done": false
             });
-            response.push_str(&chunk);
+            response.push_str(&chunk.to_string());
             response.push('\n');
         }
 
@@ -528,7 +531,7 @@ mod memory_optimization_tests {
             "eval_count": MOCK_EVAL_COUNT,
             "eval_duration": MOCK_EVAL_DURATION
         });
-        response.push_str(&final_chunk);
+        response.push_str(&final_chunk.to_string());
         response.push('\n');
 
         response
@@ -590,7 +593,10 @@ mod memory_optimization_tests {
         // Create large mock response (>10MB)
         let large_response = create_large_ollama_response();
         println!("Test response size: {} bytes", large_response.len());
-        assert!(large_response.len() > 10_000_000, "Response should be >10MB");
+        assert!(
+            large_response.len() > 10_000_000,
+            "Response should be >10MB"
+        );
 
         let mock = server
             .mock("POST", "/api/generate")
@@ -601,8 +607,8 @@ mod memory_optimization_tests {
             .create_async()
             .await;
 
-        let provider = OllamaProvider::with_endpoint(server.url())
-            .expect("Failed to create provider");
+        let provider =
+            OllamaProvider::with_endpoint(server.url()).expect("Failed to create provider");
         let request = HttpStreamingTestHelper::create_test_request();
 
         // Measure timing for first chunk (latency test)
@@ -623,8 +629,10 @@ mod memory_optimization_tests {
         println!("First chunk latency: {:?}", first_chunk_latency);
 
         // For a 10MB response, first chunk should arrive quickly with streaming
-        assert!(first_chunk_latency < Duration::from_millis(100),
-                "First chunk should arrive within 100ms with true streaming");
+        assert!(
+            first_chunk_latency < Duration::from_millis(100),
+            "First chunk should arrive within 100ms with true streaming"
+        );
 
         // Consume rest of stream and count chunks
         let mut chunk_count = 1; // Already got first chunk
@@ -643,7 +651,10 @@ mod memory_optimization_tests {
         println!("Total content size: {} bytes", total_content_size);
 
         // Verify we got a reasonable number of chunks
-        assert!(chunk_count > 1000, "Should have many chunks for large response");
+        assert!(
+            chunk_count > 1000,
+            "Should have many chunks for large response"
+        );
 
         mock.assert_async().await;
     }
@@ -655,7 +666,10 @@ mod memory_optimization_tests {
         // Create large mock response (>10MB)
         let large_response = create_large_lmstudio_response();
         println!("Test response size: {} bytes", large_response.len());
-        assert!(large_response.len() > 10_000_000, "Response should be >10MB");
+        assert!(
+            large_response.len() > 10_000_000,
+            "Response should be >10MB"
+        );
 
         let mock = server
             .mock("POST", "/v1/chat/completions")
@@ -666,8 +680,8 @@ mod memory_optimization_tests {
             .create_async()
             .await;
 
-        let provider = LMStudioProvider::with_endpoint(server.url())
-            .expect("Failed to create provider");
+        let provider =
+            LMStudioProvider::with_endpoint(server.url()).expect("Failed to create provider");
         let request = HttpStreamingTestHelper::create_test_request();
 
         // Measure timing for first chunk (latency test)
@@ -688,8 +702,10 @@ mod memory_optimization_tests {
         println!("First chunk latency: {:?}", first_chunk_latency);
 
         // For a 10MB response, first chunk should arrive quickly with streaming
-        assert!(first_chunk_latency < Duration::from_millis(100),
-                "First chunk should arrive within 100ms with true streaming");
+        assert!(
+            first_chunk_latency < Duration::from_millis(100),
+            "First chunk should arrive within 100ms with true streaming"
+        );
 
         // Consume rest of stream and count chunks
         let mut chunk_count = 1; // Already got first chunk
@@ -708,7 +724,10 @@ mod memory_optimization_tests {
         println!("Total content size: {} bytes", total_content_size);
 
         // Verify we got a reasonable number of chunks
-        assert!(chunk_count > 1000, "Should have many chunks for large response");
+        assert!(
+            chunk_count > 1000,
+            "Should have many chunks for large response"
+        );
 
         mock.assert_async().await;
     }
@@ -745,14 +764,15 @@ mod memory_optimization_tests {
             .create_async()
             .await;
 
-        let provider = OllamaProvider::with_endpoint(server.url())
-            .expect("Failed to create provider");
+        let provider =
+            OllamaProvider::with_endpoint(server.url()).expect("Failed to create provider");
         let request = HttpStreamingTestHelper::create_test_request();
 
         // Process small response
         let result = provider.stream_completion(request).await;
         assert!(result.is_ok());
-        let small_chunks = HttpStreamingTestHelper::collect_chunks_from_stream(result.unwrap()).await
+        let small_chunks = HttpStreamingTestHelper::collect_chunks_from_stream(result.unwrap())
+            .await
             .expect("Should collect chunks");
 
         small_mock.remove_async().await;
@@ -771,12 +791,15 @@ mod memory_optimization_tests {
         let request2 = HttpStreamingTestHelper::create_test_request();
         let result2 = provider.stream_completion(request2).await;
         assert!(result2.is_ok());
-        let large_chunks = HttpStreamingTestHelper::collect_chunks_from_stream(result2.unwrap()).await
+        let large_chunks = HttpStreamingTestHelper::collect_chunks_from_stream(result2.unwrap())
+            .await
             .expect("Should collect chunks");
 
         // Validate that large response has significantly more chunks
-        assert!(large_chunks.len() > small_chunks.len() * 100,
-                "Large response should have much more chunks");
+        assert!(
+            large_chunks.len() > small_chunks.len() * 100,
+            "Large response should have much more chunks"
+        );
 
         println!("Small response chunks: {}", small_chunks.len());
         println!("Large response chunks: {}", large_chunks.len());
