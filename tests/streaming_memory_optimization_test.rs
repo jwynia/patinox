@@ -455,24 +455,53 @@ async fn test_streaming_error_handling_with_malformed_large_response() {
     let provider = OllamaProvider::with_endpoint(server.url()).expect("Failed to create provider");
     let request = MemoryOptimizationTestHelper::create_test_request();
 
-    // With the optimized implementation, the error occurs during stream creation
-    // rather than during chunk iteration
+    // With true streaming, the HTTP request succeeds but parsing fails when consuming the stream
     let result = provider.stream_completion(request).await;
+    assert!(
+        result.is_ok(),
+        "HTTP request should succeed with true streaming"
+    );
 
-    match result {
-        Err(e) => {
-            // Should get a parse error, not hang or crash
-            assert!(
-                matches!(e, ProviderError::ParseError(_)),
-                "Expected ParseError, got: {:?}",
-                e
-            );
-            println!("Correctly caught parse error: {:?}", e);
-        }
-        Ok(_) => {
-            panic!("Expected parse error due to malformed JSON, but stream creation succeeded");
+    // Error occurs when consuming the stream
+    let mut stream = result.unwrap();
+
+    use futures_util::StreamExt; // Needed for stream operations
+
+    // Process chunks until we hit the malformed JSON
+    let mut chunks_processed = 0;
+    let mut got_error = false;
+
+    while let Some(chunk_result) = stream.next().await {
+        match chunk_result {
+            Ok(_chunk) => {
+                chunks_processed += 1;
+                // Continue processing valid chunks
+            }
+            Err(e) => {
+                // Should get a parse error when hitting malformed JSON
+                assert!(
+                    matches!(e, ProviderError::ParseError(_)),
+                    "Expected ParseError, got: {:?}",
+                    e
+                );
+                println!(
+                    "Correctly caught parse error after {} chunks: {:?}",
+                    chunks_processed, e
+                );
+                got_error = true;
+                break;
+            }
         }
     }
+
+    assert!(
+        got_error,
+        "Should have encountered a parse error during stream consumption"
+    );
+    assert!(
+        chunks_processed > 0,
+        "Should have processed some valid chunks before the error"
+    );
 
     mock_error.assert_async().await;
 }

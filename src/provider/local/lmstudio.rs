@@ -64,7 +64,6 @@ mod defaults {
     /// Based on common transformer model defaults. Individual models may have different limits
     /// that can be queried through the LMStudio API, but this provides a reasonable fallback.
     pub const CONTEXT_WINDOW: usize = 4096;
-
     /// SSE (Server-Sent Events) data line prefix
     pub const SSE_DATA_PREFIX: &str = "data: ";
 
@@ -428,150 +427,192 @@ impl ModelProvider for LMStudioProvider {
             )));
         }
 
-        let model_id = &request.model;
+        let model_id = request.model.clone();
 
-        // Stream response using bytes_stream for true streaming memory efficiency
-        // This avoids loading the entire SSE response into memory
-        let mut stream = response.bytes_stream();
-        let mut buffer = String::new();
-        let mut chunks = Vec::new();
+        // Create true streaming implementation that yields chunks as parsed
+        // Uses async generator pattern to avoid collecting chunks in memory
+        let byte_stream = response.bytes_stream();
+        let buffer = String::new();
 
-        // Process bytes as they arrive from the network
-        while let Some(chunk_bytes) = stream.try_next().await.map_err(|e| {
-            ProviderError::NetworkError(format!("Failed to read LMStudio streaming bytes: {}", e))
-        })? {
-            // Convert bytes to string and add to buffer
-            let chunk_str = std::str::from_utf8(&chunk_bytes).map_err(|e| {
-                ProviderError::ParseError(format!("Invalid UTF-8 in response: {}", e))
-            })?;
-            buffer.push_str(chunk_str);
-
-            // Process complete lines from buffer
-            while let Some(newline_pos) = buffer.find('\n') {
-                let line = buffer[..newline_pos].to_string();
-                buffer.drain(..=newline_pos); // Remove processed line + newline
-
-                // Only process lines that start with SSE data prefix
-                if !line.starts_with(defaults::SSE_DATA_PREFIX) || line.trim().is_empty() {
-                    continue;
-                }
-
-                // Remove SSE data prefix
-                let data = &line[defaults::SSE_DATA_PREFIX.len()..];
-
-                // Check for completion signal
-                if data.trim() == defaults::SSE_DONE_MARKER {
-                    // End of stream, return accumulated chunks
-                    return Ok(StreamingResponse::new(stream::iter(
-                        chunks.into_iter().map(Ok),
-                    )));
-                }
-
-                // Parse JSON data
-                let streaming_response: LMStudioStreamingResponse = serde_json::from_str(data)
-                    .map_err(|e| ProviderError::ParseError(e.to_string()))?;
-
-                // Extract content from first choice
-                if let Some(choice) = streaming_response.choices.first() {
-                    if let Some(finish_reason) = &choice.finish_reason {
-                        // Final chunk with usage information
-                        let usage =
-                            streaming_response
-                                .usage
-                                .map(|u| crate::provider::types::Usage {
-                                    prompt_tokens: u.prompt_tokens as usize,
-                                    completion_tokens: u.completion_tokens as usize,
-                                    total_tokens: u.total_tokens as usize,
-                                });
-
-                        let content = choice.delta.content.clone().unwrap_or_default();
-
-                        // Validate chunk size to prevent memory exhaustion
-                        validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
-
-                        chunks.push(StreamingChunk::final_chunk(
-                            content,
-                            model_id.clone(),
-                            finish_reason.clone(),
-                            usage,
-                        ));
-                        // Final chunk reached, return immediately
-                        return Ok(StreamingResponse::new(stream::iter(
-                            chunks.into_iter().map(Ok),
-                        )));
-                    } else {
-                        // Regular chunk
-                        let content = choice.delta.content.clone().unwrap_or_default();
-
-                        // Validate chunk size to prevent memory exhaustion
-                        validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
-
-                        // Only add chunk if it has content
-                        if !content.is_empty() {
-                            chunks.push(StreamingChunk::new(content, false));
-                        }
+        let chunk_stream = stream::try_unfold(
+            (byte_stream, buffer, false), // (stream, buffer, finished)
+            move |(mut stream, mut buffer, finished)| {
+                let model_id = model_id.clone();
+                async move {
+                    if finished {
+                        return Ok(None);
                     }
-                }
-                // Skip lines with no choices
-            }
-        }
 
-        // Process any remaining data in buffer that didn't end with newline
-        if !buffer.trim().is_empty() {
-            // Only process if it starts with SSE data prefix
-            if buffer.starts_with(defaults::SSE_DATA_PREFIX) {
-                let line = buffer;
-                let data = &line[defaults::SSE_DATA_PREFIX.len()..];
+                    loop {
+                        // Process any complete lines in buffer first
+                        while let Some(newline_pos) = buffer.find('\n') {
+                            let line = buffer[..newline_pos].to_string();
+                            buffer.drain(..=newline_pos);
 
-                // Check for completion signal
-                if data.trim() != defaults::SSE_DONE_MARKER {
-                    // Parse JSON data
-                    let streaming_response: LMStudioStreamingResponse = serde_json::from_str(data)
-                        .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+                            // Only process lines that start with SSE data prefix
+                            if !line.starts_with(defaults::SSE_DATA_PREFIX)
+                                || line.trim().is_empty()
+                            {
+                                continue;
+                            }
 
-                    // Extract content from first choice
-                    if let Some(choice) = streaming_response.choices.first() {
-                        if let Some(finish_reason) = &choice.finish_reason {
-                            // Final chunk with usage information
-                            let usage =
-                                streaming_response
-                                    .usage
-                                    .map(|u| crate::provider::types::Usage {
-                                        prompt_tokens: u.prompt_tokens as usize,
-                                        completion_tokens: u.completion_tokens as usize,
-                                        total_tokens: u.total_tokens as usize,
+                            // Remove SSE data prefix
+                            let data = &line[defaults::SSE_DATA_PREFIX.len()..];
+
+                            // Check for completion signal
+                            if data.trim() == defaults::SSE_DONE_MARKER {
+                                // End of stream
+                                return Ok(None);
+                            }
+
+                            // Parse JSON data
+                            let streaming_response: LMStudioStreamingResponse =
+                                serde_json::from_str(data)
+                                    .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+
+                            // Extract content from first choice
+                            if let Some(choice) = streaming_response.choices.first() {
+                                if let Some(finish_reason) = &choice.finish_reason {
+                                    // Final chunk with usage information
+                                    let usage = streaming_response.usage.map(|u| {
+                                        crate::provider::types::Usage {
+                                            prompt_tokens: u.prompt_tokens as usize,
+                                            completion_tokens: u.completion_tokens as usize,
+                                            total_tokens: u.total_tokens as usize,
+                                        }
                                     });
 
-                            let content = choice.delta.content.clone().unwrap_or_default();
+                                    let content = choice.delta.content.clone().unwrap_or_default();
 
-                            // Validate chunk size to prevent memory exhaustion
-                            validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
+                                    // Validate chunk size to prevent memory exhaustion
+                                    validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
 
-                            chunks.push(StreamingChunk::final_chunk(
-                                content,
-                                model_id.clone(),
-                                finish_reason.clone(),
-                                usage,
-                            ));
-                        } else {
-                            // Regular chunk
-                            let content = choice.delta.content.clone().unwrap_or_default();
+                                    let final_chunk = StreamingChunk::final_chunk(
+                                        content,
+                                        model_id.clone(),
+                                        finish_reason.clone(),
+                                        usage,
+                                    );
+                                    return Ok(Some((final_chunk, (stream, buffer, true))));
+                                } else {
+                                    // Regular chunk
+                                    let content = choice.delta.content.clone().unwrap_or_default();
 
-                            // Validate chunk size to prevent memory exhaustion
-                            validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
+                                    // Validate chunk size to prevent memory exhaustion
+                                    validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
 
-                            // Only add chunk if it has content
-                            if !content.is_empty() {
-                                chunks.push(StreamingChunk::new(content, false));
+                                    // Only yield chunk if it has content
+                                    if !content.is_empty() {
+                                        let chunk = StreamingChunk::new(content, false);
+                                        return Ok(Some((chunk, (stream, buffer, false))));
+                                    }
+                                }
+                            }
+                            // Skip lines with no choices or empty content
+                        }
+
+                        // No complete lines, read more bytes
+                        match stream.try_next().await {
+                            Ok(Some(chunk_bytes)) => {
+                                // Convert bytes to string and add to buffer
+                                let chunk_str = std::str::from_utf8(&chunk_bytes).map_err(|e| {
+                                    ProviderError::ParseError(format!(
+                                        "Invalid UTF-8 in response: {}",
+                                        e
+                                    ))
+                                })?;
+                                buffer.push_str(chunk_str);
+                                // Continue to process any complete lines
+                            }
+                            Ok(None) => {
+                                // End of stream, process remaining buffer
+                                if !buffer.trim().is_empty() {
+                                    // Only process if it starts with SSE data prefix
+                                    if buffer.starts_with(defaults::SSE_DATA_PREFIX) {
+                                        let line = buffer.clone();
+                                        let data = &line[defaults::SSE_DATA_PREFIX.len()..];
+
+                                        // Check for completion signal
+                                        if data.trim() != defaults::SSE_DONE_MARKER {
+                                            // Parse JSON data
+                                            let streaming_response: LMStudioStreamingResponse =
+                                                serde_json::from_str(data).map_err(|e| {
+                                                    ProviderError::ParseError(e.to_string())
+                                                })?;
+
+                                            // Extract content from first choice
+                                            if let Some(choice) = streaming_response.choices.first()
+                                            {
+                                                if let Some(finish_reason) = &choice.finish_reason {
+                                                    // Final chunk with usage information
+                                                    let usage = streaming_response.usage.map(|u| {
+                                                        crate::provider::types::Usage {
+                                                            prompt_tokens: u.prompt_tokens as usize,
+                                                            completion_tokens: u.completion_tokens
+                                                                as usize,
+                                                            total_tokens: u.total_tokens as usize,
+                                                        }
+                                                    });
+
+                                                    let content = choice
+                                                        .delta
+                                                        .content
+                                                        .clone()
+                                                        .unwrap_or_default();
+
+                                                    // Validate chunk size
+                                                    validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
+
+                                                    let final_chunk = StreamingChunk::final_chunk(
+                                                        content,
+                                                        model_id.clone(),
+                                                        finish_reason.clone(),
+                                                        usage,
+                                                    );
+                                                    return Ok(Some((
+                                                        final_chunk,
+                                                        (stream, buffer, true),
+                                                    )));
+                                                } else {
+                                                    // Regular chunk
+                                                    let content = choice
+                                                        .delta
+                                                        .content
+                                                        .clone()
+                                                        .unwrap_or_default();
+
+                                                    // Validate chunk size
+                                                    validate_chunk_size(&content, MAX_CHUNK_SIZE)?;
+
+                                                    // Only yield chunk if it has content
+                                                    if !content.is_empty() {
+                                                        let chunk =
+                                                            StreamingChunk::new(content, false);
+                                                        return Ok(Some((
+                                                            chunk,
+                                                            (stream, buffer, true),
+                                                        )));
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                return Ok(None);
+                            }
+                            Err(e) => {
+                                return Err(ProviderError::NetworkError(format!(
+                                    "Failed to read LMStudio streaming bytes: {}",
+                                    e
+                                )));
                             }
                         }
                     }
                 }
-            }
-        }
+            },
+        );
 
-        let stream = stream::iter(chunks.into_iter().map(Ok));
-        Ok(StreamingResponse::new(stream))
+        Ok(StreamingResponse::new(chunk_stream))
     }
 
     async fn embed(&self, _request: EmbeddingRequest) -> ProviderResult<EmbeddingResponse> {
