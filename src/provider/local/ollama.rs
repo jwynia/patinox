@@ -55,12 +55,12 @@
 //! - `ApiError` - Ollama API errors or malformed responses
 //! - `InvalidRequest` - Request validation failures
 
+use super::validation::{validate_chunk_size, MAX_CHUNK_SIZE};
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
     ModelId, ModelInfo, StreamingChunk, StreamingResponse, Usage,
 };
 use crate::provider::{ModelProvider, ProviderError, ProviderResult};
-use super::validation::{validate_chunk_size, MAX_CHUNK_SIZE};
 use async_trait::async_trait;
 use futures_util::{stream, TryStreamExt};
 use std::collections::HashMap;
@@ -75,7 +75,6 @@ const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
 /// Default context window size for most Ollama models
 const DEFAULT_CONTEXT_WINDOW: usize = 4096;
-
 
 /// Default finish reason for completed streaming responses
 const DEFAULT_FINISH_REASON: &str = "stop";

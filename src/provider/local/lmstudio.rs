@@ -41,12 +41,12 @@
 //! # }
 //! ```
 
+use super::validation::{validate_chunk_size, MAX_CHUNK_SIZE};
 use crate::provider::types::{
     CompletionRequest, CompletionResponse, EmbeddingRequest, EmbeddingResponse, ModelCapabilities,
     ModelId, ModelInfo, QualityTier, SpeedTier, StreamingChunk, StreamingResponse, Usage,
 };
 use crate::provider::{ModelProvider, ProviderError, ProviderResult};
-use super::validation::{validate_chunk_size, MAX_CHUNK_SIZE};
 use async_trait::async_trait;
 use futures_util::{stream, TryStreamExt};
 use serde::{Deserialize, Serialize};
