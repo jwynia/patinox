@@ -61,7 +61,7 @@ use crate::provider::types::{
 };
 use crate::provider::{ModelProvider, ProviderError, ProviderResult};
 use async_trait::async_trait;
-use futures_util::stream;
+use futures_util::{stream, TryStreamExt};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -78,6 +78,9 @@ const DEFAULT_CONTEXT_WINDOW: usize = 4096;
 /// Maximum allowed size for a single streaming chunk (in characters)
 /// This prevents memory exhaustion from extremely large responses
 const MAX_CHUNK_SIZE: usize = 1024 * 1024; // 1MB in characters
+
+/// Default finish reason for completed streaming responses
+const DEFAULT_FINISH_REASON: &str = "stop";
 
 /// Ollama-specific provider implementation
 pub struct OllamaProvider {
@@ -402,17 +405,34 @@ impl ModelProvider for OllamaProvider {
 
         let model_id = request.model.clone();
 
-        // Convert the response to text first, then process
-        let response_text = response.text().await.map_err(|e| {
-            ProviderError::NetworkError(format!("Failed to read Ollama streaming response: {}", e))
-        })?;
+        // Stream response using bytes_stream for true streaming memory efficiency
+        // This avoids loading the entire response into memory
+        let mut stream = response.bytes_stream();
+        let mut buffer = String::new();
+        let mut chunks = Vec::new();
 
-        // Parse newline-delimited JSON responses
-        let chunks: Result<Vec<StreamingChunk>, ProviderError> = response_text
-            .lines()
-            .filter(|line| !line.trim().is_empty())
-            .map(|line| {
-                let ollama_response: OllamaGenerateResponse = serde_json::from_str(line)
+        // Process bytes as they arrive from the network
+        while let Some(chunk_bytes) = stream.try_next().await.map_err(|e| {
+            ProviderError::NetworkError(format!("Failed to read Ollama streaming bytes: {}", e))
+        })? {
+            // Convert bytes to string and add to buffer
+            let chunk_str = std::str::from_utf8(&chunk_bytes).map_err(|e| {
+                ProviderError::ParseError(format!("Invalid UTF-8 in response: {}", e))
+            })?;
+            buffer.push_str(chunk_str);
+
+            // Process complete lines from buffer
+            while let Some(newline_pos) = buffer.find('\n') {
+                let line = buffer[..newline_pos].to_string();
+                buffer.drain(..=newline_pos); // Remove processed line + newline
+
+                // Skip empty lines
+                if line.trim().is_empty() {
+                    continue;
+                }
+
+                // Parse JSON line
+                let ollama_response: OllamaGenerateResponse = serde_json::from_str(&line)
                     .map_err(|e| ProviderError::ParseError(e.to_string()))?;
 
                 // Validate chunk size to prevent memory exhaustion
@@ -440,20 +460,66 @@ impl ModelProvider for OllamaProvider {
                         None
                     };
 
-                    Ok(StreamingChunk::final_chunk(
+                    chunks.push(StreamingChunk::final_chunk(
                         ollama_response.response,
                         model_id.clone(),
-                        "stop".to_string(),
+                        DEFAULT_FINISH_REASON.to_string(),
                         usage,
-                    ))
+                    ));
+                    // Final chunk reached, exit both loops
+                    return Ok(StreamingResponse::new(stream::iter(
+                        chunks.into_iter().map(Ok),
+                    )));
                 } else {
                     // Regular chunk
-                    Ok(StreamingChunk::new(ollama_response.response, false))
+                    chunks.push(StreamingChunk::new(ollama_response.response, false));
                 }
-            })
-            .collect();
+            }
+        }
 
-        let stream = stream::iter(chunks?.into_iter().map(Ok));
+        // Process any remaining data in buffer that didn't end with newline
+        if !buffer.trim().is_empty() {
+            let ollama_response: OllamaGenerateResponse = serde_json::from_str(&buffer)
+                .map_err(|e| ProviderError::ParseError(e.to_string()))?;
+
+            // Validate chunk size to prevent memory exhaustion
+            if ollama_response.response.len() > MAX_CHUNK_SIZE {
+                return Err(ProviderError::ApiError(format!(
+                    "Chunk size ({} chars) exceeds limit ({} chars)",
+                    ollama_response.response.len(),
+                    MAX_CHUNK_SIZE
+                )));
+            }
+
+            if ollama_response.done {
+                // Final chunk with usage information
+                let usage = if ollama_response.prompt_eval_count.is_some()
+                    || ollama_response.eval_count.is_some()
+                {
+                    Some(crate::provider::types::Usage {
+                        prompt_tokens: ollama_response.prompt_eval_count.unwrap_or(0) as usize,
+                        completion_tokens: ollama_response.eval_count.unwrap_or(0) as usize,
+                        total_tokens: (ollama_response.prompt_eval_count.unwrap_or(0)
+                            + ollama_response.eval_count.unwrap_or(0))
+                            as usize,
+                    })
+                } else {
+                    None
+                };
+
+                chunks.push(StreamingChunk::final_chunk(
+                    ollama_response.response,
+                    model_id.clone(),
+                    DEFAULT_FINISH_REASON.to_string(),
+                    usage,
+                ));
+            } else {
+                // Regular chunk
+                chunks.push(StreamingChunk::new(ollama_response.response, false));
+            }
+        }
+
+        let stream = stream::iter(chunks.into_iter().map(Ok));
         Ok(StreamingResponse::new(stream))
     }
 
