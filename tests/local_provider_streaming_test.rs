@@ -3,35 +3,15 @@
 //! This test suite provides basic validation that streaming methods exist
 //! and return the expected basic response structure.
 
-use futures_util::StreamExt;
-
-// Test data constants
-const OLLAMA_MOCK_RESPONSE: &str = "Hello world!";
-const LMSTUDIO_MOCK_RESPONSE: &str = "Hello from LMStudio!";
+// Real HTTP streaming test constants (mock constants removed as we now use real HTTP)
 use patinox::provider::local::{LMStudioProvider, OllamaProvider};
-use patinox::provider::types::{CompletionRequest, ModelId, StreamingChunk};
+use patinox::provider::types::{CompletionRequest, ModelId};
 use patinox::provider::{ModelProvider, ProviderError};
 
 /// Test helper for streaming scenarios
 struct StreamingTestHelper;
 
 impl StreamingTestHelper {
-    /// Collect all chunks from a streaming response for testing
-    async fn collect_chunks_from_stream<S>(
-        mut stream: S,
-    ) -> Result<Vec<StreamingChunk>, ProviderError>
-    where
-        S: futures_util::Stream<Item = Result<StreamingChunk, ProviderError>> + Unpin,
-    {
-        let mut chunks = Vec::new();
-
-        while let Some(chunk_result) = stream.next().await {
-            chunks.push(chunk_result?);
-        }
-
-        Ok(chunks)
-    }
-
     /// Create a simple test request
     fn create_test_request() -> CompletionRequest {
         CompletionRequest {
@@ -61,40 +41,23 @@ mod ollama_streaming {
 
         let request = StreamingTestHelper::create_test_request();
 
-        // Act: Call stream_completion - this should return a mock stream
+        // Act: Call stream_completion - this should fail with network error (no server)
         let stream_result = provider.stream_completion(request).await;
 
-        // Assert: Should return a streaming response (even if mock)
+        // Assert: Should fail with network error since no server is running
         assert!(
-            stream_result.is_ok(),
-            "Stream completion should not fail for basic request"
+            stream_result.is_err(),
+            "Stream completion should fail when no server is available"
         );
 
-        let stream = stream_result.unwrap();
-
-        // Convert to something we can iterate over
-        let chunks_result = StreamingTestHelper::collect_chunks_from_stream(stream).await;
-        assert!(
-            chunks_result.is_ok(),
-            "Should be able to collect chunks from stream"
-        );
-
-        let chunks = chunks_result.unwrap();
-        assert!(
-            !chunks.is_empty(),
-            "Stream should produce at least one chunk"
-        );
-
-        // Verify we get the expected mock content
-        let full_content: String = chunks.iter().map(|c| c.content.as_str()).collect();
-        assert_eq!(
-            full_content, OLLAMA_MOCK_RESPONSE,
-            "Should get expected mock content"
-        );
-
-        // Verify final chunk
-        let final_chunk = chunks.iter().find(|c| c.is_final);
-        assert!(final_chunk.is_some(), "Should have a final chunk");
+        // Verify it's a network error
+        match stream_result.unwrap_err() {
+            ProviderError::NetworkError(_) => {
+                // Expected behavior - no server running
+                println!("Expected network error - no Ollama server");
+            }
+            other => panic!("Expected NetworkError, got: {:?}", other),
+        }
     }
 
     #[tokio::test]
@@ -207,38 +170,23 @@ mod lmstudio_streaming {
 
         let request = StreamingTestHelper::create_test_request();
 
-        // Act: Call stream_completion - this should return a mock stream
+        // Act: Call stream_completion - this should fail with network error (no server)
         let stream_result = provider.stream_completion(request).await;
 
-        // Assert: Should return a streaming response (even if mock)
+        // Assert: Should fail with network error since no server is running
         assert!(
-            stream_result.is_ok(),
-            "Stream completion should not fail for basic request"
+            stream_result.is_err(),
+            "Stream completion should fail when no server is available"
         );
 
-        let stream = stream_result.unwrap();
-        let chunks_result = StreamingTestHelper::collect_chunks_from_stream(stream).await;
-        assert!(
-            chunks_result.is_ok(),
-            "Should be able to collect chunks from stream"
-        );
-
-        let chunks = chunks_result.unwrap();
-        assert!(
-            !chunks.is_empty(),
-            "Stream should produce at least one chunk"
-        );
-
-        // Verify we get the expected mock content
-        let full_content: String = chunks.iter().map(|c| c.content.as_str()).collect();
-        assert_eq!(
-            full_content, LMSTUDIO_MOCK_RESPONSE,
-            "Should get expected mock content"
-        );
-
-        // Verify final chunk
-        let final_chunk = chunks.iter().find(|c| c.is_final);
-        assert!(final_chunk.is_some(), "Should have a final chunk");
+        // Verify it's a network error
+        match stream_result.unwrap_err() {
+            ProviderError::NetworkError(_) => {
+                // Expected behavior - no server running
+                println!("Expected error - no LMStudio server or other issue");
+            }
+            other => panic!("Expected NetworkError, got: {:?}", other),
+        }
     }
 
     #[tokio::test]
