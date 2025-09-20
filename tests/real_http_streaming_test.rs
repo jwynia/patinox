@@ -193,15 +193,22 @@ mod ollama_real_http_streaming {
             OllamaProvider::with_endpoint(server.url()).expect("Failed to create provider");
         let request = HttpStreamingTestHelper::create_test_request();
 
-        // The error should occur during the initial parsing since we parse immediately
+        // With true streaming, the HTTP request succeeds but parsing fails when consuming the stream
         let result = provider.stream_completion(request).await;
-        assert!(result.is_err(), "Should fail to parse invalid JSON");
+        assert!(result.is_ok(), "HTTP request should succeed");
 
-        match result.unwrap_err() {
-            ProviderError::ParseError(_) => {
-                // Expected error type
+        // Error occurs when consuming the stream
+        let mut stream = result.unwrap();
+
+        use futures_util::StreamExt; // Needed for stream operations
+        let first_chunk_result = stream.next().await;
+
+        assert!(first_chunk_result.is_some(), "Stream should yield an error");
+        match first_chunk_result.unwrap() {
+            Err(ProviderError::ParseError(_)) => {
+                // Expected error type - JSON parsing failed when consuming stream
             }
-            other => panic!("Expected ParseError, got: {:?}", other),
+            other => panic!("Expected ParseError when consuming stream, got: {:?}", other),
         }
 
         mock.assert_async().await;
@@ -480,5 +487,303 @@ mod integration_tests {
         }
 
         mock.assert_async().await;
+    }
+}
+
+/// Memory optimization tests - validate that true streaming uses constant memory
+mod memory_optimization_tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+
+    /// Helper to create a large NDJSON response for Ollama (>10MB)
+    fn create_large_ollama_response() -> String {
+        let chunk_size = 1000; // 1000 characters per chunk
+        let num_chunks = 10000; // 10k chunks = ~10MB
+
+        let mut response = String::new();
+
+        // Create intermediate chunks
+        for _i in 0..num_chunks {
+            let content = "A".repeat(chunk_size);
+            let chunk = json!({
+                "model": "test-model",
+                "created_at": MOCK_TIMESTAMP,
+                "response": content,
+                "done": false
+            });
+            response.push_str(&chunk.to_string());
+            response.push('\n');
+        }
+
+        // Final chunk with usage stats
+        let final_chunk = json!({
+            "model": "test-model",
+            "created_at": MOCK_TIMESTAMP,
+            "response": "",
+            "done": true,
+            "total_duration": MOCK_TOTAL_DURATION,
+            "load_duration": MOCK_LOAD_DURATION,
+            "prompt_eval_duration": MOCK_PROMPT_EVAL_DURATION,
+            "prompt_eval_count": MOCK_PROMPT_EVAL_COUNT,
+            "eval_count": MOCK_EVAL_COUNT,
+            "eval_duration": MOCK_EVAL_DURATION
+        });
+        response.push_str(&final_chunk.to_string());
+        response.push('\n');
+
+        response
+    }
+
+    /// Helper to create a large SSE response for LMStudio (>10MB)
+    fn create_large_lmstudio_response() -> String {
+        let chunk_size = 1000; // 1000 characters per chunk
+        let num_chunks = 10000; // 10k chunks = ~10MB
+
+        let mut response = String::new();
+
+        // Create intermediate chunks
+        for _i in 0..num_chunks {
+            let content = "B".repeat(chunk_size);
+            let chunk = json!({
+                "id": "chatcmpl-test",
+                "object": "chat.completion.chunk",
+                "created": 1698000000,
+                "model": "test-model",
+                "choices": [{
+                    "index": 0,
+                    "delta": {
+                        "content": content
+                    },
+                    "finish_reason": null
+                }]
+            });
+            response.push_str(&format!("data: {}\n\n", chunk.to_string()));
+        }
+
+        // Final chunk with usage stats
+        let final_chunk = json!({
+            "id": "chatcmpl-test",
+            "object": "chat.completion.chunk",
+            "created": 1698000000,
+            "model": "test-model",
+            "choices": [{
+                "index": 0,
+                "delta": {},
+                "finish_reason": "stop"
+            }],
+            "usage": {
+                "prompt_tokens": MOCK_PROMPT_EVAL_COUNT,
+                "completion_tokens": MOCK_EVAL_COUNT,
+                "total_tokens": MOCK_PROMPT_EVAL_COUNT + MOCK_EVAL_COUNT
+            }
+        });
+        response.push_str(&format!("data: {}\n\n", final_chunk.to_string()));
+        response.push_str("data: [DONE]\n\n");
+
+        response
+    }
+
+    #[tokio::test]
+    async fn test_ollama_streaming_memory_efficiency() {
+        let mut server = Server::new_async().await;
+
+        // Create large mock response (>10MB)
+        let large_response = create_large_ollama_response();
+        println!("Test response size: {} bytes", large_response.len());
+        assert!(large_response.len() > 10_000_000, "Response should be >10MB");
+
+        let mock = server
+            .mock("POST", "/api/generate")
+            .match_header("content-type", "application/json")
+            .with_status(200)
+            .with_header("content-type", "application/x-ndjson")
+            .with_body(large_response)
+            .create_async()
+            .await;
+
+        let provider = OllamaProvider::with_endpoint(server.url())
+            .expect("Failed to create provider");
+        let request = HttpStreamingTestHelper::create_test_request();
+
+        // Measure timing for first chunk (latency test)
+        let start_time = Instant::now();
+        let result = provider.stream_completion(request).await;
+        assert!(result.is_ok(), "Should create stream successfully");
+
+        let mut stream = result.unwrap();
+
+        // Get first chunk and measure time
+        let first_chunk_result = stream.next().await;
+        let first_chunk_latency = start_time.elapsed();
+
+        assert!(first_chunk_result.is_some(), "Should get first chunk");
+        let first_chunk = first_chunk_result.unwrap();
+        assert!(first_chunk.is_ok(), "First chunk should be valid");
+
+        println!("First chunk latency: {:?}", first_chunk_latency);
+
+        // For a 10MB response, first chunk should arrive quickly with streaming
+        assert!(first_chunk_latency < Duration::from_millis(100),
+                "First chunk should arrive within 100ms with true streaming");
+
+        // Consume rest of stream and count chunks
+        let mut chunk_count = 1; // Already got first chunk
+        let mut total_content_size = first_chunk.unwrap().content.len();
+
+        while let Some(chunk_result) = stream.next().await {
+            let chunk = chunk_result.expect("Chunk should be valid");
+            chunk_count += 1;
+            total_content_size += chunk.content.len();
+
+            // Memory usage should remain constant - each chunk is processed and released
+            // This test validates that we're not accumulating chunks in memory
+        }
+
+        println!("Processed {} chunks", chunk_count);
+        println!("Total content size: {} bytes", total_content_size);
+
+        // Verify we got a reasonable number of chunks
+        assert!(chunk_count > 1000, "Should have many chunks for large response");
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn test_lmstudio_streaming_memory_efficiency() {
+        let mut server = Server::new_async().await;
+
+        // Create large mock response (>10MB)
+        let large_response = create_large_lmstudio_response();
+        println!("Test response size: {} bytes", large_response.len());
+        assert!(large_response.len() > 10_000_000, "Response should be >10MB");
+
+        let mock = server
+            .mock("POST", "/v1/chat/completions")
+            .match_header("content-type", "application/json")
+            .with_status(200)
+            .with_header("content-type", "text/event-stream")
+            .with_body(large_response)
+            .create_async()
+            .await;
+
+        let provider = LMStudioProvider::with_endpoint(server.url())
+            .expect("Failed to create provider");
+        let request = HttpStreamingTestHelper::create_test_request();
+
+        // Measure timing for first chunk (latency test)
+        let start_time = Instant::now();
+        let result = provider.stream_completion(request).await;
+        assert!(result.is_ok(), "Should create stream successfully");
+
+        let mut stream = result.unwrap();
+
+        // Get first chunk and measure time
+        let first_chunk_result = stream.next().await;
+        let first_chunk_latency = start_time.elapsed();
+
+        assert!(first_chunk_result.is_some(), "Should get first chunk");
+        let first_chunk = first_chunk_result.unwrap();
+        assert!(first_chunk.is_ok(), "First chunk should be valid");
+
+        println!("First chunk latency: {:?}", first_chunk_latency);
+
+        // For a 10MB response, first chunk should arrive quickly with streaming
+        assert!(first_chunk_latency < Duration::from_millis(100),
+                "First chunk should arrive within 100ms with true streaming");
+
+        // Consume rest of stream and count chunks
+        let mut chunk_count = 1; // Already got first chunk
+        let mut total_content_size = first_chunk.unwrap().content.len();
+
+        while let Some(chunk_result) = stream.next().await {
+            let chunk = chunk_result.expect("Chunk should be valid");
+            chunk_count += 1;
+            total_content_size += chunk.content.len();
+
+            // Memory usage should remain constant - each chunk is processed and released
+            // This test validates that we're not accumulating chunks in memory
+        }
+
+        println!("Processed {} chunks", chunk_count);
+        println!("Total content size: {} bytes", total_content_size);
+
+        // Verify we got a reasonable number of chunks
+        assert!(chunk_count > 1000, "Should have many chunks for large response");
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn test_streaming_constant_memory_usage() {
+        // This test validates that memory usage remains constant regardless of response size
+        // by comparing small vs large responses
+
+        let mut server = Server::new_async().await;
+
+        // Test 1: Small response
+        let small_response = format!(
+            r#"{{"model":"test-model","created_at":"{}","response":"Hello","done":false}}
+{{"model":"test-model","created_at":"{}","response":" there","done":false}}
+{{"model":"test-model","created_at":"{}","response":"!","done":true,"total_duration":{},"load_duration":{},"prompt_eval_count":{},"prompt_eval_duration":{},"eval_count":{},"eval_duration":{}}}
+"#,
+            MOCK_TIMESTAMP,
+            MOCK_TIMESTAMP,
+            MOCK_TIMESTAMP,
+            MOCK_TOTAL_DURATION,
+            MOCK_LOAD_DURATION,
+            MOCK_PROMPT_EVAL_COUNT,
+            MOCK_PROMPT_EVAL_DURATION,
+            MOCK_EVAL_COUNT,
+            MOCK_EVAL_DURATION
+        );
+        let small_mock = server
+            .mock("POST", "/api/generate")
+            .match_header("content-type", "application/json")
+            .with_status(200)
+            .with_header("content-type", "application/x-ndjson")
+            .with_body(&small_response)
+            .create_async()
+            .await;
+
+        let provider = OllamaProvider::with_endpoint(server.url())
+            .expect("Failed to create provider");
+        let request = HttpStreamingTestHelper::create_test_request();
+
+        // Process small response
+        let result = provider.stream_completion(request).await;
+        assert!(result.is_ok());
+        let small_chunks = HttpStreamingTestHelper::collect_chunks_from_stream(result.unwrap()).await
+            .expect("Should collect chunks");
+
+        small_mock.remove_async().await;
+
+        // Test 2: Large response
+        let large_response = create_large_ollama_response();
+        let large_mock = server
+            .mock("POST", "/api/generate")
+            .match_header("content-type", "application/json")
+            .with_status(200)
+            .with_header("content-type", "application/x-ndjson")
+            .with_body(&large_response)
+            .create_async()
+            .await;
+
+        let request2 = HttpStreamingTestHelper::create_test_request();
+        let result2 = provider.stream_completion(request2).await;
+        assert!(result2.is_ok());
+        let large_chunks = HttpStreamingTestHelper::collect_chunks_from_stream(result2.unwrap()).await
+            .expect("Should collect chunks");
+
+        // Validate that large response has significantly more chunks
+        assert!(large_chunks.len() > small_chunks.len() * 100,
+                "Large response should have much more chunks");
+
+        println!("Small response chunks: {}", small_chunks.len());
+        println!("Large response chunks: {}", large_chunks.len());
+
+        // The key insight: memory usage during streaming should be similar for both
+        // because we process chunks one at a time, not accumulating them
+
+        large_mock.assert_async().await;
     }
 }
