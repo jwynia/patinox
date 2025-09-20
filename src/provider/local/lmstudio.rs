@@ -414,7 +414,7 @@ impl ModelProvider for LMStudioProvider {
             let error_text = response
                 .text()
                 .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
+                .unwrap_or_else(|_| "unknown error".to_string());
             return Err(ProviderError::ApiError(format!(
                 "HTTP {}: {}",
                 status, error_text
@@ -450,11 +450,14 @@ impl ModelProvider for LMStudioProvider {
                 if let Some(choice) = streaming_response.choices.first() {
                     if let Some(finish_reason) = &choice.finish_reason {
                         // Final chunk with usage information
-                        let usage = streaming_response.usage.map(|u| crate::provider::types::Usage {
-                            prompt_tokens: u.prompt_tokens as usize,
-                            completion_tokens: u.completion_tokens as usize,
-                            total_tokens: u.total_tokens as usize,
-                        });
+                        let usage =
+                            streaming_response
+                                .usage
+                                .map(|u| crate::provider::types::Usage {
+                                    prompt_tokens: u.prompt_tokens as usize,
+                                    completion_tokens: u.completion_tokens as usize,
+                                    total_tokens: u.total_tokens as usize,
+                                });
 
                         let content = choice.delta.content.clone().unwrap_or_default();
                         Ok(Some(StreamingChunk::final_chunk(

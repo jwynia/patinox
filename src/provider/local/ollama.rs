@@ -381,7 +381,7 @@ impl ModelProvider for OllamaProvider {
             let error_text = response
                 .text()
                 .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
+                .unwrap_or_else(|_| "unknown error".to_string());
             return Err(ProviderError::ApiError(format!(
                 "HTTP {}: {}",
                 status, error_text
@@ -406,12 +406,15 @@ impl ModelProvider for OllamaProvider {
 
                 if ollama_response.done {
                     // Final chunk with usage information
-                    let usage = if ollama_response.prompt_eval_count.is_some() || ollama_response.eval_count.is_some() {
+                    let usage = if ollama_response.prompt_eval_count.is_some()
+                        || ollama_response.eval_count.is_some()
+                    {
                         Some(crate::provider::types::Usage {
                             prompt_tokens: ollama_response.prompt_eval_count.unwrap_or(0) as usize,
                             completion_tokens: ollama_response.eval_count.unwrap_or(0) as usize,
                             total_tokens: (ollama_response.prompt_eval_count.unwrap_or(0)
-                                + ollama_response.eval_count.unwrap_or(0)) as usize,
+                                + ollama_response.eval_count.unwrap_or(0))
+                                as usize,
                         })
                     } else {
                         None
