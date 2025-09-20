@@ -511,7 +511,7 @@ mod memory_optimization_tests {
                 "response": content,
                 "done": false
             });
-            response.push_str(&chunk.to_string());
+            response.push_str(&chunk);
             response.push('\n');
         }
 
@@ -528,7 +528,7 @@ mod memory_optimization_tests {
             "eval_count": MOCK_EVAL_COUNT,
             "eval_duration": MOCK_EVAL_DURATION
         });
-        response.push_str(&final_chunk.to_string());
+        response.push_str(&final_chunk);
         response.push('\n');
 
         response
@@ -557,7 +557,7 @@ mod memory_optimization_tests {
                     "finish_reason": null
                 }]
             });
-            response.push_str(&format!("data: {}\n\n", chunk.to_string()));
+            response.push_str(&format!("data: {}\n\n", chunk));
         }
 
         // Final chunk with usage stats
@@ -577,7 +577,7 @@ mod memory_optimization_tests {
                 "total_tokens": MOCK_PROMPT_EVAL_COUNT + MOCK_EVAL_COUNT
             }
         });
-        response.push_str(&format!("data: {}\n\n", final_chunk.to_string()));
+        response.push_str(&format!("data: {}\n\n", final_chunk));
         response.push_str("data: [DONE]\n\n");
 
         response
