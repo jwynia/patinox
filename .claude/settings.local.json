@@ -25,7 +25,9 @@
       "Bash(gh api:*)",
       "Bash(git fetch:*)",
       "WebSearch",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(git worktree:*)",
+      "Read(//tmp/worktrees/patinox-memory-optimization-0920/**)"
     ],
     "deny": [],
     "ask": []
