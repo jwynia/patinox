@@ -1,0 +1,118 @@
+[package]
+name = "rust-agent"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <you@example.com>"]
+description = "Lightweight CLI agents with progressive enhancement"
+license = "MIT"
+
+[dependencies]
+# Core dependencies
+clap = { version = "4.4", features = ["derive", "env"] }
+tokio = { version = "1.35", features = ["full"] }
+async-trait = "0.1"
+anyhow = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP client for LLM providers
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+
+# Utility crates
+once_cell = "1.19"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dirs = "5.0"
+
+# Optional dependencies for plugins
+chrono = { version = "0.4", optional = true }
+regex = { version = "1.10", optional = true }
+which = { version = "5.0", optional = true }
+
+# Database for memory plugin
+rusqlite = { version = "0.30", features = ["bundled"], optional = true }
+
+# Rate limiting and resource management
+governor = { version = "0.6", optional = true }
+nonzero_ext = { version = "0.3", optional = true }
+
+[features]
+default = ["memory", "discovery"]
+
+# Plugin features
+memory = ["rusqlite", "chrono"]
+discovery = ["which", "regex"]
+resources = ["governor", "nonzero_ext"]
+context = ["rusqlite"]
+
+# Pattern features  
+patterns = []
+plan-execute = ["patterns"]
+reflexion = ["patterns"]
+
+# Provider features
+all-providers = ["openai", "anthropic", "ollama", "groq"]
+openai = []
+anthropic = []
+ollama = []
+groq = []
+
+# Development features
+mock = []
+
+[dev-dependencies]
+tempfile = "3.8"
+mockito = "1.2"
+serial_test = "3.0"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1
+
+[profile.release-small]
+inherits = "release"
+opt-level = "z"     # Optimize for size
+lto = true
+strip = true
+panic = "abort"
+
+[[bin]]
+name = "agent"
+path = "src/main.rs"
+
+# Example agents as separate binaries
+[[example]]
+name = "text-processor"
+path = "examples/text_processor.rs"
+
+[[example]]
+name = "code-reviewer"
+path = "examples/code_reviewer.rs"
+required-features = ["memory", "resources"]
+
+[[example]]
+name = "coordinator"
+path = "examples/coordinator.rs"
+required-features = ["discovery", "plan-execute"]
+
+[package.metadata.deb]
+maintainer = "Your Name <you@example.com>"
+depends = "$auto"
+section = "utils"
+priority = "optional"
+assets = [
+    ["target/release/agent", "usr/local/bin/", "755"],
+    ["README.md", "usr/share/doc/rust-agent/README", "644"],
+]
+
+[package.metadata.rpm]
+package = "rust-agent"
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/agent", dest = "/usr/local/bin/agent", mode = "755" },
+]
