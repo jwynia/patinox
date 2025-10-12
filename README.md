@@ -1,130 +1,219 @@
 # Patinox
 
-A ground-up reimagining of AI agent orchestration that prioritizes safety, observability, and systematic evolution through compile-time guarantees and embedded monitoring.
+**Minimal to sophisticated AI agents in Rust**
 
-## Vision
+A layered agent framework that starts simple and grows with your needs—from ~150 line CLI tools to enterprise-grade orchestration with embedded monitoring.
 
-Build an AI agent framework in Rust that treats monitoring and validation as first-class architectural concerns rather than afterthoughts. By leveraging Rust's type system and ownership model, we can create agent systems that are simultaneously more reliable and more capable of self-improvement than existing dynamic implementations.
+## Quick Start
 
-## Core Philosophy
+```rust
+use patinox::*;
 
-**Safety through compilation, not convention.** Invalid agent states should be unrepresentable. Monitoring should be inescapable. Evolution should be traceable.
+fn main() {
+    create_agent("hello")
+        .tool_fn("greet", "Say hello", |name| {
+            Ok(format!("Hello, {}!", name))
+        })
+        .run_cli()
+}
+```
 
-This framework addresses the same fundamental problems as TypeScript-based Mastra (tools, workflows, memory, telemetry, evaluation, scoring) but reimagines the solutions through Rust's lens of zero-cost abstractions and compile-time guarantees.
+```bash
+cargo build --release
+./target/release/hello "world"
+# Output: Hello, world!
+```
 
-## Key Innovations
+## Architecture Layers
 
-### 1. Embedded Monitoring Architecture
-- **Synchronous validators** that act as compile-time-configured quality gates
-- **Asynchronous analyzers** that identify patterns and propose improvements
-- Both LLM-based monitors (anti-jailbreak, hallucination detection) and traditional ML (Bayesian classifiers, rule engines)
-- Validators can divert, retry, or modify agent execution in real-time
+Patinox uses progressive enhancement—start simple, add sophistication only when needed:
 
-### 2. Git-Based Evolution Loop
-Rather than runtime mutation (which can go "off the rails"), the framework uses a traceable evolution pattern:
-- One instance executes agents and logs telemetry
-- Another instance analyzes patterns and generates PRs with improvements
-- Changes are reviewed, merged, and deployed through standard CI/CD
-- Every evolution step is auditable and reversible
+### Layer 1: Minimal Agent (Current Focus)
+```rust
+// ~150 lines of core functionality
+use patinox::*;
 
-### 3. Compile-Time Workflow Validation
-Using Rust's type system to make invalid states unrepresentable:
-- Typestate patterns ensure agents can only transition through valid states
-- Phantom types guarantee complete configuration before execution
-- Trait-based composition allows pluggable validators without modifying core code
+fn main() {
+    create_agent("processor")
+        .tool_fn("uppercase", "Convert to uppercase", |text| {
+            Ok(text.to_uppercase())
+        })
+        .tool_fn("count", "Count words", |text| {
+            Ok(text.split_whitespace().count().to_string())
+        })
+        .provider(Provider::Anthropic)
+        .run_cli()
+}
+```
 
-### 4. Native Performance with Universal Deployment
-- Zero-copy integration with Rust-based vector databases (Qdrant, LanceDB)
-- WebAssembly compilation for edge deployment
-- Native bindings for Python/TypeScript migration paths
+**Week 1 Goal**: Working agent you can actually use
 
-## Technical Foundation
+### Layer 2: Plugin Enhancements (Coming Soon)
+```rust
+use patinox::{*, plugins::*};
 
-Built on production-proven Rust libraries:
-- **async-openai** for LLM integration (1.1M+ downloads)
-- **Rig** for LLM application patterns
-- **Tower** middleware for composable validation layers
-- **OpenTelemetry** for observability
-- **Qdrant/LanceDB** for vector storage
-- **Tokio** for async runtime
+let agent = create_agent("reviewer")
+    .plugin(MemoryPlugin::new("~/.patinox/memory"))
+    .plugin(DiscoveryPlugin::new())
+    .tools(/* ... */);
+```
 
-## Target Use Cases
+Add capabilities as you need them:
+- Memory persistence
+- Agent discovery
+- Resource management
 
-- Production systems requiring strict safety guarantees
-- Multi-agent systems with complex interaction patterns
-- Applications needing transparent, auditable AI behavior
-- Systems that must evolve and improve over time
-- High-performance edge deployments
+### Layer 3: Reasoning Patterns (Roadmap)
+```rust
+use patinox::patterns::*;
 
-## Project Status
+let agent = create_agent("coordinator")
+    .pattern(PlanExecutePattern::new())
+    .tools(/* ... */);
+```
 
-🚧 **EARLY DEVELOPMENT - FOUNDATION PHASE**
+Sophisticated reasoning when simple isn't enough:
+- Plan-Execute
+- Reflexion
+- Multi-step orchestration
 
-**Current Phase**: Implementing foundational utilities and core abstractions
-- ✅ Project structure and tooling setup
-- 🚧 Core error types and trait definitions
-- ⏳ Type safety infrastructure and memory management
-- ⏳ Provider abstractions and configuration system
+### Layer 4: Enterprise Features (Import from V1)
+```rust
+use patinox::enterprise::*;
 
-**Status**: Following test-driven development approach, building from utility foundations up to complete framework.
+let agent = create_agent("production")
+    .validation(TowerMiddleware::new()
+        .layer(AntiJailbreakLayer)
+        .layer(RateLimitLayer))
+    .monitoring(MapekMonitor::new())
+    .tools(/* ... */);
+```
 
-## Development Workflow
+Production-grade features when validated:
+- MAPE-K embedded monitoring
+- Tower validation middleware
+- Type-safe state machines
+- Git-based evolution
+- Full observability
 
-This project uses a context network for all planning, research, and coordination. See the [context network documentation](./context-network/discovery.md) for navigation.
+## Philosophy
 
-### Getting Started
+**Build the trail, not just the summit.**
 
-#### Building the Project
+Patinox starts minimal and grows through real usage, not anticipated needs. Enterprise features exist as validated imports, not premature abstractions.
+
+### What Makes Patinox Different
+
+1. **Progressive Enhancement**: Start with ~150 lines, add layers only when needed
+2. **Rust Performance**: Native speed with compile-time safety
+3. **Real Usage Validation**: Features emerge from pain points, not predictions
+4. **Clear Graduation Path**: Simple → Sophisticated is explicit and documented
+
+## Current Status
+
+🚧 **V2 Implementation - Week 1: Minimal Core**
+
+- ✅ Strategic reset complete (see [V2 Decision](./context-network/decisions/v2_strategic_reset.md))
+- ✅ V1 research archived for enterprise tier import
+- 🚧 Building ~150 line working agent
+- ⏳ First real usage example
+
+**What's Working**: Nothing yet! We just reset to minimal-first.
+**Next Milestone**: Working agent by end of Week 1
+
+## V1 Research
+
+Patinox V1 (sophisticated-first) provided valuable research into enterprise agent frameworks. That work is preserved at:
+- Branch: `archive/patinox-v1-sophisticated-first`
+- Tag: `v1-research-phase`
+- Documentation: `context-network/archive/v1-research/`
+
+V1 code will be imported as Layer 4 (Enterprise Features) when Layer 1-3 validate the need through real usage.
+
+## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/patinox/patinox.git
+git clone https://github.com/jwynia/patinox.git
 cd patinox
 
-# Build the project
-cargo build
+# Build (once minimal core is complete)
+cargo build --release
 
 # Run tests
 cargo test
 
-# Check code with clippy
+# Check code
 cargo clippy
-
-# Format code
-cargo fmt
-
-# Run all CI checks locally (recommended before pushing)
-./scripts/ci-local.sh
 ```
 
-#### Development
+## Roadmap
 
-1. **Review the context network** at `./context-network/` for project architecture and decisions
-2. **Check the roadmap** at `./context-network/planning/roadmap.md` for current phase
-3. **Source code** is in `/src/` following the foundational implementation strategy
+### Week 1: Minimal Agent
+- [ ] ~150 line core implementation
+- [ ] Provider abstraction (OpenAI/Anthropic)
+- [ ] Basic tool system
+- [ ] CLI interface
+- [ ] First working example
 
-### Contributing
+### Week 2-3: Plugin Layer
+- [ ] Memory plugin
+- [ ] Discovery plugin
+- [ ] Resource management
+- [ ] Based on Week 1 usage discoveries
 
-All planning and conceptual work happens in the context network. Implementation follows the patterns and decisions documented there.
+### Week 4+: Pattern & Enterprise Layers
+- [ ] Reasoning patterns when needed
+- [ ] Import V1 validation logic
+- [ ] Import V1 monitoring system
+- [ ] Enterprise tier as validated
+
+## Examples
+
+Coming soon! We're building the minimal core first, then examples will emerge from real usage.
+
+## Contributing
+
+Patinox follows a minimal-first philosophy. Contributions should:
+1. Start with simple use cases
+2. Add complexity only when pain is felt
+3. Document real-world usage patterns
+4. Follow progressive enhancement layers
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for details (coming soon).
+
+## Context Network
+
+This project uses a context network for planning and coordination. See [context-network/discovery.md](./context-network/discovery.md) for navigation.
+
+**Note**: V1 planning documents are archived. Current planning focuses on minimal-first approach.
 
 ## Why Rust?
 
-Rust uniquely enables:
-- **Memory safety** without garbage collection overhead
-- **Compile-time validation** of agent workflows
-- **Zero-cost abstractions** for monitoring layers
-- **Fearless concurrency** for parallel agent execution
-- **WebAssembly target** for universal deployment
+- **Performance**: Native speed without GC overhead
+- **Safety**: Compile-time prevention of entire error classes
+- **Zero-cost abstractions**: Sophistication without runtime penalty
+- **WebAssembly**: Universal deployment target
+- **Type system**: Progressive enhancement of safety guarantees
 
-## Next Steps
+## License
 
-1. Define core trait abstractions for agents, tools, and validators
-2. Implement proof-of-concept with synchronous validation pipeline
-3. Add asynchronous monitoring and telemetry collection
-4. Build meta-layer for analyzing telemetry and proposing improvements
-5. Create development tools and documentation
-6. Release initial version with Python/TypeScript bindings
+MIT OR Apache-2.0
+
+## Acknowledgments
+
+Inspired by:
+- Unix philosophy of composable tools
+- Rust agent framework research (see inbox documents)
+- Mastra's problem space understanding
+- Anthropic's embedded monitoring research
+
+Built on excellent Rust libraries:
+- async-openai for LLM integration
+- Tokio for async runtime
+- Tower for middleware (Layer 4)
+- OpenTelemetry for observability (Layer 4)
 
 ---
 
-*Inspired by [Mastra](https://mastra.dev)'s problem space and [Anthropic's research](https://www.anthropic.com/engineering/multi-agent-research-system) on embedded monitoring, Patinox explores how Rust's unique capabilities can advance the state of the art in AI agent development.*
+**Status**: V2 Implementation Active | V1 Research Archived | Focus: Minimal Core First

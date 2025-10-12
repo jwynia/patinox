@@ -1,15 +1,37 @@
 # CLAUDE.md - Context Network Project
 
-## ✅ CURRENT PROJECT STATUS: IMPLEMENTATION AUTHORIZED
+## 🚀 CURRENT PROJECT STATUS: V2 MINIMAL-FIRST APPROACH
 
-**IMPORTANT**: Implementation has been authorized as of August 18, 2025. See [begin_coding_decision.md](./context-network/decisions/begin_coding_decision.md) for full details.
+**CRITICAL STRATEGIC RESET**: As of October 12, 2025, Patinox has pivoted from sophisticated-first to minimal-first architecture. See [v2_strategic_reset.md](./context-network/decisions/v2_strategic_reset.md) for full rationale.
 
-Current activities focus on:
-- Following the groomed foundational backlog
-- Implementing core infrastructure (error system, traits, etc.)
-- Maintaining quality standards and test-driven development
-- Updating context network with implementation progress
-- Following all established patterns and decisions
+### V2 Strategy: Build Simple, Then Enhance
+
+**Current Phase**: Week 1 - Minimal Agent Core
+
+**Objectives**:
+1. Create ~150 line working agent (THIS WEEK)
+2. Build simple → plugin → pattern → enterprise layers
+3. Use real usage to drive sophistication
+4. Import V1 components when validated
+
+**Anti-Pattern to AVOID**:
+- ❌ **DO NOT** pull back to sophisticated-first approach
+- ❌ **DO NOT** add enterprise features before simple agents work
+- ❌ **DO NOT** reference V1 planning docs as current guidance
+- ✅ **DO** build incrementally from minimal core
+- ✅ **DO** validate through actual usage
+- ✅ **DO** add complexity only when pain is felt
+
+### V1 Status: Archived as Research
+
+V1 sophisticated-first work is preserved but **not current direction**:
+- **Branch**: `archive/patinox-v1-sophisticated-first`
+- **Tag**: `v1-research-phase`
+- **Location**: `src-v1-enterprise/`, `context-network/archive/v1-research/`
+- **Purpose**: Import source for enterprise tier (Layer 4)
+- **Status**: Research complete, awaiting validated need
+
+**For AI Agents**: If you find V1 documents or code, recognize them as archived research, not current implementation guidance.
 
 ## Core Philosophy: Slow Down to Go Fast
 
