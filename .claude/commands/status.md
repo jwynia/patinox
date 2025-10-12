@@ -20,10 +20,11 @@ Parse $ARGUMENTS for options:
 ### Phase 1: Progress Evaluation
 
 **Task Status Analysis:**
-- Review `/tasks/` for task completion rates
-- Check `/planning/sprint-*.md` for sprint progress
-- Analyze `/planning/backlog.md` for remaining work
-- Review recently completed vs planned work
+- Review `context-network/backlog/by-status/ready.md` for available work
+- Check `context-network/backlog/by-status/in-progress.md` for active tasks
+- Analyze `context-network/backlog/by-status/completed.md` for accomplishments
+- Review `context-network/backlog/by-status/planned.md` for blocked work
+- Check individual task files in `context-network/tasks/` for details
 
 **Velocity Metrics:**
 - Tasks completed this period

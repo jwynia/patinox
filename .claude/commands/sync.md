@@ -162,28 +162,37 @@ Recommended Next Steps: [Based on current state]
 
 For each high-confidence completion discovered:
 
-1. **Locate Task in Planning Documents**:
+1. **Locate Task in Status Files**:
    ```
    Search patterns:
-   - `context-network/planning/**/*.md`
-   - `context-network/tasks/**/*.md` 
+   - `context-network/backlog/by-status/*.md` (PRIMARY)
+   - `context-network/tasks/*.md` (individual task files)
+   - `context-network/planning/**/task-breakdown.md`
    - `context-network/decisions/pending/*.md`
    - Files containing task references or TODO markers
    ```
 
-2. **Update Task Status**:
+2. **Update Task Status in Status Files**:
+
+   Move tasks between status files based on findings:
+   - `in-progress.md` → `completed.md` (if work is done)
+   - `ready.md` → `completed.md` (if silently completed)
+   - Update individual `tasks/[TASK-ID].md` file with completion details
+
    ```markdown
-   # Before sync update:
-   ## 🔄 In Progress
-   - [ ] Implement telemetry configuration
-   
-   # After sync update:
-   ## ✅ Completed (Sync-Detected: 2025-08-20)
-   - [x] ~~Implement telemetry configuration~~
-     - **Completed**: 2025-08-08 (estimated from file timestamps)
-     - **Evidence**: FileExporter implemented, Mastra integration working
-     - **Location**: `/app/cli/src/mastra/telemetry/`
-     - **Deviations**: Used file export instead of console (better for CLI)
+   # In completed.md:
+   ### FEAT-042 - Implement telemetry configuration
+   **Completed**: 2025-08-08 (sync-detected from file timestamps)
+   **Originally planned**: 2025-08-01
+   **Evidence**: FileExporter implemented, Mastra integration working
+   **Location**: `/app/cli/src/mastra/telemetry/`
+   **Deviations**: Used file export instead of console (better for CLI)
+   **Details**: See [tasks/FEAT-042.md](../../tasks/FEAT-042.md)
+
+   # In tasks/FEAT-042.md:
+   **Status**: completed
+   **Completed**: 2025-08-08
+   [... rest of task details ...]
    ```
 
 3. **Archive Completed Tasks**:
@@ -335,8 +344,9 @@ Generate `context-network/meta/sync-state.json` with:
 ## Applied Changes
 
 ### Task Source Updates (NEW)
-- `context-network/planning/backlog.md`: Marked 3 tasks complete, moved to archive
-- `context-network/tasks/telemetry/status.md`: Updated from "planned" to "completed"
+- `context-network/backlog/by-status/completed.md`: Added 3 completed tasks
+- `context-network/backlog/by-status/ready.md`: Removed 3 completed tasks
+- `context-network/tasks/FEAT-042.md`: Updated status to "completed"
 - `context-network/decisions/pending/telemetry-config.md`: Moved to decisions/history/
 
 ### Sync State Management (NEW)

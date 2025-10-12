@@ -3,10 +3,11 @@
 We're about to close this session and lose anything not captured that we might need later. Are all of the following done?
 
 ### Context Network Task Management
-- [ ] Context network task entry exists and is updated with current status
+- [ ] Task file exists in `context-network/tasks/[TASK-ID].md` with current status
+- [ ] Task status updated in appropriate status file (`ready.md`, `in-progress.md`, or `completed.md`)
 - [ ] Task discoveries documented in `/discoveries/records/YYYY-MM-DD-###.md`
 - [ ] All architectural decisions are documented (with ADRs if significant)
-- [ ] Implementation approach is recorded
+- [ ] Implementation approach is recorded in task file
 
 ### Discovery Layer Updates
 - [ ] **Discovery records created** for all insights meeting trigger criteria (see `/discoveries/triggers.md`)

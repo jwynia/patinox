@@ -130,11 +130,10 @@ if (syncState && isRecentSync(syncState.metadata.lastSyncRun)) {
 ### Phase 1: Task Inventory & Classification
 
 **Scan all task sources:**
-- `/planning/sprint-*.md`
-- `/planning/backlog.md`
-- `/tasks/**/*.md`
-- `/decisions/**/*.md` (for follow-up actions)
-- `/domains/**/todo.md`
+- `context-network/backlog/by-status/*.md`
+- `context-network/tasks/*.md`
+- `context-network/planning/**/task-breakdown.md`
+- `context-network/decisions/**/*.md` (for follow-up actions)
 - Files with "TODO:", "NEXT:", "PLANNED:" markers
 
 **Classify each task as:**
@@ -186,8 +185,12 @@ Score tasks based on:
 
 ## Output Format
 
+**Primary Output Location**: `context-network/backlog/by-status/ready.md` and `context-network/backlog/by-status/planned.md`
+
+Update these files directly with groomed tasks. Also generate a summary report:
+
 ```markdown
-# Groomed Task Backlog - [Date]
+# Grooming Session Report - [Date]
 
 ## 📊 Sync Integration Summary (NEW)
 **Sync State**: ✅ Fresh (2 hours old) | ⚠️ Stale (2+ days) | ❌ Missing

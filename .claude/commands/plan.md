@@ -138,6 +138,17 @@ You MUST NOT:
    └── implementation-order.md  # Suggested sequence
    ```
 
+   **IMPORTANT**: Assign task IDs to each task:
+   - **FEAT-NNN** for features
+   - **INFRA-NNN** for infrastructure
+   - **REFACTOR-NNN** for refactoring
+   - **BUG-NNN** for bug fixes
+   - **DOCS-NNN** for documentation
+   - **TEST-NNN** for testing
+   - **PERF-NNN** for performance
+
+   Create individual task files in `context-network/tasks/[TASK-ID].md` using the template at `context-network/tasks/templates/task-template.md`
+
 ### Phase 5: Risk Assessment ⚠️
 
 1. **Identify Risks**
