@@ -27,11 +27,15 @@
 V1 sophisticated-first work is preserved but **not current direction**:
 - **Branch**: `archive/patinox-v1-sophisticated-first`
 - **Tag**: `v1-research-phase`
-- **Location**: `src-v1-enterprise/`, `context-network/archive/v1-research/`
-- **Purpose**: Import source for enterprise tier (Layer 4)
-- **Status**: Research complete, awaiting validated need
+- **Location**: `archive/`, `context-network/archive/v1-research/`
+- **Purpose**: Reference for learning patterns (NOT for code imports)
+- **Status**: Research complete, reference only
 
-**For AI Agents**: If you find V1 documents or code, recognize them as archived research, not current implementation guidance.
+**For AI Agents**:
+- ⚠️ **NEVER** import or reference code from `archive/` directories
+- ✅ **DO** read archive code to learn patterns
+- ✅ **DO** build new implementations in `src/` based on learnings
+- Archive is research material, not production code base
 
 ## Core Philosophy: Slow Down to Go Fast
 

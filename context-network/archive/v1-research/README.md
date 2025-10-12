@@ -87,22 +87,29 @@ Detailed component designs:
 
 ## How to Use This Archive
 
+### ⚠️ Reference Material Only
+
+**CRITICAL**: This archive is for learning and reference. **Never import code from archive directories.** Always build new implementations in V2 source tree.
+
 ### For Understanding V1
 1. Start with `/decisions/architectural_decisions_resolved.md`
 2. Review `/planning/foundational_implementation_strategy.md`
 3. Explore `/elements/` for specific concepts
+4. **Purpose**: Learn patterns, not copy code
 
-### For Importing to V2
-1. Identify needed component
-2. Review its V1 implementation in `src-v1-enterprise/`
-3. Adapt for V2's simpler architecture
-4. Import as plugin or enhancement
+### For Building V2 Features
+1. Read relevant V1 implementation in `/archive/src-v1-enterprise/`
+2. Understand the approach and patterns
+3. **Build new** implementation in V2 (`src/`) adapted for minimal-first
+4. Test in V2 context
+5. **Never import** from archive directories
 
 ### For Learning
 V1 demonstrates comprehensive enterprise framework design. Study it to understand:
 - How to architect sophisticated agent systems
 - What full monitoring/validation looks like
 - Enterprise-grade concerns and solutions
+- **Then apply learnings** to V2 implementation
 
 ## Git References
 
