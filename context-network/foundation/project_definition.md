@@ -13,31 +13,63 @@ This document defines the core purpose, goals, and scope of the project.
 
 ### Project Overview
 
-**Patinox** is a ground-up Rust implementation of an AI agent orchestration framework that prioritizes safety, observability, and systematic evolution. Built on compile-time guarantees and embedded monitoring, it addresses the same problem space as frameworks like Mastra and LangChain but reimagines the solutions through Rust's unique capabilities.
+**Patinox** is a layered AI agent framework in Rust that starts minimal and grows through progressive enhancement. Built on the principle of "build the trail, not just the summit," it provides a clear path from simple CLI agents (~150 lines) to sophisticated enterprise orchestration with embedded monitoring.
+
+**Current Phase (V2)**: Minimal-first implementation with working agents in ~200 lines.
 
 ### Vision Statement
 
-To create the most reliable and self-improving AI agent framework by making monitoring and validation integral architectural concerns, leveraging Rust's type system to prevent entire classes of errors at compile time, and enabling traceable evolution through git-based improvement cycles.
+To create the most accessible yet capable AI agent framework by starting minimal and adding sophistication only when validated through real usage. From "hello world" to enterprise monitoring—all in the same codebase.
 
 ### Mission Statement
 
-Patinox provides production-grade AI agent orchestration for systems requiring strict safety guarantees, transparent behavior, and continuous improvement. It serves developers building multi-agent systems, enterprises needing auditable AI behavior, and applications requiring high-performance edge deployment.
+Patinox serves developers at every level:
+- **Individuals**: Start with simple agents that work immediately
+- **Teams**: Add plugins as needs emerge
+- **Enterprises**: Graduate to full monitoring and safety guarantees
 
-### Project Objectives
+The framework grows with you, not ahead of you.
 
-1. **Compile-Time Safety**: Make invalid agent states unrepresentable through Rust's type system
-2. **Embedded Monitoring**: Integrate synchronous validators and asynchronous analyzers as core components
-3. **Systematic Evolution**: Enable traceable, git-based improvement cycles through meta-layer analysis
-4. **Zero-Cost Abstractions**: Provide safety and monitoring without runtime performance penalties
-5. **Universal Deployment**: Support WebAssembly compilation and native bindings for Python/TypeScript
+### Project Objectives (Layered)
 
-### Success Criteria
+**Layer 1: Minimal Agent** (Current - ACHIEVED ✅)
+1. **Immediate Usability**: Working agent in ~200 lines
+2. **Simple API**: Builder pattern with minimal concepts
+3. **Real Validation**: Proven through actual usage
 
-1. **40% reduction in task completion time** through embedded monitoring (matching Anthropic's results)
-2. **Zero runtime errors** from invalid agent state transitions
-3. **Native performance** matching or exceeding Python alternatives
-4. **Full observability** with OpenTelemetry integration and structured logging
-5. **Seamless migration path** from existing TypeScript/Python frameworks
+**Layer 2: Plugin Enhancements** (Week 2-3)
+1. **Pain-Driven Features**: Add only what usage demands
+2. **Optional Complexity**: Plugins you can ignore
+3. **Progressive Enhancement**: Simple → sophisticated as needed
+
+**Layer 3: Reasoning Patterns** (Week 4+)
+1. **Advanced Patterns**: Plan-Execute, Reflexion when validated
+2. **Multi-step Orchestration**: When simple isn't enough
+
+**Layer 4: Enterprise Features** (Import from V1)
+1. **Embedded Monitoring**: MAPE-K when needed
+2. **Compile-Time Safety**: TypeState patterns when validated
+3. **Git-Based Evolution**: Meta-layer analysis
+4. **Full Observability**: OpenTelemetry integration
+
+### Success Criteria (By Layer)
+
+**Layer 1** (ACHIEVED ✅):
+- ✅ Working agent in Week 1
+- ✅ Compiles and runs
+- ✅ Clean, understandable API
+- ✅ Validated through actual example
+
+**Layer 2** (Target: Week 3):
+- 2-3 useful agents in production use
+- Pain points identified and addressed
+- Plugin architecture proven
+
+**Layer 3-4** (Target: Month 2+):
+- Enterprise features imported when validated
+- 40% task completion improvement (when monitoring added)
+- Zero-cost abstractions proven
+- Migration path from V1 demonstrated
 
 ### Project Scope
 
@@ -131,8 +163,10 @@ Patinox provides production-grade AI agent orchestration for systems requiring s
 
 ## Metadata
 - **Created:** 2025-01-17
-- **Last Updated:** 2025-01-17
+- **Last Updated:** 2025-10-12
 - **Updated By:** Development Team
+- **Current Phase:** V2 - Minimal Implementation (Layer 1 Complete)
 
 ## Change History
 - 2025-01-17: Customized for Patinox AI Agent Framework based on research findings
+- 2025-10-12: Updated for V2 layered architecture; Layer 1 (Minimal Agent) achieved
