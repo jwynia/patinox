@@ -19,45 +19,48 @@ A task is planned when:
 
 ## Blocked: Waiting on Real Usage Data
 
-### Plugin Development (All Conditional)
+### V2-ANALYSIS-001: Pain Point Analysis & Plugin Prioritization
 
-**Blocker**: Need to build 2-3 real agents first to identify actual pain points
+**Blocker**: Need to complete V2-AGENT-001 and V2-AGENT-002 first
+**Estimated unblock**: Week 2, Day 6 (after agents built)
 
-**Potential plugins** (may or may not be needed):
+**What This Involves**:
+1. Review pain point logs from file processor and doc generator agents
+2. Score each pain point by frequency × severity
+3. Identify top 1-2 plugin candidates
+4. Create plugin design for highest priority pain point
+
+**Acceptance Criteria**:
+- [ ] Pain point matrix created with all documented issues
+- [ ] Scoring applied (frequency × severity)
+- [ ] Top 3 pain points identified
+- [ ] Decision made on first plugin to build
+
+**Output**: `context-network/analysis/v2-week-2-pain-point-analysis.md`
+
+**See**: [planning/v2-week-2-plan.md](../../planning/v2-week-2-plan.md) Phase 3 for analysis framework
+
+---
+
+### V2-PLUGIN-001: First Plugin Design
+
+**Blocker**: Waiting on V2-ANALYSIS-001 completion
+**Estimated unblock**: Week 2, Day 7
+
+**Potential plugins** (TBD based on real pain):
 - Memory Plugin - *IF agents forget context*
 - Discovery Plugin - *IF file/directory exploration is painful*
 - Config Plugin - *IF hardcoding becomes frustrating*
 - Resource Plugin - *IF rate limits/costs become painful*
 
-**How they become ready**:
-1. Build real agents (Week 2, Days 3-5)
-2. Document every "I wish it had X" moment
-3. Analyze pain points by frequency + severity (Day 6)
-4. Highest pain point gets designed (Day 7)
-5. Move to ready.md for Week 3 implementation
+**How this becomes ready**:
+1. V2-ANALYSIS-001 identifies top pain point
+2. Plugin designed to solve that specific pain
+3. V1 code assessed for import opportunities
+4. Implementation plan created
+5. Move to ready.md for Week 3
 
-**See**: [planning/v2-week-2-plan.md](../../planning/v2-week-2-plan.md) for pain point analysis framework
-
----
-
-## Blocked: Waiting on Provider Integration
-
-### Real Agent Development
-
-**Blocker**: Need real LLM provider working first (Week 2, Phase 1)
-
-**Candidates** (pick 2 after provider works):
-- **File Processor Agent** - Process text files with LLM analysis
-- **Git Helper Agent** - Analyze repos, suggest improvements
-- **Documentation Generator** - Read code, generate docs
-
-**How they become ready**:
-1. Real provider integration completes
-2. Pick 2 agents based on immediate utility
-3. Groom with specific tools needed
-4. Move to ready.md
-
-**Estimated**: Ready by Week 2, Day 3
+**See**: [planning/v2-week-2-plan.md](../../planning/v2-week-2-plan.md) Phase 4 for plugin design template
 
 ---
 
