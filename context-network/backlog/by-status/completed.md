@@ -25,6 +25,35 @@ Tasks are moved from this file to `../archived/YYYY-MM/` at the end of each spri
 
 ## This Sprint (October 2025)
 
+### V2-PROVIDER-001 - Integrate Real LLM Provider
+**Priority**: Critical | **Size**: Medium | **Effort**: 4-6 hours
+**Completed**: 2025-10-13
+**Branch**: `feat/v2-real-provider-integration`
+
+**Summary**: Successfully integrated real OpenAI provider using async-openai crate. All acceptance criteria met:
+- ✅ Chose async-openai crate approach (Option C)
+- ✅ Added async runtime (tokio already present)
+- ✅ Implemented OpenAIProvider in `src/provider.rs` with comprehensive tests
+- ✅ Added API key configuration via environment variables
+- ✅ Updated `examples/hello_agent.rs` to use real provider
+- ✅ Example compiles, runs, makes real API calls
+- ✅ Comprehensive error handling for network, auth, and rate limit errors
+- ✅ Test coverage: 17 unit tests passing, 7 integration tests (require API key)
+- ✅ All linting (clippy) and formatting (rustfmt) checks pass
+
+**Test-Driven Development**: Followed strict TDD approach - wrote all tests before implementation, verified RED-GREEN-REFACTOR cycle.
+
+**Files Changed**:
+- `src/provider.rs` - Added OpenAIProvider implementation
+- `src/agent.rs` - Made run() method async
+- `src/cli.rs` - Added async runtime support
+- `src/lib.rs` - Exported OpenAIProvider
+- `Cargo.toml` - Added async-openai dependency
+- `examples/hello_agent.rs` - Updated to use real provider
+- `.env.example` - Created API key template
+
+---
+
 ### DOCS-001 - Document Backlog Structure Migration
 **Priority**: High | **Size**: Small | **Effort**: 1-2 hours
 **Completed**: 2025-10-12
@@ -45,10 +74,10 @@ Tasks are moved from this file to `../archived/YYYY-MM/` at the end of each spri
 
 ## Metadata
 
-**Last updated**: 2025-10-12
-**Last updated by**: DOCS-001 completed
-**Total completed (this sprint)**: 1
-**Total completed (last 14 days)**: 1
+**Last updated**: 2025-10-13
+**Last updated by**: V2-PROVIDER-001 completed
+**Total completed (this sprint)**: 2
+**Total completed (last 14 days)**: 2
 **Sprint velocity**: N/A
 
 ## Notes

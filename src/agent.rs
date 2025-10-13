@@ -99,7 +99,7 @@ impl Agent {
     }
 
     /// Run the agent with a single input
-    pub fn run(&self, input: impl Into<String>) -> crate::Result<String> {
+    pub async fn run(&self, input: impl Into<String>) -> crate::Result<String> {
         // For minimal implementation, just use mock provider
         let provider = self
             .provider
@@ -123,7 +123,7 @@ impl Agent {
         messages.push(Message::user(input.into()));
 
         // Get completion
-        let response = provider.complete(messages)?;
+        let response = provider.complete(messages).await?;
 
         Ok(response)
     }
@@ -158,12 +158,12 @@ mod tests {
         assert!(agent.tools.contains_key("hello"));
     }
 
-    #[test]
-    fn test_agent_with_mock_provider() {
+    #[tokio::test]
+    async fn test_agent_with_mock_provider() {
         let agent =
             create_agent("test").with_provider(Box::new(MockProvider::new("test response")));
 
-        let result = agent.run("hello").unwrap();
+        let result = agent.run("hello").await.unwrap();
         assert_eq!(result, "test response");
     }
 
