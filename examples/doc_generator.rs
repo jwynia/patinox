@@ -36,14 +36,16 @@ fn main() -> patinox::Result<()> {
     };
 
     // Build the query for the LLM
-    let user_query = "Please generate comprehensive markdown documentation for this Rust source code. \
+    let user_query =
+        "Please generate comprehensive markdown documentation for this Rust source code. \
          Include:\n\
          - Purpose and overview\n\
          - Main types and their roles\n\
          - Key functions and methods\n\
          - Usage examples\n\
          - Important notes or considerations\n\n\
-         Format the output as a clean markdown document suitable for a docs/ folder.".to_string();
+         Format the output as a clean markdown document suitable for a docs/ folder."
+            .to_string();
 
     // Create agent with documentation tools
     let mut agent = create_agent("doc_generator")
