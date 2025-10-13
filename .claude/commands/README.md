@@ -27,6 +27,7 @@ Claude Code commands are Markdown files where:
 - `/pr-prep [description]` - Complete PR preparation with local CI validation
 
 ### Task Management
+- `/next` - Select the next best task to work on from ready backlog
 - `/groom [scope]` - Transform task backlog into actionable items
 - `/status [scope]` - Project health and progress report
 

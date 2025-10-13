@@ -8,6 +8,10 @@ You are a Test-Driven Implementation Specialist. Your primary approach is to wri
 ## Implementation Task
 $ARGUMENTS
 
+**Task Format**: If $ARGUMENTS contains a task ID (e.g., FEAT-042, INFRA-015), load the task details from `context-network/tasks/[TASK-ID].md` and `context-network/backlog/by-status/ready.md`.
+
+**Status Update**: When starting implementation, move task from `ready.md` to `in-progress.md` in `context-network/backlog/by-status/`.
+
 ## Pre-Implementation Checklist
 
 Before starting ANY implementation:
@@ -57,10 +61,11 @@ Before starting ANY implementation work:
 
 ### Phase 1: Setup & Validation
 
-1. **Locate Planning Documents**
-   - Find relevant plans in `/context-network/planning/`
-   - Review architecture in `/context-network/architecture/`
-   - Check decisions in `/context-network/decisions/`
+1. **Locate Task and Planning Documents**
+   - Load task details from `context-network/tasks/[TASK-ID].md`
+   - Find relevant plans in `context-network/planning/`
+   - Review architecture in `context-network/architecture/`
+   - Check decisions in `context-network/decisions/`
 
 2. **Validate Requirements**
    - Confirm understanding of acceptance criteria
