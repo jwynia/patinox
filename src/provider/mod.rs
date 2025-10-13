@@ -3,6 +3,12 @@
 //! Minimal provider system supporting multiple LLM backends.
 //! Starts simple, can be enhanced later with retry logic, rate limiting, etc.
 
+mod mock;
+mod openai;
+
+pub use mock::MockProvider;
+pub use openai::OpenAIProvider;
+
 use serde::{Deserialize, Serialize};
 use std::env;
 
@@ -116,28 +122,10 @@ impl Message {
 }
 
 /// LLM Provider trait - implement this to add new providers
+#[async_trait::async_trait]
 pub trait LLMProvider: Send + Sync {
     /// Send a completion request and get a response
-    fn complete(&self, messages: Vec<Message>) -> ProviderResult<String>;
-}
-
-/// Mock provider for testing (no API calls)
-pub struct MockProvider {
-    response: String,
-}
-
-impl MockProvider {
-    pub fn new(response: impl Into<String>) -> Self {
-        Self {
-            response: response.into(),
-        }
-    }
-}
-
-impl LLMProvider for MockProvider {
-    fn complete(&self, _messages: Vec<Message>) -> ProviderResult<String> {
-        Ok(self.response.clone())
-    }
+    async fn complete(&self, messages: Vec<Message>) -> ProviderResult<String>;
 }
 
 #[cfg(test)]
@@ -168,12 +156,5 @@ mod tests {
         let msg = Message::user("Hello");
         assert_eq!(msg.role, "user");
         assert_eq!(msg.content, "Hello");
-    }
-
-    #[test]
-    fn test_mock_provider() {
-        let provider = MockProvider::new("test response");
-        let result = provider.complete(vec![Message::user("test")]).unwrap();
-        assert_eq!(result, "test response");
     }
 }

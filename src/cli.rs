@@ -8,6 +8,15 @@ use std::io::{self, Read};
 
 /// Run an agent with CLI interface
 pub fn run_cli(agent: Agent) -> crate::Result<()> {
+    // Create tokio runtime for async operations
+    let runtime = tokio::runtime::Runtime::new()?;
+
+    // Run the async CLI logic
+    runtime.block_on(async_run_cli(agent))
+}
+
+/// Internal async implementation of CLI
+async fn async_run_cli(agent: Agent) -> crate::Result<()> {
     // Parse command line arguments
     let args: Vec<String> = env::args().collect();
 
@@ -55,8 +64,8 @@ pub fn run_cli(agent: Agent) -> crate::Result<()> {
         std::process::exit(1);
     }
 
-    // Run the agent
-    match agent.run(input) {
+    // Run the agent (async)
+    match agent.run(input).await {
         Ok(output) => {
             println!("{}", output);
             Ok(())

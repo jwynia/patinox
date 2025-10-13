@@ -24,11 +24,12 @@ pub mod tool;
 
 pub use agent::{create_agent, Agent, AgentConfig};
 pub use cli::run_cli;
-pub use provider::{LLMProvider, Provider};
+pub use provider::{LLMProvider, OpenAIProvider, Provider};
 pub use tool::{FnTool, Tool};
 
 /// Prelude module for convenient imports
 pub mod prelude {
+    pub use crate::tool::ToolResult;
     pub use crate::{create_agent, run_cli, Agent, AgentConfig, FnTool, Provider, Tool};
 }
 

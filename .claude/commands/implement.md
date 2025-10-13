@@ -330,3 +330,185 @@ Before marking complete:
 5. **No code without tests** - If it's not tested, it's broken
 
 Remember: The goal is not to write code quickly, but to write code that works correctly and can be maintained confidently. Tests give you that confidence.
+
+## Rust-Specific Guidelines
+
+### File Size Standards
+
+**CRITICAL:** Files over 300 lines are a code smell indicating poor separation of concerns.
+
+**File Size Limits:**
+- **Target:** 100-200 lines per file
+- **Maximum:** 300 lines total (implementation + tests)
+- **Action Required:** If file exceeds 300 lines, refactor into modules
+
+**When to Split:**
+```
+WARNING SIGNS:
+✗ File > 300 lines
+✗ Multiple distinct concepts in one file
+✗ Tests larger than implementation
+✗ Scrolling required to understand structure
+✗ Adding features requires extensive context
+```
+
+**How to Split (Rust Module Pattern):**
+```rust
+// BEFORE: large_feature.rs (500+ lines)
+pub struct FeatureA { }
+pub struct FeatureB { }
+#[cfg(test)] mod tests { } // 200+ lines of tests
+
+// AFTER: large_feature/ module
+mod.rs           // Public API (100 lines)
+feature_a.rs     // Feature A implementation (150 lines)
+feature_b.rs     // Feature B implementation (150 lines)
+mock.rs          // Test utilities (50 lines)
+```
+
+### Test Philosophy: Unit Tests Only
+
+**CRITICAL:** Integration tests that require real external services are a DESIGN SMELL.
+
+**Testing Standards:**
+- ✅ **Test OUR code** - Validation logic, error handling, business rules
+- ✅ **Mock external dependencies** - Use traits and dependency injection
+- ✅ **Design for testability** - If hard to test, redesign
+- ❌ **Don't test dependencies** - Don't test if OpenAI API works
+- ❌ **Don't test external services** - No tests requiring real API keys
+- ❌ **Don't use #[ignore] for integration tests** - Fix the design instead
+
+**Red Flags:**
+```rust
+// BAD: Testing external service
+#[tokio::test]
+#[ignore] // Requires real API key
+async fn test_openai_works() {
+    let client = OpenAI::new(real_api_key);
+    let response = client.complete("test").await?;
+    assert!(!response.is_empty()); // Testing OpenAI, not our code
+}
+
+// GOOD: Testing our code
+#[tokio::test]
+async fn test_validates_api_key_required() {
+    let mut config = ProviderConfig::new(Provider::OpenAI);
+    config.api_key = None;
+
+    let result = OpenAIProvider::new(config);
+
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("API key"));
+}
+```
+
+**Design for Testability:**
+```rust
+// Use traits for dependencies
+pub trait LLMProvider: Send + Sync {
+    async fn complete(&self, messages: Vec<Message>) -> Result<String>;
+}
+
+// Inject dependencies via trait objects
+pub struct Agent {
+    provider: Box<dyn LLMProvider>, // Mockable!
+}
+
+// Provide mock implementations
+pub struct MockProvider {
+    response: String,
+}
+
+impl LLMProvider for MockProvider {
+    async fn complete(&self, _: Vec<Message>) -> Result<String> {
+        Ok(self.response.clone()) // Predictable, fast, free
+    }
+}
+```
+
+### Rust Test Structure
+
+**Small test suites (< 50 lines):**
+```rust
+// Inline with implementation
+#[cfg(test)]
+mod tests {
+    use super::*;
+    // Tests here
+}
+```
+
+**Medium test suites (50-100 lines):**
+```rust
+// Separate module file: src/feature/tests.rs
+use super::*;
+// Tests here
+```
+
+**Large test suites (100+ lines) - WARNING:**
+This usually indicates:
+1. File is too large (refactor into smaller modules)
+2. Too many responsibilities (split module)
+3. Tests testing dependencies not our code (remove integration tests)
+
+**Integration tests directory (tests/):**
+Use ONLY for true integration tests of YOUR components working together, not for testing external services.
+
+### Rust-Specific Validation
+
+Before marking complete, verify:
+- [ ] **No file exceeds 300 lines** (including tests)
+- [ ] **No #[ignore] tests for external services** (redesign for testability)
+- [ ] `cargo test` passes (all unit tests)
+- [ ] `cargo clippy -- -D warnings` passes (no warnings)
+- [ ] `cargo fmt --check` passes (formatted)
+- [ ] Tests are in appropriate location (inline for <50 lines)
+- [ ] Module structure follows Rust conventions
+
+### Rust Error Handling Standards
+
+**Error messages must be actionable:**
+```rust
+// BAD: Vague error
+Err("Failed")?
+
+// GOOD: Specific, actionable
+Err("OPENAI_API_KEY is required but not set. \
+     Set environment variable: export OPENAI_API_KEY=sk-...")?
+```
+
+**Use appropriate error types:**
+- `Box<dyn Error + Send + Sync>` for flexibility
+- `Result<T, E>` for all fallible operations
+- Custom error types when needed (using `thiserror`)
+
+### Async Rust Standards
+
+**When implementing async code:**
+```rust
+// Mark trait async
+#[async_trait::async_trait]
+pub trait AsyncTrait {
+    async fn method(&self) -> Result<()>;
+}
+
+// Test with tokio::test
+#[tokio::test]
+async fn test_async_function() {
+    let result = async_function().await;
+    assert!(result.is_ok());
+}
+
+// Provide sync wrappers for CLI
+pub fn run_cli(agent: Agent) -> Result<()> {
+    let runtime = tokio::runtime::Runtime::new()?;
+    runtime.block_on(async_run_cli(agent))
+}
+```
+
+## References
+
+For detailed standards, see:
+- `context-network/meta/coding-standards.md` - File size, organization
+- `context-network/meta/testing-philosophy.md` - Test quality, TDD process
+- Project CLAUDE.md - Overall philosophy and approach

@@ -35,17 +35,22 @@ gantt
 
 ### Current Phase
 
-**Phase: 2 - Validation Pipeline**
-**Status: In Progress**
+**Phase: V2 Layer 1 - Minimal Agent (COMPLETED)**
+**Status: Transitioning to Layer 2 (Plugin Enhancements)**
 
-Core foundation has been completed with all fundamental infrastructure in place. Currently implementing provider-specific features and validation systems. The project has successfully established:
-- ✅ Complete error system with recovery strategies
-- ✅ Core trait interfaces (Agent, Tool, Validator, Monitor)
-- ✅ Type safety infrastructure with builder patterns
-- ✅ Memory management utilities
-- ✅ Five major LLM providers (OpenAI, Anthropic, OpenRouter, Ollama, LMStudio)
+**V2 Strategic Reset (October 12, 2025)**: Pivoted from sophisticated-first to minimal-first architecture. See [decisions/v2_strategic_reset.md](../decisions/v2_strategic_reset.md) for full rationale.
 
-Current focus: Expanding validation capabilities and refining provider implementations.
+**V2 Layer 1 Achievements**:
+- ✅ Working minimal agent core (~200 lines)
+- ✅ Builder pattern API for agent creation
+- ✅ Function-based tools (closures as tools)
+- ✅ Mock provider for testing
+- ✅ CLI interface with help/version support
+- ✅ Working example (hello_agent) - compiles and runs
+
+**Current focus**: Real LLM integration and building agents for actual tasks to identify pain points that drive Layer 2 plugin development.
+
+**V1 Work Status**: Archived as research (branch: `archive/patinox-v1-sophisticated-first`, tag: `v1-research-phase`). V1 provider implementations, validation logic, and testing utilities available for import when validated through V2 usage.
 
 ### Upcoming Milestones
 
@@ -71,47 +76,59 @@ Current focus: Expanding validation capabilities and refining provider implement
   - 🔄 Circuit breaker and rate limiting implementations
 - **Progress:** Core validation infrastructure completed, specific validators in development
 
-### Feature Timeline
+### Feature Timeline (V2 Layered Architecture)
 
-#### Phase 1: Core Abstractions & Basic Implementation
-- **Timeline:** 2025-02-01 - 2025-08-25 (COMPLETED)
-- **Theme:** Foundation - establishing type-safe agent abstractions
+#### Layer 1: Minimal Agent (COMPLETED ✅)
+- **Timeline:** October 12, 2025 (Week 1) - COMPLETED
+- **Theme:** Immediate Usability - working agent in ~200 lines
 - **Features:**
-  - ✅ **Core Traits**: Agent, Tool, Validator, Monitor interfaces - COMPLETED
-  - ✅ **Typestate Patterns**: Compile-time state validation - COMPLETED
-  - ✅ **Memory Management**: Resource management utilities - COMPLETED
-  - ✅ **Error Handling**: Comprehensive error types and recovery - COMPLETED
-  - ✅ **Multi-Provider Support**: OpenAI, Anthropic, OpenRouter, Ollama, LMStudio - COMPLETED
+  - ✅ **Agent Core**: Builder pattern API for agent creation
+  - ✅ **Tool System**: Function closures as tools (FnTool wrapper)
+  - ✅ **Provider Abstraction**: Mock provider for testing
+  - ✅ **CLI Interface**: Arg parsing, help, version flags
+  - ✅ **Error Handling**: Clean Result-based error propagation
+  - ✅ **Working Example**: hello_agent compiles and runs
 
-#### Phase 2: Validation Pipeline
-- **Timeline:** 2025-08-26 - 2025-12-01 (IN PROGRESS)
-- **Theme:** Safety - synchronous validation and quality gates
+#### Layer 2: Plugin Enhancements (IN PROGRESS 🔄)
+- **Timeline:** October 13-31, 2025 (Weeks 2-4) - CURRENT FOCUS
+- **Theme:** Pain-Driven Features - add only what usage demands
 - **Features:**
-  - 🔄 **Tower Middleware**: Composable validation layers - IN PROGRESS
-  - 🔄 **Anti-Jailbreak Validator**: LLM-based safety checks - IN PROGRESS
-  - 🔄 **Hallucination Detection**: Response verification - IN PROGRESS
-  - 📅 **Circuit Breakers**: Failure prevention patterns - PLANNED
-  - 📅 **Rate Limiting**: Resource usage controls - PLANNED
+  - 🔄 **Real LLM Provider**: OpenAI/Anthropic integration (Week 2)
+  - 🔄 **Real Usage Validation**: 2-3 production agents built (Week 2)
+  - 📅 **First Plugin**: Based on pain analysis (Week 3)
+  - 📅 **Memory Plugin**: If agents forget context (conditional)
+  - 📅 **Discovery Plugin**: If exploration painful (conditional)
+  - 📅 **Config Plugin**: If hardcoding frustrating (conditional)
+  - 📅 **Resource Plugin**: If rate limits/costs painful (conditional)
 
-#### Phase 3: Monitoring & Observability
-- **Timeline:** 2025-08-01 - 2025-10-31
-- **Theme:** Observability - comprehensive monitoring without overhead
-- **Features:**
-  - **Async Monitors**: Non-blocking pattern analysis - Priority: High
-  - **OpenTelemetry**: Distributed tracing and metrics - Priority: High
-  - **Structured Logging**: Searchable event streams - Priority: Medium
-  - **Vector DB Integration**: Qdrant/LanceDB for memory - Priority: High
-  - **Performance Benchmarks**: Zero-cost validation - Priority: Medium
+**Note**: Layer 2 features are emergent based on actual usage pain points.
 
-#### Phase 4: Meta-Layer & Evolution
-- **Timeline:** 2025-11-01 - 2026-02-28
-- **Theme:** Evolution - self-improvement through analysis
+#### Layer 3: Reasoning Patterns (PLANNED 📅)
+- **Timeline:** November 2025+ (Month 2+)
+- **Theme:** Advanced Orchestration - when simple agents prove insufficient
 - **Features:**
-  - **Telemetry Analysis**: Pattern identification from logs - Priority: High
-  - **Improvement Generation**: Automated optimization proposals - Priority: High
-  - **Git Integration**: Version-controlled behavior evolution - Priority: High
-  - **A/B Testing**: Gradual rollout mechanisms - Priority: Medium
-  - **Language Bindings**: Python/TypeScript interop - Priority: High
+  - **Plan-Execute Pattern**: Multi-step reasoning
+  - **Reflexion Pattern**: Self-critique and improvement
+  - **ReACT Loop**: Enhanced observation-action cycles
+  - **Multi-Agent Coordination**: When one agent isn't enough
+  - **Tool Composition**: Complex tool chains
+
+**Trigger**: When simple ReACT loop insufficient for complex tasks
+
+#### Layer 4: Enterprise Features (PLANNED 📅)
+- **Timeline:** Q1 2026+ (Month 3+)
+- **Theme:** Import V1 Research - enterprise sophistication when validated
+- **Features:**
+  - **MAPE-K Monitoring**: Self-adaptive monitoring (from V1)
+  - **Tower Validation**: Composable validation middleware (from V1)
+  - **Typestate Patterns**: Compile-time safety guarantees (from V1)
+  - **Git-Based Evolution**: Meta-layer analysis and improvement
+  - **OpenTelemetry**: Distributed tracing and metrics
+  - **Language Bindings**: Python/TypeScript interop
+
+**Source**: V1 archive (`archive/src-v1-enterprise/`, `context-network/archive/v1-research/`)
+
+**Trigger**: When Layer 1-3 proven and enterprise features validated through usage
 
 ### Release Strategy
 
@@ -190,9 +207,11 @@ Current focus: Expanding validation capabilities and refining provider implement
 
 ## Metadata
 - **Created:** 2025-01-17
-- **Last Updated:** 2025-09-18
-- **Updated By:** Context Network Content Curator
+- **Last Updated:** 2025-10-13
+- **Updated By:** V2 Strategic Reset Team
 
 ## Change History
 - 2025-01-17: Created 4-phase roadmap for Patinox development
 - 2025-09-18: Updated to reflect current project reality - Phase 1 completed, Phase 2 in progress
+- 2025-10-12: V2 Strategic Reset - pivoted from sophisticated-first to minimal-first architecture
+- 2025-10-13: Updated roadmap for V2 layered architecture (Layers 1-4 replacing Phases 1-4)
