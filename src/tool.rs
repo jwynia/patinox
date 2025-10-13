@@ -101,9 +101,7 @@ mod tests {
 
     #[test]
     fn test_fn_tool_execution() {
-        let tool = FnTool::new("echo", "Echo input", |args| {
-            Ok(args.to_string())
-        });
+        let tool = FnTool::new("echo", "Echo input", |args| Ok(args.to_string()));
 
         let result = tool.execute(json!({"input": "hello"})).unwrap();
         assert!(result.contains("hello"));

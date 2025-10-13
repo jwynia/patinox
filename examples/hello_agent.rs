@@ -23,7 +23,7 @@ fn main() -> patinox::Result<()> {
         })
         // Use mock provider for testing (no API key needed)
         .with_provider(Box::new(MockProvider::new(
-            "I used the greet tool to say: Hello, world!"
+            "I used the greet tool to say: Hello, world!",
         )));
 
     // Run with CLI interface

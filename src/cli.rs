@@ -43,8 +43,14 @@ pub fn run_cli(agent: Agent) -> crate::Result<()> {
 
     if input.is_empty() {
         eprintln!("Error: No input provided");
-        eprintln!("Usage: {} <input>", args.get(0).unwrap_or(&"agent".to_string()));
-        eprintln!("   or: echo \"input\" | {}", args.get(0).unwrap_or(&"agent".to_string()));
+        eprintln!(
+            "Usage: {} <input>",
+            args.first().unwrap_or(&"agent".to_string())
+        );
+        eprintln!(
+            "   or: echo \"input\" | {}",
+            args.first().unwrap_or(&"agent".to_string())
+        );
         eprintln!("\nTry --help for more information");
         std::process::exit(1);
     }
@@ -107,8 +113,8 @@ mod tests {
 
     #[test]
     fn test_cli_tools_list() {
-        let agent = create_agent("test")
-            .tool_fn("hello", "Say hello", |_| Ok("Hello!".to_string()));
+        let agent =
+            create_agent("test").tool_fn("hello", "Say hello", |_| Ok("Hello!".to_string()));
         print_tools(&agent);
     }
 }

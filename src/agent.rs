@@ -101,11 +101,17 @@ impl Agent {
     /// Run the agent with a single input
     pub fn run(&self, input: impl Into<String>) -> crate::Result<String> {
         // For minimal implementation, just use mock provider
-        let provider = self.provider.as_ref().map(|p| p.as_ref()).unwrap_or_else(|| {
-            // In real implementation, create actual provider based on config
-            // For now, return a simple response
-            panic!("No provider configured. Use with_provider() or set up environment variables.");
-        });
+        let provider = self
+            .provider
+            .as_ref()
+            .map(|p| p.as_ref())
+            .unwrap_or_else(|| {
+                // In real implementation, create actual provider based on config
+                // For now, return a simple response
+                panic!(
+                    "No provider configured. Use with_provider() or set up environment variables."
+                );
+            });
 
         // Build messages
         let mut messages = Vec::new();
@@ -136,6 +142,7 @@ pub fn create_agent(name: impl Into<String>) -> Agent {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::provider::MockProvider;
 
     #[test]
     fn test_agent_creation() {
@@ -145,17 +152,16 @@ mod tests {
 
     #[test]
     fn test_agent_with_tool() {
-        let agent = create_agent("test").tool_fn("hello", "Say hello", |name| {
-            Ok(format!("Hello, {}!", name))
-        });
+        let agent = create_agent("test")
+            .tool_fn("hello", "Say hello", |name| Ok(format!("Hello, {}!", name)));
 
         assert!(agent.tools.contains_key("hello"));
     }
 
     #[test]
     fn test_agent_with_mock_provider() {
-        let agent = create_agent("test")
-            .with_provider(Box::new(MockProvider::new("test response")));
+        let agent =
+            create_agent("test").with_provider(Box::new(MockProvider::new("test response")));
 
         let result = agent.run("hello").unwrap();
         assert_eq!(result, "test response");

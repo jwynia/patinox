@@ -147,7 +147,10 @@ mod tests {
     #[test]
     fn test_provider_defaults() {
         assert_eq!(Provider::OpenAI.default_model(), "gpt-4o-mini");
-        assert_eq!(Provider::Anthropic.default_model(), "claude-3-haiku-20240307");
+        assert_eq!(
+            Provider::Anthropic.default_model(),
+            "claude-3-haiku-20240307"
+        );
     }
 
     #[test]

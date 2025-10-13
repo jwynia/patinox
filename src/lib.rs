@@ -7,29 +7,29 @@
 //! ```rust,no_run
 //! use patinox::*;
 //!
-//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! fn main() -> patinox::Result<()> {
 //!     let agent = create_agent("hello")
 //!         .tool_fn("greet", "Say hello", |name: String| {
 //!             Ok(format!("Hello, {}!", name))
-//!         })?;
+//!         });
 //!
 //!     agent.run_cli()
 //! }
 //! ```
 
 pub mod agent;
+pub mod cli;
 pub mod provider;
 pub mod tool;
-pub mod cli;
 
-pub use agent::{Agent, AgentConfig, create_agent};
-pub use provider::{Provider, LLMProvider};
-pub use tool::{Tool, FnTool};
+pub use agent::{create_agent, Agent, AgentConfig};
 pub use cli::run_cli;
+pub use provider::{LLMProvider, Provider};
+pub use tool::{FnTool, Tool};
 
 /// Prelude module for convenient imports
 pub mod prelude {
-    pub use crate::{Agent, AgentConfig, create_agent, Provider, Tool, FnTool, run_cli};
+    pub use crate::{create_agent, run_cli, Agent, AgentConfig, FnTool, Provider, Tool};
 }
 
 /// Re-export commonly used types
