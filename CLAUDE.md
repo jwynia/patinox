@@ -392,37 +392,125 @@ The following sections can be added based on project type.
 Uncomment and modify the relevant sections for your project.
 -->
 
-<!--
 ### For Software Projects
 
 #### Code-Specific Anti-Patterns
 - ❌ "I'll implement something and see if it works"
 - ❌ "I think I know this API from memory"
 - ❌ "Tests are failing but I'll fix them later"
+- ❌ "This file is getting long, but I'll refactor later"
+- ❌ "I need an integration test for this external API"
+- ❌ "Let me add an #[ignore] test for real API calls"
+
+#### Code-Specific Patterns We Want
+- ✅ "This file is over 300 lines - time to refactor into modules"
+- ✅ "I need to mock this external dependency for testing"
+- ✅ "Let me write tests before implementing this"
+- ✅ "This integration test is a design smell - how can I make this testable?"
+- ✅ "I'm testing external APIs, not our code - remove this test"
 
 #### Code Investigation Additions
 - Check for existing implementations
 - Review architectural patterns
 - Understand dependencies
 - Verify API contracts
+- Check file sizes (warn if > 300 lines)
+- Review test quality (unit tests vs integration tests)
 
 #### Technical Decision Categories
 1. **Architecture** - System design
 2. **Dependencies** - External packages
-3. **Code Organization** - File structure
-4. **API Design** - Interfaces
+3. **Code Organization** - File structure, module boundaries
+4. **API Design** - Interfaces, traits
 5. **Performance** - Optimization choices
 6. **Security** - Auth, encryption
-7. **Testing** - Test strategies
+7. **Testing** - Test strategies (prefer unit tests)
+8. **Testability** - Design for mockability
+
+#### Code Quality Triggers
+
+**File Size as Code Smell:**
+- **200 lines** - Consider if module boundary exists
+- **300 lines** - Strong signal to refactor
+- **500+ lines** - Immediate refactoring required
+- Includes implementation + tests
+
+**Test Quality Signals:**
+- Integration tests requiring real APIs → Design smell
+- Tests with #[ignore] for external services → Fix design
+- Tests larger than implementation → Likely testing wrong things
+- No mocks for external dependencies → Poor testability
 
 #### Code Discovery Format
 ```markdown
 ## [What You Were Looking For]
-**Found**: `path/to/file.ts:45-67`
+**Found**: `path/to/file.rs:45-67`
 **Summary**: [What this code does]
 **Significance**: [Why it matters for the system]
+**File Size**: [line count] lines ([implementation] + [tests])
+**Testability**: [How this is tested - unit/integration/manual]
 ```
--->
+
+#### Testing Philosophy
+
+**Core Principle:** Integration tests that require real external services are a design smell.
+
+**What to Test:**
+- ✅ OUR code - validation, error handling, business logic
+- ✅ OUR integration logic - how we call external APIs
+- ✅ OUR error messages - clarity and actionability
+- ❌ External APIs - not our responsibility
+- ❌ Dependencies - trust them or mock them
+- ❌ Standard library - already tested
+
+**Test-Driven Development (TDD):**
+1. **RED** - Write failing test first
+2. **GREEN** - Minimal code to pass
+3. **REFACTOR** - Improve with test protection
+
+This is not optional - it's the standard workflow.
+
+#### When to Refactor
+
+**Immediate triggers:**
+- File exceeds 300 lines total
+- Tests exceed 100 lines total
+- Multiple concepts in one file
+- Need #[ignore] tests for external APIs
+- Hard to add tests without integration testing
+
+**Process:**
+1. Ensure 80%+ test coverage before refactoring
+2. Run tests after each change
+3. Split by responsibility/concept
+4. Create clear module boundaries
+5. Update imports and re-exports
+
+#### Rust-Specific Standards
+
+**File Organization:**
+```
+src/
+  feature/           # Multi-file module
+    mod.rs          # Public API (~100-150 lines)
+    core.rs         # Implementation (~150-200 lines)
+    mock.rs         # Test utilities (~50 lines)
+```
+
+**Test Location:**
+- < 50 lines → Inline `#[cfg(test)] mod tests`
+- 50-100 lines → Separate `tests.rs` in module
+- 100+ lines → Warning sign, likely testing wrong things
+
+**Quality Checklist:**
+- [ ] No file > 300 lines
+- [ ] No #[ignore] tests for external APIs
+- [ ] cargo test passes (unit tests only)
+- [ ] cargo clippy passes (no warnings)
+- [ ] cargo fmt passes
+- [ ] 80%+ test coverage
+
+See `context-network/meta/coding-standards.md` and `context-network/meta/testing-philosophy.md` for detailed standards.
 
 <!--
 ### For Writing Projects
