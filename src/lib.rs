@@ -29,6 +29,7 @@ pub use tool::{FnTool, Tool};
 
 /// Prelude module for convenient imports
 pub mod prelude {
+    pub use crate::tool::ToolResult;
     pub use crate::{create_agent, run_cli, Agent, AgentConfig, FnTool, Provider, Tool};
 }
 
