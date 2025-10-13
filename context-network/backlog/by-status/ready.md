@@ -17,97 +17,77 @@ A task is ready when:
 **Context**:
 - ✅ Layer 1 (Minimal Agent) completed October 12, 2025
 - ✅ Week 2 Phase 1 (Real Provider) completed October 13, 2025
-- ⏳ Week 2 Phase 2 (Build Real Agents) - NOW READY
+- ✅ Week 2 Phase 2 (Build Real Agents) completed October 13, 2025
+- ✅ Week 2 Phase 3 (Pain Point Analysis) completed October 13, 2025
+- ⏳ Week 2 Phase 4 (Plugin Design) - NOW READY
 
 **See**: [planning/v2-week-2-plan.md](../../planning/v2-week-2-plan.md) for full Week 2 strategy.
 
 ---
 
-## Week 2 Phase 2: Build Real Agents (Days 3-5)
+## Week 2 Phase 4: First Plugin Design (Day 7)
 
-### V2-AGENT-001: Build File Processor Agent
+### V2-PLUGIN-001: Design Tool Context Helper Plugin
 
-**One-liner**: Create an agent that processes text files with LLM analysis to validate V2 framework
+**One-liner**: Design plugin to eliminate tool closure context capture boilerplate
 
-**Priority**: High (Week 2 Phase 2 goal #1)
-**Effort**: 2-4 hours
-**Branch**: `feat/v2-file-processor-agent`
+**Priority**: Critical (Pain Score: 30/30 - validated across 100% of agents)
+**Effort**: 4-6 hours (design + spec)
+**Branch**: `feat/v2-tool-context-plugin`
 
-**Why This Matters**: First real-world usage of V2 agent framework. Will reveal what plugins are actually needed vs. theoretically useful.
+**Why This Matters**:
+- Pain Point #1 from both agents (V2-AGENT-001 and V2-AGENT-002)
+- Affects 100% of context-aware tools (9/9 tools in both agents)
+- Frequency: 3, Severity: 10, Score: 30 (CRITICAL)
+- Universal pattern validated across different agent types
 
-**Acceptance Criteria**:
-- [ ] Agent reads files from command line arguments
-- [ ] Agent uses OpenAI provider to analyze content
-- [ ] Agent provides useful output (summary, analysis, insights)
-- [ ] Used for actual work on real files (not just demo)
-- [ ] **All pain points documented** with frequency and severity
-
-**Implementation Plan**:
-1. Create `examples/file_processor.rs` using V2 agent API
-2. Add tools: `read_file`, `summarize`, `analyze`
-3. Test with real markdown, code, and log files
-4. Document every "I wish it had X" moment in pain point log
-5. Track time spent working around limitations
-
-**Pain Point Documentation**:
-Create `context-network/records/pain-points-file-processor-[date].md`:
-```markdown
-## Pain Point: [Title]
-- Frequency: [How often hit]
-- Severity: [1-5, 5=blocker]
-- Workaround: [What you did instead]
-- Time cost: [Minutes/hours wasted]
-- Potential solution: [Plugin/feature needed]
+**Problem Statement**:
+Every tool that needs access to external context (file paths, config, state) requires manual clone + move boilerplate:
+```rust
+let path = file_path.clone();
+move |_args| read_file_tool(&path)
 ```
-
-**Files to Create**:
-- `examples/file_processor.rs` - Agent implementation
-- `context-network/records/pain-points-file-processor-2025-10-13.md` - Pain log
-
----
-
-### V2-AGENT-002: Build Documentation Generator Agent
-
-**One-liner**: Create an agent that reads code and generates documentation to identify parsing/template needs
-
-**Priority**: High (Week 2 Phase 2 goal #2)
-**Effort**: 3-5 hours
-**Branch**: `feat/v2-doc-generator-agent`
-
-**Why This Matters**: Second real usage case. Will reveal if AST parsing, template rendering, or multi-file plugins are needed.
+This adds 3 extra lines per tool and breaks the ergonomic flow of agent building.
 
 **Acceptance Criteria**:
-- [ ] Agent reads Rust source files
-- [ ] Agent generates useful markdown documentation
-- [ ] Output quality is good enough to actually use
-- [ ] Pain points documented (parsing? templates? discovery?)
-- [ ] Used on patinox codebase itself
+- [ ] Plugin trait defined with clear integration points
+- [ ] Builder pattern integration designed (opt-in mechanism)
+- [ ] API reduces boilerplate to zero for common cases
+- [ ] Works with existing agent builder pattern
+- [ ] V1 code assessed for import opportunities
+- [ ] Implementation plan with test strategy created
+- [ ] Design validated against both existing agents
 
-**Implementation Plan**:
-1. Create `examples/doc_generator.rs`
-2. Start simple: read file → LLM → markdown
-3. Add tools as pain demands: `parse_rust`, `format_markdown`, `write_file`
-4. Test on patinox modules (agent.rs, tool.rs, provider.rs)
-5. Document every limitation hit
+**Data from Pain Point Analysis**:
+- **V2-AGENT-001**: Hit on 3/4 tools (read_file, count_lines, get_file_info)
+- **V2-AGENT-002**: Hit on 4/5 tools (read_source, get_module_info, extract_public_api, count_functions)
+- **Total impact**: 7/9 context-aware tools (78% of all tools)
 
-**Expected Pain Points**:
-- Code parsing without syn/AST support
-- Multi-file processing (discovery?)
-- Output templating needs
-- Context window limits (memory?)
+**Design Considerations**:
+1. Should support captured variables without manual cloning
+2. Must remain optional (core works without it)
+3. Clean integration with `.tool_fn()` builder method
+4. Type-safe approach preferred
+5. Minimal runtime overhead
 
 **Files to Create**:
-- `examples/doc_generator.rs`
-- `context-network/records/pain-points-doc-generator-2025-10-13.md`
+- `context-network/planning/v2-plugin-tool-context-design.md` - Design document
+- `src/plugin/mod.rs` - Plugin trait definition (stub)
+- `src/plugin/tool_context.rs` - Tool context plugin (design spec)
+
+**See Also**:
+- [records/pain-points-file-processor-2025-10-13.md](../../records/pain-points-file-processor-2025-10-13.md) - Pain Point #1
+- [records/pain-points-doc-generator-2025-10-13.md](../../records/pain-points-doc-generator-2025-10-13.md) - Pain Point #1
+- [records/completion-v2-week-2-phase-2-2025-10-13.md](../../records/completion-v2-week-2-phase-2-2025-10-13.md) - Plugin priorities
 
 ---
 
 ## Metadata
 
-**Last updated**: 2025-10-13 (Grooming session)
-**Last updated by**: Backlog grooming after V2 Phase 1 completion
-**Total ready tasks**: 2
-**V2 Phase**: Layer 2 - Week 2, Phase 2 (Build Real Agents)
+**Last updated**: 2025-10-13 (Sync after Phase 2-3 completion)
+**Last updated by**: `/sync` command - reality detection
+**Total ready tasks**: 1
+**V2 Phase**: Layer 2 - Week 2, Phase 4 (Plugin Design)
 
 ## Notes
 

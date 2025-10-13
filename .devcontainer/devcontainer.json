@@ -7,6 +7,7 @@
 	"mounts": [
 		"source=/Users/jwynia/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
 	],
+	"runArgs": ["--env-file", ".devcontainer/.env"],
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {
