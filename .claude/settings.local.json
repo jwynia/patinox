@@ -27,7 +27,10 @@
       "WebSearch",
       "Bash(rg:*)",
       "Bash(git worktree:*)",
-      "Read(//tmp/worktrees/patinox-memory-optimization-0920/**)"
+      "Read(//tmp/worktrees/patinox-memory-optimization-0920/**)",
+      "Bash(git ls-tree:*)",
+      "Bash(git reflog:*)",
+      "Bash(git cat-file:*)"
     ],
     "deny": [],
     "ask": []

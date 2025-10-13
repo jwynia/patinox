@@ -1,69 +1,99 @@
 # Planned Tasks
 
-Tasks that have been groomed and understood, but have dependencies or blockers preventing immediate work.
+Tasks that have been identified but have dependencies or blockers preventing immediate work.
 
 ## What Makes a Task "Planned"?
 
 A task is planned when:
-- ✅ Requirements are documented
-- ✅ Acceptance criteria defined
-- ✅ Dependencies identified
+- ✅ Requirements are understood
+- ✅ Acceptance criteria could be defined
 - ⏳ Waiting on prerequisite tasks
-- ⏳ Waiting on decisions or approvals
-- ⏳ Waiting on external factors
+- ⏳ Waiting on decisions or information
+- ⏳ Waiting on pain point validation
 
-## Transition to "Ready"
+## Current Phase: V2 Layer 2 - Real Usage & Pain-Driven Plugins
 
-Tasks move from **Planned** → **Ready** when:
-- All blocking tasks are completed
-- All required decisions are made
-- All external dependencies are resolved
-- No other impediments remain
-
-## How to Use This File
-
-**For planning**: Add newly groomed tasks with dependencies here
-**For tracking**: Monitor blockers and move to ready when resolved
-**For sync**: Auto-updated by `/sync` command
+**V2 Principle**: Most tasks stay "planned" until **real usage proves they're needed**. We don't build features speculatively.
 
 ---
 
-## Blocked by Dependencies
+## Blocked: Waiting on Real Usage Data
 
-### High Priority
+### Plugin Development (All Conditional)
 
-*No high priority planned tasks*
+**Blocker**: Need to build 2-3 real agents first to identify actual pain points
 
-### Medium Priority
+**Potential plugins** (may or may not be needed):
+- Memory Plugin - *IF agents forget context*
+- Discovery Plugin - *IF file/directory exploration is painful*
+- Config Plugin - *IF hardcoding becomes frustrating*
+- Resource Plugin - *IF rate limits/costs become painful*
 
-*No medium priority planned tasks*
+**How they become ready**:
+1. Build real agents (Week 2, Days 3-5)
+2. Document every "I wish it had X" moment
+3. Analyze pain points by frequency + severity (Day 6)
+4. Highest pain point gets designed (Day 7)
+5. Move to ready.md for Week 3 implementation
 
-### Low Priority
-
-*No low priority planned tasks*
+**See**: [planning/v2-week-2-plan.md](../../planning/v2-week-2-plan.md) for pain point analysis framework
 
 ---
 
-## Blocked by Decisions
+## Blocked: Waiting on Provider Integration
 
-*No tasks awaiting decisions*
+### Real Agent Development
+
+**Blocker**: Need real LLM provider working first (Week 2, Phase 1)
+
+**Candidates** (pick 2 after provider works):
+- **File Processor Agent** - Process text files with LLM analysis
+- **Git Helper Agent** - Analyze repos, suggest improvements
+- **Documentation Generator** - Read code, generate docs
+
+**How they become ready**:
+1. Real provider integration completes
+2. Pick 2 agents based on immediate utility
+3. Groom with specific tools needed
+4. Move to ready.md
+
+**Estimated**: Ready by Week 2, Day 3
 
 ---
 
-## Blocked by External Factors
+## Future Layers (Not Yet Planned)
 
-*No tasks blocked by external factors*
+### Layer 3: Reasoning Patterns
+**Trigger**: When simple ReACT loop proves insufficient
+**Examples**: Plan-Execute, Reflexion, Multi-Agent
+**Timeline**: November 2025+
+
+### Layer 4: Enterprise Features
+**Trigger**: When Layer 1-3 proven and enterprise needs validated
+**Source**: Import from V1 archive
+**Examples**: MAPE-K monitoring, Tower validation, TypeState
+**Timeline**: Q1 2026+
 
 ---
 
 ## Metadata
 
-**Last updated**: 2025-10-12
-**Last updated by**: Manual initialization
-**Total planned tasks**: 0
-**Average time in planned**: N/A
-**Next task to unblock**: N/A
+**Last updated**: 2025-10-13
+**Last updated by**: V2 Context Recovery
+**Total planned tasks**: 0 specific tasks (principles documented)
+**V2 Phase**: Layer 2 - Week 2, awaiting usage data
 
 ## Notes
 
-Tasks move to [ready.md](./ready.md) once all blockers are resolved.
+**V2 Approach**: This file documents *what we're waiting for* rather than *what we'll build*. Tasks emerge from pain, not from planning sophistication in advance.
+
+**Anti-pattern avoided**: Long list of "future enhancements" that pull attention toward sophistication before it's validated.
+
+**How tasks get added**:
+1. Real usage reveals pain point
+2. Pain point analyzed (frequency × severity)
+3. Solution designed (minimal scope)
+4. Task created with specific acceptance criteria
+5. Moved to ready.md when dependencies clear
+
+This is the "minimal-first" approach in practice.
