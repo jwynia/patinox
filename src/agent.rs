@@ -3,8 +3,9 @@
 //! The Agent is the central orchestrator that combines tools, providers,
 //! and execution logic into a working AI agent.
 
-use crate::provider::{LLMProvider, Message, Provider, ProviderConfig};
+use crate::provider::{LLMProvider, Message, Provider, ProviderConfig, ProviderResponse, ToolDefinition};
 use crate::tool::Tool;
+use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -100,20 +101,17 @@ impl Agent {
 
     /// Run the agent with a single input
     pub async fn run(&self, input: impl Into<String>) -> crate::Result<String> {
-        // For minimal implementation, just use mock provider
         let provider = self
             .provider
             .as_ref()
             .map(|p| p.as_ref())
             .unwrap_or_else(|| {
-                // In real implementation, create actual provider based on config
-                // For now, return a simple response
                 panic!(
                     "No provider configured. Use with_provider() or set up environment variables."
                 );
             });
 
-        // Build messages
+        // Build initial messages
         let mut messages = Vec::new();
 
         if let Some(sys_prompt) = &self.config.system_prompt {
@@ -122,10 +120,59 @@ impl Agent {
 
         messages.push(Message::user(input.into()));
 
-        // Get completion
-        let response = provider.complete(messages).await?;
+        // Convert tools to ToolDefinitions
+        let tool_defs: Vec<ToolDefinition> = self
+            .tools
+            .values()
+            .map(|tool| ToolDefinition {
+                name: tool.name().to_string(),
+                description: tool.description().to_string(),
+                parameters: json!({
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }),
+            })
+            .collect();
 
-        Ok(response)
+        // Tool calling loop (max 10 iterations to prevent infinite loops)
+        let max_iterations = 10;
+        for iteration in 0..max_iterations {
+            // Get completion from provider
+            let response = provider.complete(messages.clone(), tool_defs.clone()).await?;
+
+            match response {
+                ProviderResponse::Text(text) => {
+                    // Final response - return it
+                    return Ok(text);
+                }
+                ProviderResponse::ToolCalls(calls) => {
+                    // Execute each tool call
+                    for call in calls {
+                        let tool = self.tools.get(&call.name).ok_or_else(|| {
+                            format!("Tool '{}' not found", call.name)
+                        })?;
+
+                        // Execute the tool
+                        let result = tool.execute(call.arguments)?;
+
+                        // Add tool result to messages
+                        // For simplicity, we add it as an assistant message
+                        messages.push(Message::assistant(format!(
+                            "Tool '{}' returned: {}",
+                            call.name, result
+                        )));
+                    }
+                }
+            }
+
+            // If we got here, we had tool calls and need to continue the loop
+            if iteration == max_iterations - 1 {
+                return Err("Max tool calling iterations reached".into());
+            }
+        }
+
+        Err("Tool calling loop ended unexpectedly".into())
     }
 
     /// Run the agent with CLI interface

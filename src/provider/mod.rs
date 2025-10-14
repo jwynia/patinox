@@ -10,10 +10,36 @@ pub use mock::MockProvider;
 pub use openai::OpenAIProvider;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::env;
 
 /// Provider result type
 pub type ProviderResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+/// Tool definition for LLM providers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolDefinition {
+    pub name: String,
+    pub description: String,
+    pub parameters: Value,
+}
+
+/// Tool call from LLM response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolCall {
+    pub id: String,
+    pub name: String,
+    pub arguments: Value,
+}
+
+/// Response from LLM provider
+#[derive(Debug, Clone)]
+pub enum ProviderResponse {
+    /// Text response (no tool calls)
+    Text(String),
+    /// Tool calls requested by the LLM
+    ToolCalls(Vec<ToolCall>),
+}
 
 /// Supported LLM providers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -125,7 +151,14 @@ impl Message {
 #[async_trait::async_trait]
 pub trait LLMProvider: Send + Sync {
     /// Send a completion request and get a response
-    async fn complete(&self, messages: Vec<Message>) -> ProviderResult<String>;
+    ///
+    /// If tools are provided, the LLM may return tool calls instead of text.
+    /// The agent is responsible for executing tools and continuing the conversation.
+    async fn complete(
+        &self,
+        messages: Vec<Message>,
+        tools: Vec<ToolDefinition>,
+    ) -> ProviderResult<ProviderResponse>;
 }
 
 #[cfg(test)]

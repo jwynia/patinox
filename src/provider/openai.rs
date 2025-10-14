@@ -1,6 +1,7 @@
 //! OpenAI provider implementation using async-openai crate
 
-use super::{LLMProvider, Message, ProviderConfig, ProviderResult};
+use super::{LLMProvider, Message, ProviderConfig, ProviderResponse, ProviderResult, ToolCall, ToolDefinition};
+use serde_json::json;
 
 /// OpenAI provider using async-openai crate
 #[derive(Debug)]
@@ -30,10 +31,16 @@ impl OpenAIProvider {
 
 #[async_trait::async_trait]
 impl LLMProvider for OpenAIProvider {
-    async fn complete(&self, messages: Vec<Message>) -> ProviderResult<String> {
+    async fn complete(
+        &self,
+        messages: Vec<Message>,
+        tools: Vec<ToolDefinition>,
+    ) -> ProviderResult<ProviderResponse> {
         use async_openai::types::{
-            ChatCompletionRequestAssistantMessageArgs, ChatCompletionRequestSystemMessageArgs,
-            ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
+            ChatCompletionRequestAssistantMessageArgs,
+            ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs,
+            ChatCompletionToolArgs, ChatCompletionToolType, CreateChatCompletionRequestArgs,
+            FunctionObjectArgs,
         };
 
         // Check for empty messages
@@ -62,11 +69,35 @@ impl LLMProvider for OpenAIProvider {
             openai_messages.push(openai_msg);
         }
 
+        // Convert tools to OpenAI format
+        let openai_tools: Vec<_> = tools
+            .iter()
+            .map(|tool| {
+                ChatCompletionToolArgs::default()
+                    .r#type(ChatCompletionToolType::Function)
+                    .function(
+                        FunctionObjectArgs::default()
+                            .name(&tool.name)
+                            .description(&tool.description)
+                            .parameters(tool.parameters.clone())
+                            .build()
+                            .unwrap(),
+                    )
+                    .build()
+                    .unwrap()
+            })
+            .collect();
+
         // Build the request
         let mut request_builder = CreateChatCompletionRequestArgs::default();
         request_builder
             .model(&self.config.model)
             .messages(openai_messages);
+
+        // Add tools if any
+        if !openai_tools.is_empty() {
+            request_builder.tools(openai_tools);
+        }
 
         if let Some(temp) = self.config.temperature {
             request_builder.temperature(temp);
@@ -81,14 +112,39 @@ impl LLMProvider for OpenAIProvider {
         // Make the API call
         let response = self.client.chat().create(request).await?;
 
-        // Extract the content from the first choice
-        let content = response
+        // Extract the response
+        let choice = response
             .choices
             .first()
-            .and_then(|choice| choice.message.content.clone())
-            .ok_or("No response content from OpenAI")?;
+            .ok_or("No choices in OpenAI response")?;
 
-        Ok(content)
+        // Check if the response contains tool calls
+        if let Some(tool_calls) = &choice.message.tool_calls {
+            let calls: Vec<ToolCall> = tool_calls
+                .iter()
+                .map(|tc| {
+                    let args = tc
+                        .function
+                        .arguments
+                        .parse::<serde_json::Value>()
+                        .unwrap_or(json!({}));
+                    ToolCall {
+                        id: tc.id.clone(),
+                        name: tc.function.name.clone(),
+                        arguments: args,
+                    }
+                })
+                .collect();
+            Ok(ProviderResponse::ToolCalls(calls))
+        } else {
+            // Regular text response
+            let content = choice
+                .message
+                .content
+                .clone()
+                .ok_or("No content or tool calls in OpenAI response")?;
+            Ok(ProviderResponse::Text(content))
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 //! Mock provider for testing (no API calls)
 
-use super::{LLMProvider, Message, ProviderResult};
+use super::{LLMProvider, Message, ProviderResponse, ProviderResult, ToolDefinition};
 
 /// Mock provider that returns a pre-configured response
 pub struct MockProvider {
@@ -17,8 +17,12 @@ impl MockProvider {
 
 #[async_trait::async_trait]
 impl LLMProvider for MockProvider {
-    async fn complete(&self, _messages: Vec<Message>) -> ProviderResult<String> {
-        Ok(self.response.clone())
+    async fn complete(
+        &self,
+        _messages: Vec<Message>,
+        _tools: Vec<ToolDefinition>,
+    ) -> ProviderResult<ProviderResponse> {
+        Ok(ProviderResponse::Text(self.response.clone()))
     }
 }
 
@@ -30,9 +34,12 @@ mod tests {
     async fn test_mock_provider() {
         let provider = MockProvider::new("test response");
         let result = provider
-            .complete(vec![Message::user("test")])
+            .complete(vec![Message::user("test")], vec![])
             .await
             .unwrap();
-        assert_eq!(result, "test response");
+        match result {
+            ProviderResponse::Text(text) => assert_eq!(text, "test response"),
+            _ => panic!("Expected text response"),
+        }
     }
 }
