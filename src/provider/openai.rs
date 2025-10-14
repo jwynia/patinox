@@ -211,9 +211,10 @@ mod tests {
 
         let provider = provider.unwrap();
         let messages: Vec<Message> = vec![];
+        let tools: Vec<ToolDefinition> = vec![];
 
         // Act
-        let result = provider.complete(messages).await;
+        let result = provider.complete(messages, tools).await;
 
         // Assert
         assert!(

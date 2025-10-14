@@ -38,7 +38,21 @@ Too many in-progress tasks indicates:
 
 ## Active Work
 
-*No tasks currently in progress*
+### V2-PLUGIN-001: Design Tool Context Helper Plugin
+
+**Started**: 2025-10-14
+**Branch**: `feat/v2-tool-context-plugin`
+**Assignee**: Claude
+**Priority**: Critical
+
+**Status**: Design phase - investigating pain points and exploring solutions
+
+**Quick Context**:
+- Pain Score: 30/30 (validated across 100% of agents)
+- Affects 9/9 context-aware tools
+- Eliminates clone + move boilerplate in tool definitions
+
+**See**: [backlog/by-status/ready.md](../by-status/ready.md#v2-plugin-001-design-tool-context-helper-plugin) for full task details
 
 ---
 
@@ -50,9 +64,9 @@ Too many in-progress tasks indicates:
 
 ## Metadata
 
-**Last updated**: 2025-10-12
-**Last updated by**: DOCS-001 completed
-**Total in-progress tasks**: 0
+**Last updated**: 2025-10-14
+**Last updated by**: V2-PLUGIN-001 started
+**Total in-progress tasks**: 1
 **Average time in progress**: N/A
 **Longest in-progress task**: N/A
 

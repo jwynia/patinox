@@ -27,7 +27,7 @@ A task is ready when:
 
 ## Week 2 Phase 4: First Plugin Design (Day 7)
 
-### V2-PLUGIN-001: Design Tool Context Helper Plugin
+### ⏳ V2-PLUGIN-001: Design Tool Context Helper Plugin (IN PROGRESS)
 
 **One-liner**: Design plugin to eliminate tool closure context capture boilerplate
 
