@@ -1,6 +1,9 @@
 //! OpenAI provider implementation using async-openai crate
 
-use super::{LLMProvider, Message, ProviderConfig, ProviderResponse, ProviderResult, ToolCall, ToolDefinition};
+use super::{
+    LLMProvider, Message, ProviderConfig, ProviderResponse, ProviderResult, ToolCall,
+    ToolDefinition,
+};
 use serde_json::json;
 
 /// OpenAI provider using async-openai crate
@@ -37,10 +40,9 @@ impl LLMProvider for OpenAIProvider {
         tools: Vec<ToolDefinition>,
     ) -> ProviderResult<ProviderResponse> {
         use async_openai::types::{
-            ChatCompletionRequestAssistantMessageArgs,
-            ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs,
-            ChatCompletionToolArgs, ChatCompletionToolType, CreateChatCompletionRequestArgs,
-            FunctionObjectArgs,
+            ChatCompletionRequestAssistantMessageArgs, ChatCompletionRequestSystemMessageArgs,
+            ChatCompletionRequestUserMessageArgs, ChatCompletionToolArgs, ChatCompletionToolType,
+            CreateChatCompletionRequestArgs, FunctionObjectArgs,
         };
 
         // Check for empty messages
