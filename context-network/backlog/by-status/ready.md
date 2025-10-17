@@ -178,6 +178,7 @@ See [decisions/lifecycle-hook-architecture.md](../../decisions/lifecycle-hook-ar
 - [decisions/lifecycle-hook-architecture.md](../../decisions/lifecycle-hook-architecture.md) - Full design
 - [planning/lifecycle-hook-use-cases.md](../../planning/lifecycle-hook-use-cases.md) - 30+ use cases cataloged
 - [planning/roadmap.md](../../planning/roadmap.md) - Layer 2.5 timeline
+- [planning/layer-2.5-implementation/task-breakdown.md](../../planning/layer-2.5-implementation/task-breakdown.md) - Complete 17-task implementation breakdown
 
 ---
 
