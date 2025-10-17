@@ -372,11 +372,103 @@ async fn after_model(&self, response: &ProviderResponse) -> Result<HookAction> {
 }
 ```
 
+#### UC-4.5: Bicameral Mind (Creator-Critic Separation)
+**Pain Point**: Single model exhibits confirmation bias, misses flaws in own output, produces lower quality results
+**Solution**: Separate creator (generates) from critic (evaluates with fresh perspective), significantly better quality
+**Priority**: High (validated production pattern, substantial quality improvement)
+**Validated By**: Project lead's production experience - pattern yields far better results than combined creator+critic prompt to single model
+
+**Pattern Overview**:
+- **Creator model** produces work via normal agent execution
+- **Critic model** evaluates with completely separate context (crucial: critic has NOT created the work)
+- Critic can approve (Continue), reject (Reject), or suggest changes (Modify)
+- Key insight: Evaluator must not have creation bias - requires separate model/context
+
+**Example - Simple Creator→Critic:**
+```rust
+struct BicameralCriticHook {
+    critic_provider: Box<dyn LLMProvider>,
+    critic_prompt: String,
+}
+
+#[async_trait]
+impl AgentLifecycle for BicameralCriticHook {
+    async fn after_model(&self, response: &ProviderResponse) -> Result<HookAction> {
+        let proposal = extract_text(response)?;
+
+        // Critic evaluates (completely separate context, no creation bias)
+        let critique = self.critic_provider.complete(vec![
+            Message::system("You are a critical evaluator, NOT the creator of this work."),
+            Message::user(format!("Evaluate this output for quality and correctness:\n\n{}", proposal))
+        ], vec![]).await?;
+
+        let critique_text = extract_text(&critique)?;
+
+        if critique_approves(&critique_text) {
+            Ok(HookAction::Continue)
+        } else if critique_rejects(&critique_text) {
+            Ok(HookAction::Reject(format!("Critic rejected: {}", critique_text)))
+        } else {
+            // Modify with critique for creator to see
+            let combined = format!(
+                "## Proposal\n{}\n\n## Critique\n{}",
+                proposal,
+                critique_text
+            );
+            Ok(HookAction::Modify(ProviderResponse::Text(combined)))
+        }
+    }
+}
+```
+
+**Use Cases**:
+- **Code Review**: Creator writes code, critic reviews for bugs/style (separate perspective catches more issues)
+- **Content Writing**: Creator drafts, critic edits for clarity/tone (fresh eyes improve quality)
+- **Decision Making**: Creator proposes solution, critic identifies risks/alternatives (better decisions)
+- **Creative Work**: Creator generates content, critic evaluates against constraints/goals (creative + on-target)
+
+**Advanced Pattern - Iterative Refinement:**
+```rust
+// Combine after_model + wrap_model_call for multi-round refinement
+async fn wrap_model_call<F, Fut>(&self, f: F) -> ProviderResult<ProviderResponse> {
+    for round in 0..self.max_rounds {
+        // Creator produces work
+        let creator_response = f().await?;
+        let creator_output = extract_text(&creator_response)?;
+
+        // Critic evaluates (separate model, no creation bias)
+        let critique = self.critic_provider.complete(vec![
+            Message::system("You are a critical evaluator."),
+            Message::user(format!("Evaluate:\n{}", creator_output))
+        ], vec![]).await?;
+
+        if is_approved(&critique) {
+            return Ok(creator_response);
+        }
+
+        // Send critique to creator for refinement
+        // (modify messages for next iteration)
+    }
+    f().await // Return final version
+}
+```
+
+**Layer 3 Implementation (High Priority)**:
+- Simple creator→critic hook
+- Configurable: single-pass vs iterative refinement
+- Support for multiple specialized critics (security, performance, UX, etc.)
+
+**Layer 4 Extensions (Advanced)**:
+- Multi-round refinement loops
+- Parallel critics with consensus mechanisms
+- Critic specialization and weighting
+- Integration with MAPE-K monitoring
+
 ### Implementation Priority
 
 **Layer 2**: None (simple agents don't need approval)
-**Layer 3**: HITL approval, safety validation (high priority for production)
-**Layer 4**: V1 async HITL import, sophisticated validation (enterprise)
+**Layer 3**: HITL approval, safety validation, **bicameral mind** (all high priority for production quality)
+**Layer 4**: V1 async HITL import, sophisticated validation, multi-critic systems (enterprise)
 
 ---
 
@@ -571,8 +663,8 @@ async fn after_agent(&self, result: &str) -> Result<String> {
 |------|------------------------|-------|---------|
 | before_agent | Rate limiting, input validation | 3 | Production deployment, bad inputs |
 | before_model | Context window management | 3 | Long conversations, token limits |
-| wrap_model_call | Retry logic, telemetry | 3 | API reliability issues, debugging pain |
-| after_model | HITL approval, safety validation | 3 | Destructive actions, compliance requirements |
+| wrap_model_call | Retry logic, telemetry, **bicameral refinement** | 3 | API reliability, debugging, **quality improvement** |
+| after_model | HITL approval, safety validation, **bicameral critic** | 3 | Destructive actions, compliance, **quality gates** |
 | wrap_tool_call | Retry logic, audit logging | 3 | Tool failures, compliance requirements |
 | after_agent | Metrics collection | 3 | Production monitoring needs |
 
@@ -591,11 +683,13 @@ async fn after_agent(&self, result: &str) -> Result<String> {
 - `wrap_model_call` with retry + telemetry
 - `wrap_tool_call` with retry + audit logging
 - `before_agent` with input validation
+- **`after_model` with bicameral critic** (validated high-value pattern)
 
 **Priority 2** (if needed):
 - `before_model` with context trimming
 - `after_model` with safety validation
 - `after_agent` with metrics
+- **`wrap_model_call` with bicameral refinement loops** (advanced)
 
 ### Layer 4 (Q1 2026)
 **Import from V1 archive:**
@@ -617,3 +711,4 @@ async fn after_agent(&self, result: &str) -> Result<String> {
 
 ## Change History
 - 2025-10-16: Created comprehensive use case catalog with priority matrix
+- 2025-10-16: Added UC-4.5 bicameral mind pattern (creator-critic separation) based on validated production experience

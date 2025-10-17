@@ -82,10 +82,18 @@ async fn run(&self, input: String) -> Result<String> {
 
 **before_agent**: Input sanitization, rate limiting, context loading
 **before_model**: Context window management, prompt injection, message compression
-**wrap_model_call**: Retry with backoff, fallback providers, caching, telemetry
-**after_model**: HITL approval, safety validation, response formatting
+**wrap_model_call**: Retry with backoff, fallback providers, caching, telemetry, **bicameral refinement loops**
+**after_model**: HITL approval, safety validation, response formatting, **bicameral critic evaluation**
 **wrap_tool_call**: Tool retry logic, permission checks, audit logging, dry-run mode
 **after_agent**: Result persistence, notifications, metrics collection
+
+**Key Architectural Pattern Enabled**: **Bicameral Mind (Creator-Critic Separation)**
+- Validated production pattern: Separate creator (generates) from critic (evaluates)
+- Critical insight: Critic must NOT have created the work (requires separate model/context)
+- Result: Significantly better quality than combined creator+critic prompt to single model
+- Implementation: `after_model` hook intercepts creator output, separate critic model evaluates
+- Use cases: Code review, content writing, decision making, creative work
+- See [lifecycle-hook-use-cases.md UC-4.5](../planning/lifecycle-hook-use-cases.md) for full pattern
 
 ## The Solution
 
@@ -333,16 +341,19 @@ Build **specific hooks** only when validated pain emerges:
 - Retry logic wrapper (wrap_model_call, wrap_tool_call)
 - Logging/telemetry wrapper (all hooks)
 - Input validation (before_agent)
+- **Bicameral critic hook (after_model)** - validated high-value pattern
 
 **Priority 2** (Layer 3 - Month 2+):
 - Context window management (before_model)
 - HITL approval workflow (after_model)
 - Result formatting (after_agent)
+- **Bicameral refinement loops (wrap_model_call)** - advanced iteration
 
 **Priority 3** (Layer 4 - Q1 2026):
 - Import V1 Tower middleware as hooks
 - MAPE-K monitoring via hooks
 - OpenTelemetry integration via hooks
+- Multi-critic systems with consensus mechanisms
 
 ## Import Path from V1 Archive
 
@@ -464,3 +475,4 @@ V1 research phase already explored middleware patterns:
 
 ## Change History
 - 2025-10-16: Created decision record based on LangChain V1 middleware and external experience validation
+- 2025-10-16: Added bicameral mind pattern as key architectural use case (UC-4.5) - validated production quality improvement
