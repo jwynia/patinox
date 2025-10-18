@@ -20,6 +20,7 @@
 pub mod agent;
 pub mod cli;
 pub mod lifecycle;
+pub mod plugin;
 pub mod provider;
 pub mod tool;
 
