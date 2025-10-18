@@ -3,7 +3,9 @@
 //! The Agent is the central orchestrator that combines tools, providers,
 //! and execution logic into a working AI agent.
 
-use crate::provider::{LLMProvider, Message, Provider, ProviderConfig, ProviderResponse, ToolDefinition};
+use crate::provider::{
+    LLMProvider, Message, Provider, ProviderConfig, ProviderResponse, ToolDefinition,
+};
 use crate::tool::Tool;
 use serde_json::json;
 use std::collections::HashMap;
@@ -139,7 +141,9 @@ impl Agent {
         let max_iterations = 10;
         for iteration in 0..max_iterations {
             // Get completion from provider
-            let response = provider.complete(messages.clone(), tool_defs.clone()).await?;
+            let response = provider
+                .complete(messages.clone(), tool_defs.clone())
+                .await?;
 
             match response {
                 ProviderResponse::Text(text) => {
@@ -149,9 +153,10 @@ impl Agent {
                 ProviderResponse::ToolCalls(calls) => {
                     // Execute each tool call
                     for call in calls {
-                        let tool = self.tools.get(&call.name).ok_or_else(|| {
-                            format!("Tool '{}' not found", call.name)
-                        })?;
+                        let tool = self
+                            .tools
+                            .get(&call.name)
+                            .ok_or_else(|| format!("Tool '{}' not found", call.name))?;
 
                         // Execute the tool
                         let result = tool.execute(call.arguments)?;

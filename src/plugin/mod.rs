@@ -1,0 +1,52 @@
+//! Plugin system for extending agent functionality
+//!
+//! The plugin system allows optional enhancements to agent capabilities
+//! without adding complexity to the core framework. Each plugin is opt-in
+//! and designed to solve specific pain points discovered through real usage.
+//!
+//! ## V2 Plugin Philosophy
+//!
+//! Plugins follow the V2 principle: **pain-driven development**
+//! - Plugins are only created after pain is validated across multiple agents
+//! - Each plugin solves a specific, measured problem
+//! - Plugins are optional - core framework works without them
+//! - Zero-cost abstractions - plugins compile away to manual code
+//!
+//! ## Available Plugins
+//!
+//! ### Tool Context Helper (V2-PLUGIN-001)
+//! **Status**: Design phase
+//! **Pain Score**: 30/30 (Critical)
+//! **Problem**: Manual clone + move boilerplate for context-aware tools
+//! **Solution**: Extension methods like `.tool_fn_with()` that capture context automatically
+//!
+//! See: `context-network/planning/v2-plugin-tool-context-design.md` for design details
+
+use crate::agent::Agent;
+
+/// Plugin trait for extending agents
+///
+/// Plugins implement this trait to provide optional functionality
+/// that can be applied to agents during construction.
+///
+/// ## Design Principles
+/// - **Opt-in**: Plugins are not applied automatically
+/// - **Zero-cost**: Should compile to the same code as manual implementation
+/// - **Type-safe**: Use Rust's type system for safety, not runtime checks
+/// - **Composable**: Multiple plugins can be used together
+pub trait AgentPlugin: Send + Sync {
+    /// Plugin name (for debugging and documentation)
+    fn name(&self) -> &str;
+
+    /// Apply plugin transformations to an agent
+    ///
+    /// This is called during agent construction to add plugin-specific
+    /// functionality. Implementations should use the builder pattern
+    /// to maintain fluent API.
+    fn apply(&self, agent: Agent) -> Agent;
+}
+
+// Future plugin modules will be added here as they're implemented
+// pub mod tool_context;  // V2-PLUGIN-001 (Week 3)
+// pub mod cli;           // V2-PLUGIN-002 (Week 3)
+// pub mod discovery;     // V2-PLUGIN-003 (Week 4)

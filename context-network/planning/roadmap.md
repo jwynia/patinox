@@ -103,6 +103,26 @@ gantt
 
 **Note**: Layer 2 features are emergent based on actual usage pain points.
 
+#### Layer 2.5: Lifecycle Hook Architecture (APPROVED 📅)
+- **Timeline:** Week 4 (October 24-31, 2025)
+- **Theme:** Future-Proof Architecture - enable middleware without premature implementation
+- **Trigger:** External validated pain from production agent framework usage
+- **Features:**
+  - 📅 **AgentLifecycle Trait**: 6 hook points (before_agent, before_model, wrap_model_call, after_model, wrap_tool_call, after_agent)
+  - 📅 **Hook Registration**: `.with_lifecycle()` builder method
+  - 📅 **Hook Calling Infrastructure**: Integration in `Agent::run()` method
+  - 📅 **Default Implementations**: Zero-cost passthrough when hooks unused
+  - 📅 **Performance Benchmarks**: < 5% overhead target with 1 hook
+  - 📅 **Documentation**: Rustdoc + examples for hook usage patterns
+
+**Rationale**: Validated external experience shows need for intervention points at 6 locations in agent execution loop. Adding trait infrastructure now (cheap) prevents costly refactoring later. Concrete hook implementations deferred to Layer 3 (pain-driven).
+
+**Decision**: See [decisions/lifecycle-hook-architecture.md](../decisions/lifecycle-hook-architecture.md)
+
+**Import Path**: V1 Tower middleware and MAPE-K monitoring (Layer 4) will implement as AgentLifecycle hooks.
+
+**Note**: Trait definition only - no concrete hook implementations until Layer 3+ pain validated.
+
 #### Layer 3: Reasoning Patterns (PLANNED 📅)
 - **Timeline:** November 2025+ (Month 2+)
 - **Theme:** Advanced Orchestration - when simple agents prove insufficient
@@ -112,21 +132,36 @@ gantt
   - **ReACT Loop**: Enhanced observation-action cycles
   - **Multi-Agent Coordination**: When one agent isn't enough
   - **Tool Composition**: Complex tool chains
+  - **Concrete Lifecycle Hooks**: Retry logic, logging, HITL approval (using Layer 2.5 infrastructure)
 
 **Trigger**: When simple ReACT loop insufficient for complex tasks
+
+**Hook Implementations (Priority 1)**:
+  - Retry wrapper for `wrap_model_call` and `wrap_tool_call` (if API failures common)
+  - Logging/telemetry across all hooks (if debugging pain)
+  - Input validation via `before_agent` (if bad inputs cause issues)
+  - Context trimming via `before_model` (if hitting token limits)
 
 #### Layer 4: Enterprise Features (PLANNED 📅)
 - **Timeline:** Q1 2026+ (Month 3+)
 - **Theme:** Import V1 Research - enterprise sophistication when validated
 - **Features:**
-  - **MAPE-K Monitoring**: Self-adaptive monitoring (from V1)
-  - **Tower Validation**: Composable validation middleware (from V1)
+  - **MAPE-K Monitoring**: Self-adaptive monitoring via lifecycle hooks (from V1)
+  - **Tower Validation**: Composable validation as hook implementations (from V1)
   - **Typestate Patterns**: Compile-time safety guarantees (from V1)
   - **Git-Based Evolution**: Meta-layer analysis and improvement
-  - **OpenTelemetry**: Distributed tracing and metrics
+  - **OpenTelemetry**: Distributed tracing via lifecycle hooks
   - **Language Bindings**: Python/TypeScript interop
+  - **Advanced Hook Implementations**: HITL workflows, sophisticated retry/fallback, cost tracking
 
 **Source**: V1 archive (`archive/src-v1-enterprise/`, `context-network/archive/v1-research/`)
+
+**Import Strategy**: V1 Tower middleware maps cleanly to Layer 2.5 `AgentLifecycle` implementations
+
+**Hook Implementations (Priority 3)**:
+  - V1 async HITL imported as `after_model` hook
+  - V1 MAPE-K monitoring as comprehensive lifecycle hook suite
+  - Tower validation layers as `wrap_model_call` / `wrap_tool_call` chains
 
 **Trigger**: When Layer 1-3 proven and enterprise features validated through usage
 
@@ -207,11 +242,12 @@ gantt
 
 ## Metadata
 - **Created:** 2025-01-17
-- **Last Updated:** 2025-10-13
-- **Updated By:** V2 Strategic Reset Team
+- **Last Updated:** 2025-10-16
+- **Updated By:** Development Team
 
 ## Change History
 - 2025-01-17: Created 4-phase roadmap for Patinox development
 - 2025-09-18: Updated to reflect current project reality - Phase 1 completed, Phase 2 in progress
 - 2025-10-12: V2 Strategic Reset - pivoted from sophisticated-first to minimal-first architecture
 - 2025-10-13: Updated roadmap for V2 layered architecture (Layers 1-4 replacing Phases 1-4)
+- 2025-10-16: Added Layer 2.5 (Lifecycle Hook Architecture) based on validated external experience and LangChain V1 middleware model

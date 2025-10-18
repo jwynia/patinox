@@ -103,6 +103,12 @@ Multi-file and batch processing requires manual file discovery and traversal log
 
 **Deferred Improvements**: 3 code quality tasks (REFACTOR-001, ARCH-001, TEST-001) waiting for plugin architecture stability
 
+## Post-Layer 2.5 Work
+
+For detailed planning of work after Layer 2.5 completion, see:
+- [upcoming-post-layer-2.5.md](upcoming-post-layer-2.5.md) - Week 5+ plugin implementation and usage wave 2
+- [planning/post-layer-2.5-roadmap.md](../../planning/post-layer-2.5-roadmap.md) - Strategic roadmap for Layers 3-4
+
 ## Notes
 
 **V2 Approach**: This file documents *sequencing* rather than *speculation*. Tasks emerge from pain, not from planning sophistication in advance.
