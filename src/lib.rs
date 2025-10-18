@@ -19,17 +19,20 @@
 
 pub mod agent;
 pub mod cli;
+pub mod lifecycle;
 pub mod plugin;
 pub mod provider;
 pub mod tool;
 
 pub use agent::{create_agent, Agent, AgentConfig};
 pub use cli::run_cli;
+pub use lifecycle::{AgentLifecycle, HookAction};
 pub use provider::{LLMProvider, OpenAIProvider, Provider};
 pub use tool::{FnTool, Tool};
 
 /// Prelude module for convenient imports
 pub mod prelude {
+    pub use crate::lifecycle::{AgentLifecycle, HookAction};
     pub use crate::tool::ToolResult;
     pub use crate::{create_agent, run_cli, Agent, AgentConfig, FnTool, Provider, Tool};
 }

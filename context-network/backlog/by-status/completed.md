@@ -25,6 +25,40 @@ Tasks are moved from this file to `../archived/YYYY-MM/` at the end of each spri
 
 ## This Sprint (October 2025)
 
+### V2-ARCH-001 - Implement Lifecycle Hook Infrastructure
+**Priority**: High | **Size**: Medium (2-3 days) | **Effort**: Actual ~4-5 hours
+**Completed**: 2025-10-18
+**Branch**: `feat/v2-lifecycle-hooks`
+**Commit**: `0f0a65c24c10ad9ff88a2e9feb91f3dce603e6b4`
+**Status**: ✅ COMPLETE - Ready for review
+
+**Summary**: Comprehensive lifecycle hook system providing 6 middleware intervention points. Enables future enhancements (retry, HITL, telemetry) without premature implementation.
+
+**Implementation** (746 lines added):
+- ✅ New `src/lifecycle.rs` module (319 lines) with AgentLifecycle trait + HookAction enum
+- ✅ Agent integration (+292 lines) with `.with_lifecycle()` builder
+- ✅ All 6 hooks integrated: before_agent, before_model, wrap_model_call, after_model, wrap_tool_call, after_agent
+- ✅ Working example code (134 lines) demonstrating logging, filtering, chaining
+- ✅ 35 tests passing (9 lifecycle-specific + 26 integration)
+- ✅ Zero regression - agents work unchanged without hooks
+- ✅ TDD approach - tests written before implementation
+
+**Validation**:
+- ✅ cargo test (35/35 passing)
+- ✅ cargo fmt (clean)
+- ✅ cargo clippy (zero warnings)
+- ✅ Example compiles and runs successfully
+
+**Key Design Decisions**:
+- Trait-only approach (no concrete implementations yet)
+- Box<Pin<Future>> for trait object compatibility
+- Simplified wrap_* hooks to avoid lifetime complexity
+- Fast path optimization when no hooks registered
+
+**See**: [records/completion-v2-arch-001-2025-10-18.md](../../records/completion-v2-arch-001-2025-10-18.md)
+
+---
+
 ### V2-AGENT-002 - Build Documentation Generator Agent
 **Priority**: High | **Size**: Medium | **Effort**: 3-5 hours (Actual: ~70 minutes)
 **Completed**: 2025-10-13
