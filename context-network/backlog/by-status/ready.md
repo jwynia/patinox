@@ -84,110 +84,100 @@ This adds 3 extra lines per tool and breaks the ergonomic flow of agent building
 
 ---
 
-## Week 4: Layer 2.5 - Lifecycle Hook Architecture
+## Week 5+ (November 2025): V2 Plugin Implementation
 
-### 📅 V2-ARCH-001: Implement Lifecycle Hook Infrastructure
+### 🎯 PLUGIN-001-A: Implement Plugin Trait Foundation
 
-**One-liner**: Add 6-hook lifecycle architecture to enable future middleware without premature implementation
+**One-liner**: Create base plugin trait and integration architecture
 
-**Priority**: High (prevents architectural regret, validated by external experience)
-**Effort**: 2-3 days (trait definition + integration + tests + examples)
-**Branch**: `feat/v2-lifecycle-hooks`
-**Timeline**: Week 4 (October 24-31, 2025)
+**Priority**: Critical (enables high-priority Tool Context Helper)
+**Effort**: 1 day
+**Branch**: TBD (suggest: `feat/v2-plugin-foundation`)
+**Dependencies**: ✅ Layer 2.5 complete (V2-ARCH-001)
 
 **Why This Matters**:
-- Project lead has validated pain from external agent framework production use
-- LangChain V1 middleware validates industry need for 6 hook points
-- Adding now prevents costly refactoring later (current `run()` is monolithic)
-- Trait-only approach aligns with minimal-first (no implementations yet)
-- Zero runtime cost if unused (opt-in, default passthroughs)
+- Foundation for all plugin functionality
+- Unblocks PLUGIN-001-B (Tool Context Helper - Pain Score 30/30)
+- Establishes pattern for future plugins (CLI, Discovery, etc.)
+- Clean integration with existing builder pattern
 
 **Problem Statement**:
-Agent execution has 6 natural intervention points where middleware is needed:
-1. `before_agent` - Input validation, rate limiting, context loading
-2. `before_model` - Context window management, prompt injection
-3. `wrap_model_call` - Retry logic, fallback providers, telemetry
-4. `after_model` - HITL approval, safety validation
-5. `wrap_tool_call` - Tool retry, audit logging, permissions
-6. `after_agent` - Result persistence, metrics, notifications
-
-Without hook infrastructure, adding these later requires refactoring core `Agent::run()` method.
+The agent framework needs an extensibility mechanism for optional functionality that:
+1. Doesn't bloat the core Agent implementation
+2. Allows opt-in feature composition
+3. Maintains type safety and ergonomics
+4. Follows Rust plugin best practices
 
 **Acceptance Criteria**:
-- [ ] `AgentLifecycle` trait defined with all 6 hooks (default passthroughs)
-- [ ] Agent supports hook registration via `.with_lifecycle(hook)`
-- [ ] `run()` method calls hooks when present (fast path if empty)
-- [ ] All existing tests pass (zero regression)
-- [ ] Hook execution order validated (integration test)
-- [ ] Performance benchmarks: < 5% overhead with 1 hook, < 10% with 5 hooks
-- [ ] Example showing hook usage pattern
-- [ ] Rustdoc complete for all hooks
+- [ ] Plugin trait defined in `src/plugin/mod.rs` with clear lifecycle
+- [ ] Agent can register plugins via `.with_plugin()`
+- [ ] Plugin trait has initialization hook
+- [ ] Plugin trait can extend agent capabilities
+- [ ] Example plugin compiles and works
+- [ ] Rustdoc complete for plugin authoring
+- [ ] Tests verify plugin registration and lifecycle
 
-**Design Decisions**:
-See [decisions/lifecycle-hook-architecture.md](../../decisions/lifecycle-hook-architecture.md) for full design.
-
-**Files to Create/Modify**:
-- `src/lifecycle.rs` - NEW: AgentLifecycle trait + HookAction enum (~150 lines)
-- `src/agent.rs` - MODIFY: Add lifecycle vec, with_lifecycle(), hook calling (~50 lines added)
-- `src/lib.rs` - MODIFY: Export lifecycle module
-- `examples/lifecycle_hooks.rs` - NEW: Example hook implementations (~100 lines)
-- `benches/hook_overhead.rs` - NEW: Performance benchmarks
+**Design Considerations**:
+1. **Plugin Trait Shape**: Should plugins be stateful or stateless?
+2. **Integration Points**: What can plugins hook into? (builder, tools, execution)
+3. **Type Safety**: How to maintain type safety with dynamic plugin registration?
+4. **Performance**: Zero-cost when no plugins registered?
+5. **Composition**: Can multiple plugins work together?
 
 **Implementation Plan**:
 
-**Day 1-2: Trait Definition & Integration**
-1. Define `AgentLifecycle` trait with all 6 hooks
-2. Add `HookAction` enum (Continue, Approve, Reject, Modify)
-3. Update `Agent` struct with `lifecycle: Vec<Arc<dyn AgentLifecycle>>`
-4. Implement `.with_lifecycle()` builder method
-5. Add helper methods for calling hook chains
+**Phase 1: Trait Definition** (2-3 hours)
+```rust
+// src/plugin/mod.rs
+pub trait AgentPlugin: Send + Sync {
+    /// Plugin initialization when added to agent
+    fn init(&mut self, agent: &mut Agent) -> Result<()>;
 
-**Day 2-3: Hook Calling in run() Method**
-1. Add `before_agent` hook call before processing
-2. Add `before_model` hook call before provider
-3. Add `wrap_model_call` wrapper with hook chain
-4. Add `after_model` hook call after response
-5. Add `wrap_tool_call` wrapper in tool execution
-6. Add `after_agent` hook call before return
-7. Optimize fast path (empty lifecycle vec)
+    /// Plugin name for debugging
+    fn name(&self) -> &str;
+}
+```
 
-**Day 3: Testing & Examples**
-1. Unit tests for each hook's default implementation
-2. Integration test for hook execution order
-3. Regression tests (all existing tests pass)
-4. Performance benchmarks (overhead targets)
-5. Example: logging hook, retry hook, HITL mock
+**Phase 2: Builder Integration** (1-2 hours)
+- Add `plugins: Vec<Box<dyn AgentPlugin>>` to Agent struct
+- Implement `.with_plugin(impl AgentPlugin + 'static)` builder method
+- Call `init()` during agent build phase
 
-**V1 Import Path**:
-- V1 Tower middleware patterns can be imported as `AgentLifecycle` implementations
-- V1 MAPE-K monitoring becomes hook suite in Layer 4
-- V1 async HITL becomes `after_model` hook in Layer 4
+**Phase 3: Testing & Examples** (2-3 hours)
+- Unit tests for plugin registration
+- Integration test with example plugin
+- Document plugin authoring in rustdoc
 
-**Validation**:
-- External production experience confirms need for all 6 hooks
-- LangChain V1 chose identical hook points (industry validation)
-- Adding trait now is cheap insurance against refactoring later
+**Files to Create/Modify**:
+- `src/plugin/mod.rs` - NEW: Plugin trait and types
+- `src/agent.rs` - MODIFY: Add plugins field and `.with_plugin()` method
+- `src/lib.rs` - MODIFY: Export plugin module
+- `tests/plugin_integration.rs` - NEW: Plugin integration tests
+- `examples/custom_plugin.rs` - NEW: Example plugin implementation
 
-**Concrete Hooks Deferred to Layer 3**:
-- Retry logic (when API reliability becomes pain)
-- HITL approval (when safety becomes requirement)
-- Context trimming (when token limits hit)
-- Telemetry (when debugging becomes painful)
+**Success Metrics**:
+- [ ] Example plugin adds custom capability to agent
+- [ ] cargo test passes (all existing + new plugin tests)
+- [ ] cargo clippy passes (zero warnings)
+- [ ] Plugin trait documented well enough for external authors
+
+**Unblocks**:
+- PLUGIN-001-B: Tool Context Helper Implementation
+- PLUGIN-002: CLI Plugin Design
+- Future plugin development
 
 **See Also**:
-- [decisions/lifecycle-hook-architecture.md](../../decisions/lifecycle-hook-architecture.md) - Full design
-- [planning/lifecycle-hook-use-cases.md](../../planning/lifecycle-hook-use-cases.md) - 30+ use cases cataloged
-- [planning/roadmap.md](../../planning/roadmap.md) - Layer 2.5 timeline
-- [planning/layer-2.5-implementation/task-breakdown.md](../../planning/layer-2.5-implementation/task-breakdown.md) - Complete 17-task implementation breakdown
+- [records/completion-v2-plugin-001-design-2025-10-14.md](../../records/completion-v2-plugin-001-design-2025-10-14.md) - Design validation
+- [upcoming-post-layer-2.5.md](upcoming-post-layer-2.5.md) - Full PLUGIN-001 series
 
 ---
 
 ## Metadata
 
-**Last updated**: 2025-10-16 (V2-ARCH-001 added for Layer 2.5)
-**Last updated by**: Lifecycle Hook Architecture Planning
-**Total ready tasks**: 1 (V2-ARCH-001 ready for Week 4)
-**V2 Phase**: Layer 2.5 - Lifecycle Hook Architecture
+**Last updated**: 2025-11-13 (Transitioned from Layer 2.5 to Plugin Implementation)
+**Last updated by**: Backlog maintenance post-V2-ARCH-001 completion
+**Total ready tasks**: 2 (PLUGIN-001-A ready, V2-PLUGIN-001 design completed)
+**V2 Phase**: Layer 3 - Plugin Foundation & Tool Context Helper
 
 ## Grooming Insights
 

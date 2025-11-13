@@ -50,11 +50,12 @@ Too many in-progress tasks indicates:
 
 ## Metadata
 
-**Last updated**: 2025-10-14
-**Last updated by**: V2-PLUGIN-001 completed (design phase)
+**Last updated**: 2025-11-13
+**Last updated by**: Backlog maintenance post-Layer 2.5 completion
 **Total in-progress tasks**: 0
 **Average time in progress**: N/A
 **Longest in-progress task**: N/A
+**Next expected**: PLUGIN-001-A when implementation begins
 
 ## Notes
 

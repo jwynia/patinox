@@ -200,20 +200,21 @@ Tasks are moved from this file to `../archived/YYYY-MM/` at the end of each spri
 
 ## Metadata
 
-**Last updated**: 2025-10-13 (Grooming session)
-**Last updated by**: `/groom` command - sync-confirmed completions
-**Total completed (this sprint)**: 5 (DOCS-001, V2-PROVIDER-001, V2-AGENT-001, V2-AGENT-002, V2-ANALYSIS-001)
-**Sprint velocity**: 🚀 Ahead of schedule (75% complete in 4 days vs. 7 days planned)
+**Last updated**: 2025-11-13 (Backlog maintenance)
+**Last updated by**: Post-Layer 2.5 completion review
+**Total completed (this sprint)**: 6 (DOCS-001, V2-PROVIDER-001, V2-AGENT-001, V2-AGENT-002, V2-ANALYSIS-001, V2-ARCH-001)
+**Sprint velocity**: 🚀 Excellent - Layer 2.5 (Lifecycle Hooks) completed October 18, 2025
 
 ## Grooming Confirmations
 
-All 5 completed tasks validated during grooming:
+All 6 completed tasks validated:
 - ✅ Sync confirmed completions (no drift between plan and reality)
 - ✅ Evidence found for all tasks (code, docs, PRs)
 - ✅ Quality validated (clean code reviews, CI passing)
 - ✅ No orphaned work detected
+- ✅ V2-ARCH-001 merged via PR #23 on 2025-10-18
 
-**Next completions expected**: V2-PLUGIN-001 after design phase
+**Next completions expected**: PLUGIN-001-A (Plugin Foundation) → PLUGIN-001-B (Tool Context Helper)
 
 ## Notes
 
