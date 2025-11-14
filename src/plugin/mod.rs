@@ -14,15 +14,23 @@
 //!
 //! ## Available Plugins
 //!
-//! ### Tool Context Helper (V2-PLUGIN-001)
-//! **Status**: Design phase
+//! ### Tool Context Helper (V2-PLUGIN-001-B)
+//! **Status**: Implemented ✅
 //! **Pain Score**: 30/30 (Critical)
 //! **Problem**: Manual clone + move boilerplate for context-aware tools
 //! **Solution**: Extension methods like `.tool_fn_with()` that capture context automatically
 //!
-//! See: `context-network/planning/v2-plugin-tool-context-design.md` for design details
+//! See: [`tool_context`] module for implementation and usage examples
 
 use crate::agent::Agent;
+
+// Plugin modules
+pub mod tool_context;  // V2-PLUGIN-001-B (Tool Context Helper)
+// pub mod cli;           // V2-PLUGIN-002 (Future)
+// pub mod discovery;     // V2-PLUGIN-003 (Future)
+
+// Re-export for convenience
+pub use tool_context::ToolContextExt;
 
 /// Plugin trait for extending agents
 ///
@@ -45,11 +53,6 @@ pub trait AgentPlugin: Send + Sync {
     /// to maintain fluent API.
     fn apply(&self, agent: Agent) -> Agent;
 }
-
-// Future plugin modules will be added here as they're implemented
-// pub mod tool_context;  // V2-PLUGIN-001 (Week 3)
-// pub mod cli;           // V2-PLUGIN-002 (Week 3)
-// pub mod discovery;     // V2-PLUGIN-003 (Week 4)
 
 #[cfg(test)]
 mod tests {
