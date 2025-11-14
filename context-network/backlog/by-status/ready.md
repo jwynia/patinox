@@ -86,112 +86,116 @@ This adds 3 extra lines per tool and breaks the ergonomic flow of agent building
 
 ## Week 6+ (November 2025): V2 Plugin Implementation
 
-### 🎯 PLUGIN-002-A: CLI Plugin Design
+### 🎯 PLUGIN-002-B: CLI Plugin Implementation
 
-**One-liner**: Design CLI argument handling plugin
+**One-liner**: Implement CLI argument parsing plugin based on approved design
 
 **Priority**: Critical (Pain Score: 30/30 - affects 100% of CLI-based agents)
-**Effort**: 1 day
-**Branch**: TBD (suggest: `design/v2-cli-plugin`)
-**Dependencies**: ✅ PLUGIN-001 series complete (2025-11-13)
+**Effort**: 2-3 hours (implementation + tests)
+**Branch**: `claude/whats-the-01XRR7Sgm8RWLtG9AybHbfJ9`
+**Dependencies**: ✅ PLUGIN-002-A complete (2025-11-13)
 
 **Why This Matters**:
-- Pain Point #2 from both V2-AGENT-001 and V2-AGENT-002
-- Affects 100% of CLI-based agents
-- Manual CLI parsing requires ~30 lines per agent
-- Same boilerplate repeated in every example
+- Design (PLUGIN-002-A) validated to eliminate 70%+ CLI boilerplate
+- file_processor: 30 lines → 8 lines (73% reduction)
+- doc_generator: 35 lines → 10 lines (71% reduction)
+- Pattern affects 100% of CLI-based agents
 
-**Problem Statement**:
-Every CLI-based agent requires extensive manual argument parsing:
-```rust
-let args: Vec<String> = std::env::args().collect();
+**Implementation Scope**:
+Based on approved design at `context-network/planning/v2-cli-plugin-design.md`:
 
-if args.len() < 2 {
-    print_usage(&args[0]);
-    std::process::exit(1);
-}
+**Phase 1: Core Types & Builder** (30-45 mins)
+- Define `CliArgs`, `ArgSpec`, `ArgBuilder` structs
+- Implement builder pattern (`.arg()`, `.flag()`, `.required()`, etc.)
+- Implement basic `get()` and `get_optional()` accessors
 
-// Check for special flags
-if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
-    print_usage(&args[0]);
-    return Ok(());
-}
+**Phase 2: Parsing Logic** (45-60 mins)
+- Implement `parse()` method
+- Handle `--help` / `-h` automatically
+- Parse positional arguments
+- Parse flags (`--output`, `-o`)
+- Validate required arguments
+- Apply defaults for optional args
 
-let file_path = &args[1];
-let user_query = if args.len() > 2 {
-    args[2..].join(" ")
-} else {
-    format!("Default query...")
-};
-```
+**Phase 3: Help Generation** (20-30 mins)
+- Auto-generate help text from arg specs
+- Format output cleanly with USAGE, ARGUMENTS, OPTIONS sections
+- Include examples (optional)
 
-This affects both validated agents:
-- **V2-AGENT-001** (file_processor): 30 lines of CLI boilerplate
-- **V2-AGENT-002** (doc_generator): 35 lines of CLI boilerplate
-
-**Proposed Solution**:
-Plugin-based CLI handling with automatic parsing and help generation:
-```rust
-use patinox::plugin::cli::CliPlugin;
-
-let agent = create_agent("my-agent")
-    .with_plugin(CliPlugin::new()
-        .arg("file_path", "Path to file to process")
-            .required()
-        .arg("query", "Query to run (optional)")
-            .optional()
-            .default("Analyze this file")
-        .flag("verbose", "Enable verbose output")
-        .flag("help", "Show this help message")
-    );
-```
-
-**Design Goals**:
-1. **Eliminate boilerplate**: Reduce CLI parsing from ~30 lines to ~5-10 lines
-2. **Type safety**: Compile-time argument type checking
-3. **Auto help**: Generate `--help` output automatically from arg definitions
-4. **Error handling**: Clear error messages for missing/invalid arguments
-5. **Backward compatible**: Agents without CLI plugin work unchanged
+**Phase 4: Testing** (30-45 mins)
+- Unit tests for argument parsing
+- Unit tests for validation errors
+- Unit tests for help generation
+- Integration tests with example scenarios
 
 **Acceptance Criteria**:
-- [ ] Design document created with full API specification
-- [ ] Covers common CLI patterns (args, flags, optional args, defaults)
-- [ ] Type-safe argument parsing approach defined
-- [ ] Automatic help generation design
-- [ ] Integration with Agent builder pattern
-- [ ] Migration examples (before/after)
-- [ ] Design validated against both example agents
+- [ ] `src/cli.rs` module created with full implementation
+- [ ] All core types implemented (CliArgs, ArgSpec, ArgBuilder, CliError)
+- [ ] Builder API works: `.arg().required()`, `.optional()`, `.default()`, `.flag()`
+- [ ] Parsing handles positional args and flags correctly
+- [ ] `--help` automatically shows generated help text
+- [ ] Missing required args produce clear error messages
+- [ ] cargo test passes (all new CLI tests)
+- [ ] cargo clippy passes (zero warnings)
+- [ ] cargo doc builds cleanly
 
-**Deliverables**:
-- Design document (`context-network/planning/v2-cli-plugin-design.md`)
-- API specification with examples
-- Integration approach (how it works with Agent)
-- Migration guide (file_processor and doc_generator examples)
+**Files to Create**:
+- `src/cli.rs` - Main module file
+- `src/cli/args.rs` - CliArgs struct and implementation
+- `src/cli/builder.rs` - ArgBuilder for fluent API
+- `src/cli/error.rs` - CliError types
+- `src/cli/help.rs` - Help text generation (optional - can inline)
 
-**Key Design Questions to Answer**:
-1. **API Shape**: Extension trait vs Plugin trait vs both?
-2. **Argument Access**: How does agent/tool code access parsed args?
-3. **Type System**: How to support String, PathBuf, i32, bool, etc.?
-4. **Error Handling**: How to report missing/invalid arguments?
-5. **Help Generation**: How to auto-generate --help output?
+**Files to Modify**:
+- `src/lib.rs` - Export `pub mod cli;`
+
+**Test Coverage Required**:
+- Parse simple positional argument
+- Parse multiple positional arguments
+- Parse optional argument with default
+- Parse flags (`--output`, `-o`)
+- Validate missing required argument error
+- Validate unknown flag error
+- Generate help text correctly
+- Handle `--help` flag
+
+**Validation Strategy**:
+1. Implement core types and builder
+2. Run `cargo build` to verify types compile
+3. Implement parsing logic
+4. Add unit tests for parsing
+5. Implement help generation
+6. Add unit tests for help text
+7. Run full test suite: `cargo test`
+8. Run clippy: `cargo clippy`
+9. Build docs: `cargo doc`
+
+**Success Metrics**:
+- [ ] All tests pass
+- [ ] Zero clippy warnings
+- [ ] Documentation builds cleanly
+- [ ] API matches design specification
+- [ ] Ready for migration (PLUGIN-002-C)
 
 **Unblocks**:
-- PLUGIN-002-B: CLI Plugin Implementation
-- PLUGIN-002-C: CLI Plugin Documentation
+- PLUGIN-002-C: CLI Plugin Documentation (migration of examples)
+
+**Design Reference**:
+See [planning/v2-cli-plugin-design.md](../../planning/v2-cli-plugin-design.md) for complete API specification and design decisions.
 
 **See Also**:
+- [planning/v2-cli-plugin-design.md](../../planning/v2-cli-plugin-design.md) - Complete design spec
 - [records/pain-points-file-processor-2025-10-13.md](../../records/pain-points-file-processor-2025-10-13.md) - Pain Point #2
 - [records/pain-points-doc-generator-2025-10-13.md](../../records/pain-points-doc-generator-2025-10-13.md) - Pain Point #2
-- [upcoming-post-layer-2.5.md](upcoming-post-layer-2.5.md) - Full PLUGIN-002 series
 
 ---
 
 ## Metadata
 
-**Last updated**: 2025-11-13 (PLUGIN-001 series complete, PLUGIN-002-A now ready)
-**Last updated by**: Post-PLUGIN-001-C completion
-**Total ready tasks**: 1 (PLUGIN-002-A ready for design)
-**V2 Phase**: Layer 3 - CLI Plugin Design
+**Last updated**: 2025-11-13 (PLUGIN-002-A complete, PLUGIN-002-B now ready)
+**Last updated by**: Post-PLUGIN-002-A completion
+**Total ready tasks**: 1 (PLUGIN-002-B ready for implementation)
+**V2 Phase**: Layer 3 - CLI Plugin Implementation
 
 ## Grooming Insights
 

@@ -25,6 +25,46 @@ Tasks are moved from this file to `../archived/YYYY-MM/` at the end of each spri
 
 ## This Sprint (November 2025)
 
+### PLUGIN-002-A - CLI Plugin Design
+**Priority**: Critical (Pain Score: 30/30) | **Size**: Medium (1 day) | **Effort**: Actual ~2-3 hours
+**Completed**: 2025-11-13
+**Branch**: `claude/whats-the-01XRR7Sgm8RWLtG9AybHbfJ9`
+**Commit**: `b4d38ca`
+**Status**: ✅ COMPLETE
+
+**Summary**: Comprehensive design for CLI argument parsing plugin to eliminate 30-35 lines of boilerplate per CLI-based agent.
+
+**Design Deliverables** (558 lines):
+- ✅ Complete design document (v2-cli-plugin-design.md)
+- ✅ Pain point analysis (30-35 lines per agent)
+- ✅ API specification with builder pattern
+- ✅ Automatic `--help` generation design
+- ✅ Error handling approach
+- ✅ Migration examples (before/after)
+- ✅ Implementation plan (5 phases, ~10 hours)
+
+**Key Design Decisions**:
+- **Separate Parser**: `CliArgs::parse()` before agent creation (args needed for tool setup)
+- **Builder API**: `.arg().required()`, `.flag()`, `.optional()`, `.default()`
+- **Auto Help**: Generate help text from arg specs
+- **String-Only**: Start simple, add typed access later if needed
+
+**Design Coverage**:
+- ✅ Positional arguments (required & optional)
+- ✅ Flags (`--output`, `-o`)
+- ✅ Default values
+- ✅ Automatic `--help` handling
+- ✅ Clear error messages
+
+**Validation Against Examples**:
+- **file_processor**: 30 lines → 8 lines (73% reduction)
+- **doc_generator**: 35 lines → 10 lines (71% reduction)
+- **Pattern coverage**: 100% of CLI patterns in both agents
+
+**Unblocks**: PLUGIN-002-B (CLI Plugin Implementation)
+
+---
+
 ### PLUGIN-001-C - Tool Context Plugin Documentation
 **Priority**: High | **Size**: Small (0.5 days) | **Effort**: Actual ~1-2 hours
 **Completed**: 2025-11-13
@@ -340,13 +380,22 @@ Tasks are moved from this file to `../archived/YYYY-MM/` at the end of each spri
 
 ## Metadata
 
-**Last updated**: 2025-11-13 (PLUGIN-001-C completion - PLUGIN-001 series complete!)
-**Last updated by**: Tool Context Plugin Documentation
-**Total completed (current sprint)**: 3 (PLUGIN-001-A, PLUGIN-001-B, PLUGIN-001-C)
+**Last updated**: 2025-11-13 (PLUGIN-002-A completion - CLI design done!)
+**Last updated by**: CLI Plugin Design
+**Total completed (current sprint)**: 4 (PLUGIN-001-A, PLUGIN-001-B, PLUGIN-001-C, PLUGIN-002-A)
 **Total completed (previous sprint)**: 6 (DOCS-001, V2-PROVIDER-001, V2-AGENT-001, V2-AGENT-002, V2-ANALYSIS-001, V2-ARCH-001)
-**Sprint velocity**: 🚀🚀 Outstanding - Complete plugin series (3 tasks) in single day!
+**Sprint velocity**: 🚀🚀🚀 Exceptional - 4 major tasks in single day!
 
 ## Grooming Confirmations
+
+PLUGIN-002-A validated:
+- ✅ All acceptance criteria met
+- ✅ Comprehensive design (558 lines)
+- ✅ Covers 100% of CLI patterns in both agents
+- ✅ 70%+ boilerplate reduction validated
+- ✅ Clear API specification
+- ✅ Implementation plan complete
+- ✅ Commit: b4d38ca
 
 PLUGIN-001-C validated:
 - ✅ All acceptance criteria met
@@ -371,7 +420,7 @@ PLUGIN-001-A validated:
 - ✅ Example compiles and runs
 - ✅ Commit: 20253f8
 
-**Next completions expected**: PLUGIN-002-A (CLI Plugin Design) or other Layer 3 features
+**Next completions expected**: PLUGIN-002-B (CLI Plugin Implementation)
 
 ## Notes
 
