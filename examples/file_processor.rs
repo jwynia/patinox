@@ -44,12 +44,18 @@ fn main() -> patinox::Result<()> {
     // Create agent with file processing tools
     // Note: Using ToolContextExt to eliminate clone + move boilerplate
     let mut agent = create_agent("file_processor")
-        .tool_fn_with("read_file", "Read the contents of a file", file_path, |path, _args| {
-            read_file_tool(path)
-        })
-        .tool_fn_with("count_lines", "Count lines in a file", file_path, |path, _args| {
-            count_lines_tool(path)
-        })
+        .tool_fn_with(
+            "read_file",
+            "Read the contents of a file",
+            file_path,
+            |path, _args| read_file_tool(path),
+        )
+        .tool_fn_with(
+            "count_lines",
+            "Count lines in a file",
+            file_path,
+            |path, _args| count_lines_tool(path),
+        )
         .tool_fn_with(
             "get_file_info",
             "Get file metadata (size, type, etc.)",

@@ -21,9 +21,7 @@ impl AgentPlugin for DefaultToolsPlugin {
 
     fn apply(&self, agent: Agent) -> Agent {
         agent
-            .tool_fn("echo", "Echo back the input", |input: String| {
-                Ok(input)
-            })
+            .tool_fn("echo", "Echo back the input", |input: String| Ok(input))
             .tool_fn("uppercase", "Convert text to uppercase", |input: String| {
                 Ok(input.to_uppercase())
             })
@@ -35,16 +33,17 @@ impl AgentPlugin for DefaultToolsPlugin {
 
 /// A plugin that configures an agent with custom system prompts
 struct SystemPromptPlugin {
-    prompt: String,
+    _prompt: String,
 }
 
 impl SystemPromptPlugin {
     fn new(prompt: impl Into<String>) -> Self {
         Self {
-            prompt: prompt.into(),
+            _prompt: prompt.into(),
         }
     }
 
+    #[allow(dead_code)]
     fn helpful() -> Self {
         Self::new("You are a helpful and friendly AI assistant. Be concise and clear.")
     }

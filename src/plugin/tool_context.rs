@@ -191,10 +191,12 @@ mod tests {
     fn test_tool_fn_with_single_context() {
         let file_path = String::from("test.txt");
 
-        let agent = create_agent("test")
-            .tool_fn_with("read_file", "Read file", &file_path, |path, _args| {
-                Ok(format!("Reading {}", path))
-            });
+        let agent = create_agent("test").tool_fn_with(
+            "read_file",
+            "Read file",
+            &file_path,
+            |path, _args| Ok(format!("Reading {}", path)),
+        );
 
         // Verify tool was added
         assert!(agent.tools.contains_key("read_file"));
@@ -204,10 +206,12 @@ mod tests {
     fn test_tool_fn_with_executes_correctly() {
         let file_path = String::from("data.txt");
 
-        let agent = create_agent("test")
-            .tool_fn_with("read_file", "Read file", &file_path, |path, _args| {
-                Ok(format!("Reading {}", path))
-            });
+        let agent = create_agent("test").tool_fn_with(
+            "read_file",
+            "Read file",
+            &file_path,
+            |path, _args| Ok(format!("Reading {}", path)),
+        );
 
         // Execute the tool directly
         let tool = agent.tools.get("read_file").unwrap();
@@ -266,18 +270,8 @@ mod tests {
         assert!(agent.tools.contains_key("info"));
 
         // Both tools should have access to the same context value
-        let read_result = agent
-            .tools
-            .get("read")
-            .unwrap()
-            .execute(json!({}))
-            .unwrap();
-        let info_result = agent
-            .tools
-            .get("info")
-            .unwrap()
-            .execute(json!({}))
-            .unwrap();
+        let read_result = agent.tools.get("read").unwrap().execute(json!({})).unwrap();
+        let info_result = agent.tools.get("info").unwrap().execute(json!({})).unwrap();
 
         assert!(read_result.contains("shared.txt"));
         assert!(info_result.contains("shared.txt"));

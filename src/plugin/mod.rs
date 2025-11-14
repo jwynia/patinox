@@ -25,9 +25,9 @@
 use crate::agent::Agent;
 
 // Plugin modules
-pub mod tool_context;  // V2-PLUGIN-001-B (Tool Context Helper)
-// pub mod cli;           // V2-PLUGIN-002 (Future)
-// pub mod discovery;     // V2-PLUGIN-003 (Future)
+pub mod tool_context; // V2-PLUGIN-001-B (Tool Context Helper)
+                      // pub mod cli;           // V2-PLUGIN-002 (Future)
+                      // pub mod discovery;     // V2-PLUGIN-003 (Future)
 
 // Re-export for convenience
 pub use tool_context::ToolContextExt;
@@ -109,8 +109,7 @@ mod tests {
 
     #[test]
     fn test_plugin_applies_to_agent() {
-        let agent = create_agent("test")
-            .with_plugin(NameSuffixPlugin::new("v1"));
+        let agent = create_agent("test").with_plugin(NameSuffixPlugin::new("v1"));
 
         assert_eq!(agent.config.name, "test-v1");
     }

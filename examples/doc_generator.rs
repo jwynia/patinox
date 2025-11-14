@@ -50,9 +50,12 @@ fn main() -> patinox::Result<()> {
     // Create agent with documentation tools
     // Note: Using ToolContextExt to eliminate clone + move boilerplate
     let mut agent = create_agent("doc_generator")
-        .tool_fn_with("read_source", "Read Rust source file", source_path, |path, _args| {
-            read_source_tool(path)
-        })
+        .tool_fn_with(
+            "read_source",
+            "Read Rust source file",
+            source_path,
+            |path, _args| read_source_tool(path),
+        )
         .tool_fn_with(
             "get_module_info",
             "Get information about the module",
