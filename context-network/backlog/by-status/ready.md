@@ -86,87 +86,97 @@ This adds 3 extra lines per tool and breaks the ergonomic flow of agent building
 
 ## Week 5+ (November 2025): V2 Plugin Implementation
 
-### 🎯 PLUGIN-001-A: Implement Plugin Trait Foundation
+### 🎯 PLUGIN-001-B: Tool Context Helper Implementation
 
-**One-liner**: Create base plugin trait and integration architecture
+**One-liner**: Eliminate closure capture boilerplate for tools with context
 
-**Priority**: Critical (enables high-priority Tool Context Helper)
-**Effort**: 1 day
-**Branch**: TBD (suggest: `feat/v2-plugin-foundation`)
-**Dependencies**: ✅ Layer 2.5 complete (V2-ARCH-001)
+**Priority**: Critical (Pain Score: 30/30 - validated across 100% of agents)
+**Effort**: 2 days
+**Branch**: TBD (suggest: `feat/v2-tool-context-helper`)
+**Dependencies**: ✅ PLUGIN-001-A complete (2025-11-13)
 
 **Why This Matters**:
-- Foundation for all plugin functionality
-- Unblocks PLUGIN-001-B (Tool Context Helper - Pain Score 30/30)
-- Establishes pattern for future plugins (CLI, Discovery, etc.)
-- Clean integration with existing builder pattern
+- Pain Point #1 from both V2-AGENT-001 and V2-AGENT-002
+- Affects 100% of context-aware tools (7/9 tools across both agents)
+- Frequency: 3, Severity: 10, Score: 30 (CRITICAL)
+- 75% reduction in boilerplate per tool
 
 **Problem Statement**:
-The agent framework needs an extensibility mechanism for optional functionality that:
-1. Doesn't bloat the core Agent implementation
-2. Allows opt-in feature composition
-3. Maintains type safety and ergonomics
-4. Follows Rust plugin best practices
+Every tool that needs external context (file paths, config, state) requires manual clone + move boilerplate:
+```rust
+.tool_fn("read_file", "Read contents", {
+    let path = file_path.clone();  // ❌ Manual clone
+    move |_args| read_file_tool(&path)  // ❌ Manual move
+})
+```
+
+This affects 7 out of 9 tools across validated agents:
+- **V2-AGENT-001**: 3/4 tools (read_file, count_lines, get_file_info)
+- **V2-AGENT-002**: 4/5 tools (read_source, get_module_info, extract_public_api, count_functions)
+
+**Solution Design**:
+Extension trait providing context capture automatically:
+```rust
+use patinox::plugin::tool_context::ToolContextExt;
+
+.tool_fn_with("read_file", "Read contents", &file_path,
+    |path, _args| read_file_tool(path))  // ✅ Zero boilerplate
+```
 
 **Acceptance Criteria**:
-- [ ] Plugin trait defined in `src/plugin/mod.rs` with clear lifecycle
-- [ ] Agent can register plugins via `.with_plugin()`
-- [ ] Plugin trait has initialization hook
-- [ ] Plugin trait can extend agent capabilities
-- [ ] Example plugin compiles and works
-- [ ] Rustdoc complete for plugin authoring
-- [ ] Tests verify plugin registration and lifecycle
-
-**Design Considerations**:
-1. **Plugin Trait Shape**: Should plugins be stateful or stateless?
-2. **Integration Points**: What can plugins hook into? (builder, tools, execution)
-3. **Type Safety**: How to maintain type safety with dynamic plugin registration?
-4. **Performance**: Zero-cost when no plugins registered?
-5. **Composition**: Can multiple plugins work together?
+- [ ] `ToolContextExt` trait implemented with `tool_fn_with()` and `tool_fn_with2()`
+- [ ] Zero boilerplate for single and dual context capture
+- [ ] Type-safe context access (compile-time checks)
+- [ ] Works with existing tools (100% backward compatible)
+- [ ] Reduces file_processor agent by ~30 lines (validated)
+- [ ] Reduces doc_generator agent by ~40 lines (validated)
+- [ ] Zero runtime overhead (compiles to same code as manual)
+- [ ] Comprehensive tests (unit + integration)
+- [ ] Example demonstrating usage
 
 **Implementation Plan**:
 
-**Phase 1: Trait Definition** (2-3 hours)
-```rust
-// src/plugin/mod.rs
-pub trait AgentPlugin: Send + Sync {
-    /// Plugin initialization when added to agent
-    fn init(&mut self, agent: &mut Agent) -> Result<()>;
+**Phase 1: Extension Trait** (3-4 hours)
+- Implement `ToolContextExt` trait in `src/plugin/tool_context.rs`
+- `tool_fn_with<T, F>()` for single context
+- `tool_fn_with2<T1, T2, F>()` for dual context
+- Generic bounds: `T: Clone + Send + Sync + 'static`
 
-    /// Plugin name for debugging
-    fn name(&self) -> &str;
-}
-```
+**Phase 2: Integration** (2-3 hours)
+- Implement trait for `Agent`
+- Closure captures context automatically
+- Wraps in FnTool internally
 
-**Phase 2: Builder Integration** (1-2 hours)
-- Add `plugins: Vec<Box<dyn AgentPlugin>>` to Agent struct
-- Implement `.with_plugin(impl AgentPlugin + 'static)` builder method
-- Call `init()` during agent build phase
+**Phase 3: Testing & Validation** (3-4 hours)
+- Unit tests for single/dual context
+- Integration tests with MockProvider
+- Refactor file_processor.rs to use plugin
+- Refactor doc_generator.rs to use plugin
+- Performance validation (zero overhead)
 
-**Phase 3: Testing & Examples** (2-3 hours)
-- Unit tests for plugin registration
-- Integration test with example plugin
-- Document plugin authoring in rustdoc
-
-**Files to Create/Modify**:
-- `src/plugin/mod.rs` - NEW: Plugin trait and types
-- `src/agent.rs` - MODIFY: Add plugins field and `.with_plugin()` method
-- `src/lib.rs` - MODIFY: Export plugin module
-- `tests/plugin_integration.rs` - NEW: Plugin integration tests
-- `examples/custom_plugin.rs` - NEW: Example plugin implementation
+**Files to Modify**:
+- `src/plugin/tool_context.rs` - IMPLEMENT: ToolContextExt trait (currently design spec)
+- `src/plugin/mod.rs` - Export ToolContextExt
+- `src/lib.rs` - Add to prelude for easy import
+- `examples/file_processor.rs` - REFACTOR: Use tool_fn_with
+- `examples/doc_generator.rs` - REFACTOR: Use tool_fn_with
 
 **Success Metrics**:
-- [ ] Example plugin adds custom capability to agent
-- [ ] cargo test passes (all existing + new plugin tests)
+- [ ] 75% reduction in boilerplate (validated before/after)
+- [ ] cargo test passes (all existing + new tests)
 - [ ] cargo clippy passes (zero warnings)
-- [ ] Plugin trait documented well enough for external authors
+- [ ] Both agents compile and run with plugin
+- [ ] Performance identical to manual clone + move
 
 **Unblocks**:
-- PLUGIN-001-B: Tool Context Helper Implementation
+- PLUGIN-001-C: Tool Context Plugin Documentation
 - PLUGIN-002: CLI Plugin Design
-- Future plugin development
+- Adoption across other agents
 
 **See Also**:
+- [planning/v2-plugin-tool-context-design.md](../../planning/v2-plugin-tool-context-design.md) - Complete design
+- [records/pain-points-file-processor-2025-10-13.md](../../records/pain-points-file-processor-2025-10-13.md) - Pain analysis
+- [records/pain-points-doc-generator-2025-10-13.md](../../records/pain-points-doc-generator-2025-10-13.md) - Pain analysis
 - [records/completion-v2-plugin-001-design-2025-10-14.md](../../records/completion-v2-plugin-001-design-2025-10-14.md) - Design validation
 - [upcoming-post-layer-2.5.md](upcoming-post-layer-2.5.md) - Full PLUGIN-001 series
 
@@ -174,10 +184,10 @@ pub trait AgentPlugin: Send + Sync {
 
 ## Metadata
 
-**Last updated**: 2025-11-13 (Transitioned from Layer 2.5 to Plugin Implementation)
-**Last updated by**: Backlog maintenance post-V2-ARCH-001 completion
-**Total ready tasks**: 2 (PLUGIN-001-A ready, V2-PLUGIN-001 design completed)
-**V2 Phase**: Layer 3 - Plugin Foundation & Tool Context Helper
+**Last updated**: 2025-11-13 (PLUGIN-001-A completed, PLUGIN-001-B now ready)
+**Last updated by**: Plugin foundation completion
+**Total ready tasks**: 1 (PLUGIN-001-B ready for implementation)
+**V2 Phase**: Layer 3 - Tool Context Helper Implementation
 
 ## Grooming Insights
 
