@@ -42,23 +42,32 @@ fn main() -> patinox::Result<()> {
     };
 
     // Create agent with file processing tools
+    // Note: Using ToolContextExt to eliminate clone + move boilerplate
     let mut agent = create_agent("file_processor")
-        .tool_fn("read_file", "Read the contents of a file", {
-            let path = file_path.clone();
-            move |_args| read_file_tool(&path)
-        })
-        .tool_fn("count_lines", "Count lines in a file", {
-            let path = file_path.clone();
-            move |_args| count_lines_tool(&path)
-        })
-        .tool_fn("get_file_info", "Get file metadata (size, type, etc.)", {
-            let path = file_path.clone();
-            move |_args| get_file_info_tool(&path)
-        })
-        .tool_fn("extract_keywords", "Extract keywords from file content", {
-            let path = file_path.clone();
-            move |_args| extract_keywords_tool(&path)
-        });
+        .tool_fn_with(
+            "read_file",
+            "Read the contents of a file",
+            file_path,
+            |path, _args| read_file_tool(path),
+        )
+        .tool_fn_with(
+            "count_lines",
+            "Count lines in a file",
+            file_path,
+            |path, _args| count_lines_tool(path),
+        )
+        .tool_fn_with(
+            "get_file_info",
+            "Get file metadata (size, type, etc.)",
+            file_path,
+            |path, _args| get_file_info_tool(path),
+        )
+        .tool_fn_with(
+            "extract_keywords",
+            "Extract keywords from file content",
+            file_path,
+            |path, _args| extract_keywords_tool(path),
+        );
 
     // Set up OpenAI provider
     let config = ProviderConfig::new(Provider::OpenAI)

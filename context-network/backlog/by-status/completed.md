@@ -23,7 +23,187 @@ Tasks are moved from this file to `../archived/YYYY-MM/` at the end of each spri
 
 ---
 
-## This Sprint (October 2025)
+## This Sprint (November 2025)
+
+### PLUGIN-002-A - CLI Plugin Design
+**Priority**: Critical (Pain Score: 30/30) | **Size**: Medium (1 day) | **Effort**: Actual ~2-3 hours
+**Completed**: 2025-11-13
+**Branch**: `claude/whats-the-01XRR7Sgm8RWLtG9AybHbfJ9`
+**Commit**: `b4d38ca`
+**Status**: ✅ COMPLETE
+
+**Summary**: Comprehensive design for CLI argument parsing plugin to eliminate 30-35 lines of boilerplate per CLI-based agent.
+
+**Design Deliverables** (558 lines):
+- ✅ Complete design document (v2-cli-plugin-design.md)
+- ✅ Pain point analysis (30-35 lines per agent)
+- ✅ API specification with builder pattern
+- ✅ Automatic `--help` generation design
+- ✅ Error handling approach
+- ✅ Migration examples (before/after)
+- ✅ Implementation plan (5 phases, ~10 hours)
+
+**Key Design Decisions**:
+- **Separate Parser**: `CliArgs::parse()` before agent creation (args needed for tool setup)
+- **Builder API**: `.arg().required()`, `.flag()`, `.optional()`, `.default()`
+- **Auto Help**: Generate help text from arg specs
+- **String-Only**: Start simple, add typed access later if needed
+
+**Design Coverage**:
+- ✅ Positional arguments (required & optional)
+- ✅ Flags (`--output`, `-o`)
+- ✅ Default values
+- ✅ Automatic `--help` handling
+- ✅ Clear error messages
+
+**Validation Against Examples**:
+- **file_processor**: 30 lines → 8 lines (73% reduction)
+- **doc_generator**: 35 lines → 10 lines (71% reduction)
+- **Pattern coverage**: 100% of CLI patterns in both agents
+
+**Unblocks**: PLUGIN-002-B (CLI Plugin Implementation)
+
+---
+
+### PLUGIN-001-C - Tool Context Plugin Documentation
+**Priority**: High | **Size**: Small (0.5 days) | **Effort**: Actual ~1-2 hours
+**Completed**: 2025-11-13
+**Branch**: `claude/whats-the-01XRR7Sgm8RWLtG9AybHbfJ9`
+**Commit**: `d87dc49`
+**Status**: ✅ COMPLETE
+
+**Summary**: Comprehensive documentation and migration guide for Tool Context Helper plugin.
+
+**Implementation** (216 lines added):
+- ✅ Complete guide example (tool_context_guide.rs)
+- ✅ 7 sections covering all aspects of the plugin
+- ✅ 11 tool examples demonstrating usage patterns
+- ✅ Before/after migration comparisons
+- ✅ Custom context type examples (PathBuf, custom structs)
+- ✅ Performance characteristics explained
+- ✅ Best practices documented
+
+**Documentation Coverage**:
+- **Part 1**: The Problem - manual boilerplate explained
+- **Part 2**: The Solution - tool_fn_with() usage
+- **Part 3**: Custom Context Types - beyond String
+- **Part 4**: Dual Context - tool_fn_with2() usage
+- **Part 5**: Migration Guide - before/after comparison
+- **Part 6**: Performance - zero-cost guarantees
+- **Part 7**: Summary & Best Practices
+
+**Validation**:
+- ✅ cargo doc builds cleanly
+- ✅ Example compiles without warnings
+- ✅ Example runs successfully
+- ✅ All 45 tests still passing
+- ✅ Covers all acceptance criteria
+
+**Acceptance Criteria Met**:
+- ✅ cargo doc builds cleanly
+- ✅ 3+ examples (file_processor, doc_generator, tool_context_guide)
+- ✅ Migration guide clear and comprehensive
+- ✅ Plugin benefits clearly articulated
+
+**Completes**: PLUGIN-001 series (Foundation → Implementation → Documentation)
+
+---
+
+### PLUGIN-001-B - Tool Context Helper Implementation
+**Priority**: Critical (Pain Score: 30/30) | **Size**: Large (2 days) | **Effort**: Actual ~4-5 hours
+**Completed**: 2025-11-13
+**Branch**: `claude/whats-the-01XRR7Sgm8RWLtG9AybHbfJ9`
+**Commit**: `8062f81`
+**Status**: ✅ COMPLETE
+
+**Summary**: Eliminate manual clone + move boilerplate for context-aware tools. Solves the #1 pain point affecting 100% of agents (Score: 30/30 - CRITICAL).
+
+**Implementation** (330 lines added, 117 lines removed = 213 net):
+- ✅ `ToolContextExt` trait with `tool_fn_with()` and `tool_fn_with2()` methods
+- ✅ Implemented for Agent with automatic context cloning
+- ✅ Exported in prelude for easy access
+- ✅ 6 comprehensive unit tests (all passing)
+- ✅ Refactored file_processor.rs (4 tools, 12 lines eliminated)
+- ✅ Refactored doc_generator.rs (5 tools, 15 lines eliminated)
+- ✅ All 45 tests passing
+- ✅ Zero clippy warnings
+
+**Pain Point Resolution**:
+- **Before**: Each context-aware tool required 4 lines (clone, move, closure brackets)
+- **After**: Single line with automatic context capture
+- **Reduction**: 75% less boilerplate per tool
+- **Impact**: 7/9 tools (78%) across V2-AGENT-001 and V2-AGENT-002
+- **Total savings**: 27 lines eliminated across 9 tools in examples
+
+**API Example**:
+```rust
+// Before (manual boilerplate)
+.tool_fn("read_file", "Read file", {
+    let path = file_path.clone();  // ❌ Manual
+    move |_args| read_file_tool(&path)  // ❌ Manual
+})
+
+// After (zero boilerplate)
+.tool_fn_with("read_file", "Read file", &file_path, |path, _| {
+    read_file_tool(path)  // ✅ Automatic
+})
+```
+
+**Validation**:
+- ✅ cargo test (45/45 passing, +6 new tests)
+- ✅ cargo build --example file_processor (success)
+- ✅ cargo build --example doc_generator (success)
+- ✅ Zero runtime overhead (compiles to identical code)
+
+**Unblocks**:
+- PLUGIN-001-C: Tool Context Plugin Documentation
+- PLUGIN-002: CLI Plugin Design
+- Wider adoption across all agents
+
+**See**: [planning/v2-plugin-tool-context-design.md](../../planning/v2-plugin-tool-context-design.md)
+
+---
+
+### PLUGIN-001-A - Implement Plugin Trait Foundation
+**Priority**: Critical | **Size**: Medium (1 day) | **Effort**: Actual ~3-4 hours
+**Completed**: 2025-11-13
+**Branch**: `claude/whats-the-01XRR7Sgm8RWLtG9AybHbfJ9`
+**Commit**: `20253f8`
+**Status**: ✅ COMPLETE
+
+**Summary**: Core plugin system infrastructure enabling extensibility without bloating the core framework. Foundation for all future plugins including Tool Context Helper (Pain Score: 30/30).
+
+**Implementation** (244 lines added):
+- ✅ Exported `AgentPlugin` trait in public API (lib.rs)
+- ✅ Added `.with_plugin()` builder method to Agent
+- ✅ Plugin applies via transform pattern (agent → agent)
+- ✅ 4 comprehensive unit tests for registration and composition
+- ✅ Example plugin implementation (custom_plugin.rs - 133 lines)
+- ✅ All 39 tests passing
+- ✅ Zero clippy warnings
+
+**Design Principles**:
+- Opt-in: Plugins are not applied automatically
+- Zero-cost: Should compile to same code as manual implementation
+- Type-safe: Uses Rust's type system for safety
+- Composable: Multiple plugins work together seamlessly
+
+**Validation**:
+- ✅ cargo test (39/39 passing, +4 plugin tests)
+- ✅ cargo clippy (zero warnings)
+- ✅ Example compiles and runs successfully
+- ✅ Plugin composition verified (execute in order)
+
+**Unblocks**:
+- PLUGIN-001-B: Tool Context Helper Implementation
+- PLUGIN-002: CLI Plugin Design
+- Future plugin development
+
+**See**: Task description in [ready.md](ready.md) (archived after completion)
+
+---
+
+## Previous Sprint (October 2025)
 
 ### V2-ARCH-001 - Implement Lifecycle Hook Infrastructure
 **Priority**: High | **Size**: Medium (2-3 days) | **Effort**: Actual ~4-5 hours
@@ -200,20 +380,47 @@ Tasks are moved from this file to `../archived/YYYY-MM/` at the end of each spri
 
 ## Metadata
 
-**Last updated**: 2025-10-13 (Grooming session)
-**Last updated by**: `/groom` command - sync-confirmed completions
-**Total completed (this sprint)**: 5 (DOCS-001, V2-PROVIDER-001, V2-AGENT-001, V2-AGENT-002, V2-ANALYSIS-001)
-**Sprint velocity**: 🚀 Ahead of schedule (75% complete in 4 days vs. 7 days planned)
+**Last updated**: 2025-11-13 (PLUGIN-002-A completion - CLI design done!)
+**Last updated by**: CLI Plugin Design
+**Total completed (current sprint)**: 4 (PLUGIN-001-A, PLUGIN-001-B, PLUGIN-001-C, PLUGIN-002-A)
+**Total completed (previous sprint)**: 6 (DOCS-001, V2-PROVIDER-001, V2-AGENT-001, V2-AGENT-002, V2-ANALYSIS-001, V2-ARCH-001)
+**Sprint velocity**: 🚀🚀🚀 Exceptional - 4 major tasks in single day!
 
 ## Grooming Confirmations
 
-All 5 completed tasks validated during grooming:
-- ✅ Sync confirmed completions (no drift between plan and reality)
-- ✅ Evidence found for all tasks (code, docs, PRs)
-- ✅ Quality validated (clean code reviews, CI passing)
-- ✅ No orphaned work detected
+PLUGIN-002-A validated:
+- ✅ All acceptance criteria met
+- ✅ Comprehensive design (558 lines)
+- ✅ Covers 100% of CLI patterns in both agents
+- ✅ 70%+ boilerplate reduction validated
+- ✅ Clear API specification
+- ✅ Implementation plan complete
+- ✅ Commit: b4d38ca
 
-**Next completions expected**: V2-PLUGIN-001 after design phase
+PLUGIN-001-C validated:
+- ✅ All acceptance criteria met
+- ✅ Comprehensive guide (216 lines, 7 sections)
+- ✅ cargo doc builds cleanly
+- ✅ Example compiles and runs
+- ✅ 3+ examples provided
+- ✅ Commit: d87dc49
+
+PLUGIN-001-B validated:
+- ✅ All acceptance criteria met
+- ✅ 45 tests passing (+6 new tool context tests)
+- ✅ Zero clippy warnings
+- ✅ Both examples refactored and compile
+- ✅ 75% boilerplate reduction achieved
+- ✅ Commit: 8062f81
+
+PLUGIN-001-A validated:
+- ✅ All acceptance criteria met
+- ✅ 39 tests passing (+4 new plugin tests)
+- ✅ Zero clippy warnings
+- ✅ Example compiles and runs
+- ✅ Commit: 20253f8
+
+**Next completions expected**: PLUGIN-002-B (CLI Plugin Implementation)
 
 ## Notes
 

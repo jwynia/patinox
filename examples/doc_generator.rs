@@ -48,30 +48,41 @@ fn main() -> patinox::Result<()> {
             .to_string();
 
     // Create agent with documentation tools
+    // Note: Using ToolContextExt to eliminate clone + move boilerplate
     let mut agent = create_agent("doc_generator")
-        .tool_fn("read_source", "Read Rust source file", {
-            let path = source_path.clone();
-            move |_args| read_source_tool(&path)
-        })
-        .tool_fn("get_module_info", "Get information about the module", {
-            let path = source_path.clone();
-            move |_args| get_module_info_tool(&path)
-        })
-        .tool_fn("extract_public_api", "Extract public API items", {
-            let path = source_path.clone();
-            move |_args| extract_public_api_tool(&path)
-        })
-        .tool_fn("count_functions", "Count functions in the source", {
-            let path = source_path.clone();
-            move |_args| count_functions_tool(&path)
-        });
+        .tool_fn_with(
+            "read_source",
+            "Read Rust source file",
+            source_path,
+            |path, _args| read_source_tool(path),
+        )
+        .tool_fn_with(
+            "get_module_info",
+            "Get information about the module",
+            source_path,
+            |path, _args| get_module_info_tool(path),
+        )
+        .tool_fn_with(
+            "extract_public_api",
+            "Extract public API items",
+            source_path,
+            |path, _args| extract_public_api_tool(path),
+        )
+        .tool_fn_with(
+            "count_functions",
+            "Count functions in the source",
+            source_path,
+            |path, _args| count_functions_tool(path),
+        );
 
     // Add write tool if output path specified
     if let Some(ref out_path) = output_path {
-        agent = agent.tool_fn("write_documentation", "Write documentation to file", {
-            let path = out_path.clone();
-            move |content| write_documentation_tool(&path, content)
-        });
+        agent = agent.tool_fn_with(
+            "write_documentation",
+            "Write documentation to file",
+            out_path,
+            |path, content| write_documentation_tool(path, content),
+        );
     }
 
     // Set up OpenAI provider

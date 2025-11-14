@@ -84,110 +84,118 @@ This adds 3 extra lines per tool and breaks the ergonomic flow of agent building
 
 ---
 
-## Week 4: Layer 2.5 - Lifecycle Hook Architecture
+## Week 6+ (November 2025): V2 Plugin Implementation
 
-### 📅 V2-ARCH-001: Implement Lifecycle Hook Infrastructure
+### 🎯 PLUGIN-002-B: CLI Plugin Implementation
 
-**One-liner**: Add 6-hook lifecycle architecture to enable future middleware without premature implementation
+**One-liner**: Implement CLI argument parsing plugin based on approved design
 
-**Priority**: High (prevents architectural regret, validated by external experience)
-**Effort**: 2-3 days (trait definition + integration + tests + examples)
-**Branch**: `feat/v2-lifecycle-hooks`
-**Timeline**: Week 4 (October 24-31, 2025)
+**Priority**: Critical (Pain Score: 30/30 - affects 100% of CLI-based agents)
+**Effort**: 2-3 hours (implementation + tests)
+**Branch**: `claude/whats-the-01XRR7Sgm8RWLtG9AybHbfJ9`
+**Dependencies**: ✅ PLUGIN-002-A complete (2025-11-13)
 
 **Why This Matters**:
-- Project lead has validated pain from external agent framework production use
-- LangChain V1 middleware validates industry need for 6 hook points
-- Adding now prevents costly refactoring later (current `run()` is monolithic)
-- Trait-only approach aligns with minimal-first (no implementations yet)
-- Zero runtime cost if unused (opt-in, default passthroughs)
+- Design (PLUGIN-002-A) validated to eliminate 70%+ CLI boilerplate
+- file_processor: 30 lines → 8 lines (73% reduction)
+- doc_generator: 35 lines → 10 lines (71% reduction)
+- Pattern affects 100% of CLI-based agents
 
-**Problem Statement**:
-Agent execution has 6 natural intervention points where middleware is needed:
-1. `before_agent` - Input validation, rate limiting, context loading
-2. `before_model` - Context window management, prompt injection
-3. `wrap_model_call` - Retry logic, fallback providers, telemetry
-4. `after_model` - HITL approval, safety validation
-5. `wrap_tool_call` - Tool retry, audit logging, permissions
-6. `after_agent` - Result persistence, metrics, notifications
+**Implementation Scope**:
+Based on approved design at `context-network/planning/v2-cli-plugin-design.md`:
 
-Without hook infrastructure, adding these later requires refactoring core `Agent::run()` method.
+**Phase 1: Core Types & Builder** (30-45 mins)
+- Define `CliArgs`, `ArgSpec`, `ArgBuilder` structs
+- Implement builder pattern (`.arg()`, `.flag()`, `.required()`, etc.)
+- Implement basic `get()` and `get_optional()` accessors
+
+**Phase 2: Parsing Logic** (45-60 mins)
+- Implement `parse()` method
+- Handle `--help` / `-h` automatically
+- Parse positional arguments
+- Parse flags (`--output`, `-o`)
+- Validate required arguments
+- Apply defaults for optional args
+
+**Phase 3: Help Generation** (20-30 mins)
+- Auto-generate help text from arg specs
+- Format output cleanly with USAGE, ARGUMENTS, OPTIONS sections
+- Include examples (optional)
+
+**Phase 4: Testing** (30-45 mins)
+- Unit tests for argument parsing
+- Unit tests for validation errors
+- Unit tests for help generation
+- Integration tests with example scenarios
 
 **Acceptance Criteria**:
-- [ ] `AgentLifecycle` trait defined with all 6 hooks (default passthroughs)
-- [ ] Agent supports hook registration via `.with_lifecycle(hook)`
-- [ ] `run()` method calls hooks when present (fast path if empty)
-- [ ] All existing tests pass (zero regression)
-- [ ] Hook execution order validated (integration test)
-- [ ] Performance benchmarks: < 5% overhead with 1 hook, < 10% with 5 hooks
-- [ ] Example showing hook usage pattern
-- [ ] Rustdoc complete for all hooks
+- [ ] `src/cli.rs` module created with full implementation
+- [ ] All core types implemented (CliArgs, ArgSpec, ArgBuilder, CliError)
+- [ ] Builder API works: `.arg().required()`, `.optional()`, `.default()`, `.flag()`
+- [ ] Parsing handles positional args and flags correctly
+- [ ] `--help` automatically shows generated help text
+- [ ] Missing required args produce clear error messages
+- [ ] cargo test passes (all new CLI tests)
+- [ ] cargo clippy passes (zero warnings)
+- [ ] cargo doc builds cleanly
 
-**Design Decisions**:
-See [decisions/lifecycle-hook-architecture.md](../../decisions/lifecycle-hook-architecture.md) for full design.
+**Files to Create**:
+- `src/cli.rs` - Main module file
+- `src/cli/args.rs` - CliArgs struct and implementation
+- `src/cli/builder.rs` - ArgBuilder for fluent API
+- `src/cli/error.rs` - CliError types
+- `src/cli/help.rs` - Help text generation (optional - can inline)
 
-**Files to Create/Modify**:
-- `src/lifecycle.rs` - NEW: AgentLifecycle trait + HookAction enum (~150 lines)
-- `src/agent.rs` - MODIFY: Add lifecycle vec, with_lifecycle(), hook calling (~50 lines added)
-- `src/lib.rs` - MODIFY: Export lifecycle module
-- `examples/lifecycle_hooks.rs` - NEW: Example hook implementations (~100 lines)
-- `benches/hook_overhead.rs` - NEW: Performance benchmarks
+**Files to Modify**:
+- `src/lib.rs` - Export `pub mod cli;`
 
-**Implementation Plan**:
+**Test Coverage Required**:
+- Parse simple positional argument
+- Parse multiple positional arguments
+- Parse optional argument with default
+- Parse flags (`--output`, `-o`)
+- Validate missing required argument error
+- Validate unknown flag error
+- Generate help text correctly
+- Handle `--help` flag
 
-**Day 1-2: Trait Definition & Integration**
-1. Define `AgentLifecycle` trait with all 6 hooks
-2. Add `HookAction` enum (Continue, Approve, Reject, Modify)
-3. Update `Agent` struct with `lifecycle: Vec<Arc<dyn AgentLifecycle>>`
-4. Implement `.with_lifecycle()` builder method
-5. Add helper methods for calling hook chains
+**Validation Strategy**:
+1. Implement core types and builder
+2. Run `cargo build` to verify types compile
+3. Implement parsing logic
+4. Add unit tests for parsing
+5. Implement help generation
+6. Add unit tests for help text
+7. Run full test suite: `cargo test`
+8. Run clippy: `cargo clippy`
+9. Build docs: `cargo doc`
 
-**Day 2-3: Hook Calling in run() Method**
-1. Add `before_agent` hook call before processing
-2. Add `before_model` hook call before provider
-3. Add `wrap_model_call` wrapper with hook chain
-4. Add `after_model` hook call after response
-5. Add `wrap_tool_call` wrapper in tool execution
-6. Add `after_agent` hook call before return
-7. Optimize fast path (empty lifecycle vec)
+**Success Metrics**:
+- [ ] All tests pass
+- [ ] Zero clippy warnings
+- [ ] Documentation builds cleanly
+- [ ] API matches design specification
+- [ ] Ready for migration (PLUGIN-002-C)
 
-**Day 3: Testing & Examples**
-1. Unit tests for each hook's default implementation
-2. Integration test for hook execution order
-3. Regression tests (all existing tests pass)
-4. Performance benchmarks (overhead targets)
-5. Example: logging hook, retry hook, HITL mock
+**Unblocks**:
+- PLUGIN-002-C: CLI Plugin Documentation (migration of examples)
 
-**V1 Import Path**:
-- V1 Tower middleware patterns can be imported as `AgentLifecycle` implementations
-- V1 MAPE-K monitoring becomes hook suite in Layer 4
-- V1 async HITL becomes `after_model` hook in Layer 4
-
-**Validation**:
-- External production experience confirms need for all 6 hooks
-- LangChain V1 chose identical hook points (industry validation)
-- Adding trait now is cheap insurance against refactoring later
-
-**Concrete Hooks Deferred to Layer 3**:
-- Retry logic (when API reliability becomes pain)
-- HITL approval (when safety becomes requirement)
-- Context trimming (when token limits hit)
-- Telemetry (when debugging becomes painful)
+**Design Reference**:
+See [planning/v2-cli-plugin-design.md](../../planning/v2-cli-plugin-design.md) for complete API specification and design decisions.
 
 **See Also**:
-- [decisions/lifecycle-hook-architecture.md](../../decisions/lifecycle-hook-architecture.md) - Full design
-- [planning/lifecycle-hook-use-cases.md](../../planning/lifecycle-hook-use-cases.md) - 30+ use cases cataloged
-- [planning/roadmap.md](../../planning/roadmap.md) - Layer 2.5 timeline
-- [planning/layer-2.5-implementation/task-breakdown.md](../../planning/layer-2.5-implementation/task-breakdown.md) - Complete 17-task implementation breakdown
+- [planning/v2-cli-plugin-design.md](../../planning/v2-cli-plugin-design.md) - Complete design spec
+- [records/pain-points-file-processor-2025-10-13.md](../../records/pain-points-file-processor-2025-10-13.md) - Pain Point #2
+- [records/pain-points-doc-generator-2025-10-13.md](../../records/pain-points-doc-generator-2025-10-13.md) - Pain Point #2
 
 ---
 
 ## Metadata
 
-**Last updated**: 2025-10-16 (V2-ARCH-001 added for Layer 2.5)
-**Last updated by**: Lifecycle Hook Architecture Planning
-**Total ready tasks**: 1 (V2-ARCH-001 ready for Week 4)
-**V2 Phase**: Layer 2.5 - Lifecycle Hook Architecture
+**Last updated**: 2025-11-13 (PLUGIN-002-A complete, PLUGIN-002-B now ready)
+**Last updated by**: Post-PLUGIN-002-A completion
+**Total ready tasks**: 1 (PLUGIN-002-B ready for implementation)
+**V2 Phase**: Layer 3 - CLI Plugin Implementation
 
 ## Grooming Insights
 

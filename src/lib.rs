@@ -27,12 +27,14 @@ pub mod tool;
 pub use agent::{create_agent, Agent, AgentConfig};
 pub use cli::run_cli;
 pub use lifecycle::{AgentLifecycle, HookAction};
+pub use plugin::AgentPlugin;
 pub use provider::{LLMProvider, OpenAIProvider, Provider};
 pub use tool::{FnTool, Tool};
 
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::lifecycle::{AgentLifecycle, HookAction};
+    pub use crate::plugin::ToolContextExt;
     pub use crate::tool::ToolResult;
     pub use crate::{create_agent, run_cli, Agent, AgentConfig, FnTool, Provider, Tool};
 }
