@@ -27,6 +27,7 @@ pub mod tool;
 pub use agent::{create_agent, Agent, AgentConfig};
 pub use cli::run_cli;
 pub use lifecycle::{AgentLifecycle, HookAction};
+pub use plugin::AgentPlugin;
 pub use provider::{LLMProvider, OpenAIProvider, Provider};
 pub use tool::{FnTool, Tool};
 

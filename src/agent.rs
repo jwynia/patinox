@@ -120,6 +120,28 @@ impl Agent {
         self
     }
 
+    /// Apply a plugin to extend agent capabilities
+    ///
+    /// Plugins transform the agent to add optional functionality. Each plugin
+    /// implements the [`AgentPlugin`](crate::plugin::AgentPlugin) trait and
+    /// can modify the agent during construction.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use patinox::plugin::tool_context::ToolContextPlugin;
+    ///
+    /// let agent = create_agent("my-agent")
+    ///     .with_plugin(ToolContextPlugin::new());
+    /// ```
+    ///
+    /// # Plugin Philosophy
+    /// - Plugins are opt-in and don't affect agents that don't use them
+    /// - Multiple plugins can be composed together
+    /// - Plugins should be zero-cost abstractions when possible
+    pub fn with_plugin(self, plugin: impl crate::plugin::AgentPlugin) -> Self {
+        plugin.apply(self)
+    }
+
     /// Run the agent with a single input
     pub async fn run(&self, input: impl Into<String>) -> crate::Result<String> {
         use crate::lifecycle::HookAction;
