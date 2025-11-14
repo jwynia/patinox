@@ -84,110 +84,114 @@ This adds 3 extra lines per tool and breaks the ergonomic flow of agent building
 
 ---
 
-## Week 5+ (November 2025): V2 Plugin Implementation
+## Week 6+ (November 2025): V2 Plugin Implementation
 
-### 🎯 PLUGIN-001-B: Tool Context Helper Implementation
+### 🎯 PLUGIN-002-A: CLI Plugin Design
 
-**One-liner**: Eliminate closure capture boilerplate for tools with context
+**One-liner**: Design CLI argument handling plugin
 
-**Priority**: Critical (Pain Score: 30/30 - validated across 100% of agents)
-**Effort**: 2 days
-**Branch**: TBD (suggest: `feat/v2-tool-context-helper`)
-**Dependencies**: ✅ PLUGIN-001-A complete (2025-11-13)
+**Priority**: Critical (Pain Score: 30/30 - affects 100% of CLI-based agents)
+**Effort**: 1 day
+**Branch**: TBD (suggest: `design/v2-cli-plugin`)
+**Dependencies**: ✅ PLUGIN-001 series complete (2025-11-13)
 
 **Why This Matters**:
-- Pain Point #1 from both V2-AGENT-001 and V2-AGENT-002
-- Affects 100% of context-aware tools (7/9 tools across both agents)
-- Frequency: 3, Severity: 10, Score: 30 (CRITICAL)
-- 75% reduction in boilerplate per tool
+- Pain Point #2 from both V2-AGENT-001 and V2-AGENT-002
+- Affects 100% of CLI-based agents
+- Manual CLI parsing requires ~30 lines per agent
+- Same boilerplate repeated in every example
 
 **Problem Statement**:
-Every tool that needs external context (file paths, config, state) requires manual clone + move boilerplate:
+Every CLI-based agent requires extensive manual argument parsing:
 ```rust
-.tool_fn("read_file", "Read contents", {
-    let path = file_path.clone();  // ❌ Manual clone
-    move |_args| read_file_tool(&path)  // ❌ Manual move
-})
+let args: Vec<String> = std::env::args().collect();
+
+if args.len() < 2 {
+    print_usage(&args[0]);
+    std::process::exit(1);
+}
+
+// Check for special flags
+if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
+    print_usage(&args[0]);
+    return Ok(());
+}
+
+let file_path = &args[1];
+let user_query = if args.len() > 2 {
+    args[2..].join(" ")
+} else {
+    format!("Default query...")
+};
 ```
 
-This affects 7 out of 9 tools across validated agents:
-- **V2-AGENT-001**: 3/4 tools (read_file, count_lines, get_file_info)
-- **V2-AGENT-002**: 4/5 tools (read_source, get_module_info, extract_public_api, count_functions)
+This affects both validated agents:
+- **V2-AGENT-001** (file_processor): 30 lines of CLI boilerplate
+- **V2-AGENT-002** (doc_generator): 35 lines of CLI boilerplate
 
-**Solution Design**:
-Extension trait providing context capture automatically:
+**Proposed Solution**:
+Plugin-based CLI handling with automatic parsing and help generation:
 ```rust
-use patinox::plugin::tool_context::ToolContextExt;
+use patinox::plugin::cli::CliPlugin;
 
-.tool_fn_with("read_file", "Read contents", &file_path,
-    |path, _args| read_file_tool(path))  // ✅ Zero boilerplate
+let agent = create_agent("my-agent")
+    .with_plugin(CliPlugin::new()
+        .arg("file_path", "Path to file to process")
+            .required()
+        .arg("query", "Query to run (optional)")
+            .optional()
+            .default("Analyze this file")
+        .flag("verbose", "Enable verbose output")
+        .flag("help", "Show this help message")
+    );
 ```
+
+**Design Goals**:
+1. **Eliminate boilerplate**: Reduce CLI parsing from ~30 lines to ~5-10 lines
+2. **Type safety**: Compile-time argument type checking
+3. **Auto help**: Generate `--help` output automatically from arg definitions
+4. **Error handling**: Clear error messages for missing/invalid arguments
+5. **Backward compatible**: Agents without CLI plugin work unchanged
 
 **Acceptance Criteria**:
-- [ ] `ToolContextExt` trait implemented with `tool_fn_with()` and `tool_fn_with2()`
-- [ ] Zero boilerplate for single and dual context capture
-- [ ] Type-safe context access (compile-time checks)
-- [ ] Works with existing tools (100% backward compatible)
-- [ ] Reduces file_processor agent by ~30 lines (validated)
-- [ ] Reduces doc_generator agent by ~40 lines (validated)
-- [ ] Zero runtime overhead (compiles to same code as manual)
-- [ ] Comprehensive tests (unit + integration)
-- [ ] Example demonstrating usage
+- [ ] Design document created with full API specification
+- [ ] Covers common CLI patterns (args, flags, optional args, defaults)
+- [ ] Type-safe argument parsing approach defined
+- [ ] Automatic help generation design
+- [ ] Integration with Agent builder pattern
+- [ ] Migration examples (before/after)
+- [ ] Design validated against both example agents
 
-**Implementation Plan**:
+**Deliverables**:
+- Design document (`context-network/planning/v2-cli-plugin-design.md`)
+- API specification with examples
+- Integration approach (how it works with Agent)
+- Migration guide (file_processor and doc_generator examples)
 
-**Phase 1: Extension Trait** (3-4 hours)
-- Implement `ToolContextExt` trait in `src/plugin/tool_context.rs`
-- `tool_fn_with<T, F>()` for single context
-- `tool_fn_with2<T1, T2, F>()` for dual context
-- Generic bounds: `T: Clone + Send + Sync + 'static`
-
-**Phase 2: Integration** (2-3 hours)
-- Implement trait for `Agent`
-- Closure captures context automatically
-- Wraps in FnTool internally
-
-**Phase 3: Testing & Validation** (3-4 hours)
-- Unit tests for single/dual context
-- Integration tests with MockProvider
-- Refactor file_processor.rs to use plugin
-- Refactor doc_generator.rs to use plugin
-- Performance validation (zero overhead)
-
-**Files to Modify**:
-- `src/plugin/tool_context.rs` - IMPLEMENT: ToolContextExt trait (currently design spec)
-- `src/plugin/mod.rs` - Export ToolContextExt
-- `src/lib.rs` - Add to prelude for easy import
-- `examples/file_processor.rs` - REFACTOR: Use tool_fn_with
-- `examples/doc_generator.rs` - REFACTOR: Use tool_fn_with
-
-**Success Metrics**:
-- [ ] 75% reduction in boilerplate (validated before/after)
-- [ ] cargo test passes (all existing + new tests)
-- [ ] cargo clippy passes (zero warnings)
-- [ ] Both agents compile and run with plugin
-- [ ] Performance identical to manual clone + move
+**Key Design Questions to Answer**:
+1. **API Shape**: Extension trait vs Plugin trait vs both?
+2. **Argument Access**: How does agent/tool code access parsed args?
+3. **Type System**: How to support String, PathBuf, i32, bool, etc.?
+4. **Error Handling**: How to report missing/invalid arguments?
+5. **Help Generation**: How to auto-generate --help output?
 
 **Unblocks**:
-- PLUGIN-001-C: Tool Context Plugin Documentation
-- PLUGIN-002: CLI Plugin Design
-- Adoption across other agents
+- PLUGIN-002-B: CLI Plugin Implementation
+- PLUGIN-002-C: CLI Plugin Documentation
 
 **See Also**:
-- [planning/v2-plugin-tool-context-design.md](../../planning/v2-plugin-tool-context-design.md) - Complete design
-- [records/pain-points-file-processor-2025-10-13.md](../../records/pain-points-file-processor-2025-10-13.md) - Pain analysis
-- [records/pain-points-doc-generator-2025-10-13.md](../../records/pain-points-doc-generator-2025-10-13.md) - Pain analysis
-- [records/completion-v2-plugin-001-design-2025-10-14.md](../../records/completion-v2-plugin-001-design-2025-10-14.md) - Design validation
-- [upcoming-post-layer-2.5.md](upcoming-post-layer-2.5.md) - Full PLUGIN-001 series
+- [records/pain-points-file-processor-2025-10-13.md](../../records/pain-points-file-processor-2025-10-13.md) - Pain Point #2
+- [records/pain-points-doc-generator-2025-10-13.md](../../records/pain-points-doc-generator-2025-10-13.md) - Pain Point #2
+- [upcoming-post-layer-2.5.md](upcoming-post-layer-2.5.md) - Full PLUGIN-002 series
 
 ---
 
 ## Metadata
 
-**Last updated**: 2025-11-13 (PLUGIN-001-A completed, PLUGIN-001-B now ready)
-**Last updated by**: Plugin foundation completion
-**Total ready tasks**: 1 (PLUGIN-001-B ready for implementation)
-**V2 Phase**: Layer 3 - Tool Context Helper Implementation
+**Last updated**: 2025-11-13 (PLUGIN-001 series complete, PLUGIN-002-A now ready)
+**Last updated by**: Post-PLUGIN-001-C completion
+**Total ready tasks**: 1 (PLUGIN-002-A ready for design)
+**V2 Phase**: Layer 3 - CLI Plugin Design
 
 ## Grooming Insights
 
